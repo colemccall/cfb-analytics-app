@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Players — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">CFB Analytics</span>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="players.html" class="active">Players</a>
+    <a href="ratings.html">Ratings</a>
+    <a href="research.html">Research</a>
+  </div>
+  <span class="nav-spacer"></span>
+  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+</nav>
+
+<div class="page-header">
+  <h1>Player Search</h1>
+  <p>Search and filter all rated players. Click any card for a full SHAP breakdown.</p>
+</div>
+
+<div class="page-content">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Position</span>
+      <select id="filter-position">
+        <option value="ALL">All Positions</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Conference</span>
+      <select id="filter-conference">
+        <option value="">All Conferences</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Min Rating: <span id="min-rating-label">0</span></span>
+      <input type="range" id="filter-min-rating" min="0" max="99" value="0" step="1">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Search</span>
+      <input type="text" id="search-input" placeholder="Player or team name…">
+    </div>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="player-grid" id="player-grid">
+    <p class="empty-state">Loading players…</p>
+  </div>
+</div>
+
+<!-- Player detail modal -->
+<div class="modal-overlay" id="player-modal">
+  <div class="modal-inner"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/playerSearch.js"></script>
+<script>
+  const savedTheme = localStorage.getItem("cfb-theme");
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+  function cycleTheme() {
+    const themes = ["dynasty-dark", "mid", "light"];
+    const html = document.documentElement;
+    const curr = html.getAttribute("data-theme") || "dynasty-dark";
+    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("cfb-theme", next);
+  }
+
+  initPlayerSearch();
+</script>
+</body>
+</html>

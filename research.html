@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .research-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .research-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem;
+    }
+    .research-card h3 { font-family: var(--font-display); color: var(--accent); margin-bottom: 0.5rem; }
+    .research-card p  { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 0.75rem; }
+    .research-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 3px;
+      font-size: var(--fs-xs); background: var(--accent-dim); color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .finding-stat {
+      font-family: var(--font-display); font-size: var(--fs-2xl);
+      color: var(--text); font-weight: 700;
+    }
+    .coming-soon { opacity: 0.45; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">CFB Analytics</span>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="players.html">Players</a>
+    <a href="ratings.html">Ratings</a>
+    <a href="research.html" class="active">Research</a>
+  </div>
+  <span class="nav-spacer"></span>
+  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+</nav>
+
+<div class="page-header">
+  <h1>Research Findings</h1>
+  <p>Data-driven answers to genuine questions about college football. Each finding includes methodology and accuracy reports.</p>
+</div>
+
+<div class="page-content">
+  <div id="published-findings"></div>
+
+  <h2 style="font-family:var(--font-display);color:var(--accent);margin:2rem 0 1rem;font-size:var(--fs-xl)">Upcoming Research</h2>
+  <div class="research-grid">
+    <div class="research-card coming-soon">
+      <span class="research-tag">Transfer Portal</span>
+      <h3>G5→P4 Transfer Success Predictor</h3>
+      <p>Which production profiles and competition contexts predict P4 success better than raw stats?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Transfer Portal</span>
+      <h3>Year 1 vs Year 2 Transfer Performance</h3>
+      <p>Do transfers underperform in Year 1 (adjustment) but peak in Year 2 if retained?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Game Strategy</span>
+      <h3>Bye Week Effect: Help or Hurt?</h3>
+      <p>Do bye weeks help struggling teams more than they help good teams? Pre/post-bye performance analysis.</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Environment</span>
+      <h3>Altitude Advantage (RQ19)</h3>
+      <p>Do Boise State, Air Force, and Wyoming have quantifiable late-game advantages at altitude?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Scheme</span>
+      <h3>Portable OC Schemes</h3>
+      <p>Do some offensive coordinators succeed anywhere, or are they talent-dependent?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">NIL</span>
+      <h3>NIL Efficiency: Production per Dollar</h3>
+      <p>Which positions and program types deliver the best production per NIL dollar spent?</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+  const savedTheme = localStorage.getItem("cfb-theme");
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+  function cycleTheme() {
+    const themes = ["dynasty-dark", "mid", "light"];
+    const html = document.documentElement;
+    const curr = html.getAttribute("data-theme") || "dynasty-dark";
+    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("cfb-theme", next);
+  }
+
+  // Load published research findings from static JSON
+  async function loadPublishedFindings() {
+    const container = document.getElementById("published-findings");
+    try {
+      const index = await fetch(CONFIG.DATA_BASE + "research/index.json");
+      if (!index.ok) throw new Error("No research published yet");
+      const findings = await index.json();
+      if (!findings.length) throw new Error("No findings");
+      container.innerHTML = `
+        <h2 style="font-family:var(--font-display);color:var(--accent);margin-bottom:1rem;font-size:var(--fs-xl)">Published Findings</h2>
+        <div class="research-grid">${findings.map(f => `
+          <div class="research-card">
+            <span class="research-tag">${f.category}</span>
+            <h3>${f.title}</h3>
+            <p>${f.summary}</p>
+            <div class="finding-stat">${f.headline_stat}</div>
+          </div>`).join("")}
+        </div>`;
+    } catch {
+      container.innerHTML = '<p class="empty-state">No published findings yet — check back after the pipeline runs.</p>';
+    }
+  }
+
+  loadPublishedFindings();
+</script>
+</body>
+</html>

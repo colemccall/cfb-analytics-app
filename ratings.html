@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ratings — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">CFB Analytics</span>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="players.html">Players</a>
+    <a href="ratings.html" class="active">Ratings</a>
+    <a href="research.html">Research</a>
+  </div>
+  <span class="nav-spacer"></span>
+  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+</nav>
+
+<div class="page-header">
+  <h1>Player Ratings</h1>
+  <p>XGBoost-derived 0–100 ratings by position. 🔥 = breakout candidate. ▲▼ = year-over-year trajectory.</p>
+</div>
+
+<div class="page-content">
+  <div class="position-tabs" id="position-tabs"></div>
+  <div id="leaderboard"></div>
+
+  <div class="scatter-section">
+    <h2>Rating vs Recruiting Stars</h2>
+    <p class="section-sub">
+      Players above the dashed trend line outperform their recruiting ranking — the "hidden gems" our model identifies.
+      Green dots = 8+ points above trend.
+    </p>
+    <div id="scatter-chart"></div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/ratingsDisplay.js"></script>
+<script>
+  const savedTheme = localStorage.getItem("cfb-theme");
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+  function cycleTheme() {
+    const themes = ["dynasty-dark", "mid", "light"];
+    const html = document.documentElement;
+    const curr = html.getAttribute("data-theme") || "dynasty-dark";
+    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("cfb-theme", next);
+  }
+
+  initRatings();
+</script>
+</body>
+</html>

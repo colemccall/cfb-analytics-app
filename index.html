@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">CFB Analytics</span>
+  <div class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="players.html">Players</a>
+    <a href="ratings.html">Ratings</a>
+    <a href="research.html">Research</a>
+  </div>
+  <span class="nav-spacer"></span>
+  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+</nav>
+
+<section class="hero">
+  <h1>College Football Analytics</h1>
+  <p>XGBoost-powered player ratings that outperform recruiting rankings. Find the hidden gems — players whose production exceeds their stars.</p>
+  <div class="hero-cta">
+    <a href="ratings.html" class="btn btn-primary">View Top Ratings</a>
+    <a href="players.html" class="btn btn-secondary">Search Players</a>
+  </div>
+</section>
+
+<div class="feature-grid">
+  <div class="feature-card">
+    <h3>ML-Powered Ratings</h3>
+    <p>XGBoost models trained per position group. Ratings explain themselves via SHAP values — no black boxes.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Hidden Gems</h3>
+    <p>Find players whose production far exceeds their recruiting ranking. The Rating vs Stars scatter plot makes overperformers instantly visible.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Transfer Portal Intelligence</h3>
+    <p>Track which G5 players succeed at P4, which transfers overperform in Year 1 vs Year 2, and which serial transfers are red flags.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Research-Driven</h3>
+    <p>Genuine analytical findings on bye weeks, scheme fit, altitude advantage, and more — published with methodology and accuracy reports.</p>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+  function cycleTheme() {
+    const themes = ["dynasty-dark", "mid", "light"];
+    const html = document.documentElement;
+    const curr = html.getAttribute("data-theme") || "dynasty-dark";
+    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("cfb-theme", next);
+  }
+  const savedTheme = localStorage.getItem("cfb-theme");
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+</script>
+</body>
+</html>
