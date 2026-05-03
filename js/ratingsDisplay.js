@@ -11,13 +11,35 @@ let _activePosition = "QB";
 // ---------------------------------------------------------------------------
 
 async function initRatings() {
-  // Load static JSON for scatter plot (has recruiting data)
-  const [playersResp, ratingsResp] = await Promise.all([
-    fetch(CONFIG.DATA_BASE + "players.json"),
-    fetch(CONFIG.DATA_BASE + "ratings_by_position.json"),
-  ]);
-  _allPlayers = await playersResp.json();
-  _ratingsByPosition = await ratingsResp.json();
+  document.getElementById("leaderboard").innerHTML = '<p class="empty-state">Loading ratings…</p>';
+  try {
+    _allPlayers = await fetchAllPlayers();
+  } catch (e) {
+    document.getElementById("leaderboard").innerHTML = `<p class="empty-state">Failed to load ratings: ${e.message}</p>`;
+    return;
+  }
+
+  // Group by position_group for the leaderboard tabs
+  for (const p of _allPlayers) {
+    const pg = p.position_group || "Other";
+    if (!_ratingsByPosition[pg]) _ratingsByPosition[pg] = [];
+    _ratingsByPosition[pg].push({
+      name:           p.name,
+      overall:        p.overall_rating,
+      trajectory:     p.trajectory,
+      breakout_prob:  p.breakout_prob,
+      team:           p.team,
+      team_abbr:      p.team,
+      conference:     p.conference,
+      year:           p.year,
+      stars:          p.stars,
+      composite:      p.composite_score,
+    });
+  }
+  // Sort each position group by overall rating desc
+  for (const pg of Object.keys(_ratingsByPosition)) {
+    _ratingsByPosition[pg].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  }
 
   buildPositionTabs();
   showPosition(_activePosition);

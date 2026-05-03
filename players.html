@@ -16,10 +16,15 @@
     <a href="index.html">Home</a>
     <a href="players.html" class="active">Players</a>
     <a href="ratings.html">Ratings</a>
+    <a href="teams.html">Teams</a>
     <a href="research.html">Research</a>
   </div>
   <span class="nav-spacer"></span>
-  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+  <div class="theme-swatches">
+    <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
+    <button class="theme-swatch" data-theme="mid" title="Slate"></button>
+    <button class="theme-swatch" data-theme="light" title="Light"></button>
+  </div>
 </nav>
 
 <div class="page-header">
@@ -28,28 +33,36 @@
 </div>
 
 <div class="page-content">
+  <!-- Top filter bar: search + selects + rating slider -->
   <div class="filter-bar">
     <div class="filter-group">
-      <span class="filter-label">Position</span>
-      <select id="filter-position">
-        <option value="ALL">All Positions</option>
-      </select>
+      <input type="text" id="search-input" placeholder="Search player or team…">
     </div>
     <div class="filter-group">
-      <span class="filter-label">Conference</span>
       <select id="filter-conference">
         <option value="">All Conferences</option>
       </select>
     </div>
     <div class="filter-group">
-      <span class="filter-label">Min Rating: <span id="min-rating-label">0</span></span>
+      <select id="filter-season">
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+      </select>
+    </div>
+    <div class="filter-group filter-group-range">
+      <span class="filter-label">Min OVR: <strong id="min-rating-label">0</strong></span>
       <input type="range" id="filter-min-rating" min="0" max="99" value="0" step="1">
     </div>
-    <div class="filter-group">
-      <span class="filter-label">Search</span>
-      <input type="text" id="search-input" placeholder="Player or team name…">
-    </div>
     <span class="result-count" id="result-count"></span>
+  </div>
+
+  <!-- Position chip filters (two rows: offense / defense+special) -->
+  <div class="pos-filter-rows">
+    <div class="pos-filter-row" id="pos-chips-offense"></div>
+    <div class="pos-filter-row" id="pos-chips-defense"></div>
   </div>
 
   <div class="player-grid" id="player-grid">
@@ -66,18 +79,15 @@
 <script src="js/supabaseClient.js"></script>
 <script src="js/playerSearch.js"></script>
 <script>
-  const savedTheme = localStorage.getItem("cfb-theme");
-  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
-
-  function cycleTheme() {
-    const themes = ["dynasty-dark", "mid", "light"];
-    const html = document.documentElement;
-    const curr = html.getAttribute("data-theme") || "dynasty-dark";
-    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
-    html.setAttribute("data-theme", next);
-    localStorage.setItem("cfb-theme", next);
-  }
-
+  const _savedTheme = localStorage.getItem("cfb-theme");
+  if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
+  document.querySelectorAll(".theme-swatch").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = btn.dataset.theme;
+      document.documentElement.setAttribute("data-theme", t);
+      localStorage.setItem("cfb-theme", t);
+    });
+  });
   initPlayerSearch();
 </script>
 </body>

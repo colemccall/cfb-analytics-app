@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teams — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">CFB Analytics</span>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="players.html">Players</a>
+    <a href="ratings.html">Ratings</a>
+    <a href="teams.html" class="active">Teams</a>
+    <a href="research.html">Research</a>
+  </div>
+  <span class="nav-spacer"></span>
+  <div class="theme-swatches">
+    <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
+    <button class="theme-swatch" data-theme="mid" title="Slate"></button>
+    <button class="theme-swatch" data-theme="light" title="Light"></button>
+  </div>
+</nav>
+
+<div class="teams-layout">
+  <!-- Sidebar: team list -->
+  <aside class="teams-sidebar">
+    <div class="sidebar-search">
+      <input type="text" id="team-search" placeholder="Search teams…">
+      <select id="year-select" title="Season year"></select>
+    </div>
+    <div id="conf-filter" class="conf-filter"></div>
+    <div class="team-list" id="team-list">
+      <p class="empty-state">Loading…</p>
+    </div>
+  </aside>
+
+  <!-- Main: team detail -->
+  <main class="teams-main" id="teams-main">
+    <div class="team-placeholder">
+      <p class="empty-state">Select a team from the list.</p>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+  const _savedTheme = localStorage.getItem("cfb-theme");
+  if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
+  document.querySelectorAll(".theme-swatch").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = btn.dataset.theme;
+      document.documentElement.setAttribute("data-theme", t);
+      localStorage.setItem("cfb-theme", t);
+    });
+  });
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let _allTeams = [];
+  let _activeConf = "ALL";
+  let _activeTab = "roster";
+  let _currentSeason = CONFIG.CURRENT_SEASON;
+  let _rosterPosFilter = "ALL";
+  let _rosterSortCol = "overall_rating";
+  let _rosterSortAsc = false;
+
+  // ── Position group badge colors ────────────────────────────────────────────
+  function posGroupColor(g) {
+    switch (g) {
+      case "QB":             return ["rgba(200,146,42,0.18)", "#c8922a"];
+      case "RB": case "WR":
+      case "TE":             return ["rgba(56,139,253,0.15)", "#4fa3f7"];
+      case "DL": case "LB": return ["rgba(216,72,72,0.15)",  "#d84848"];
+      case "DB":             return ["rgba(48,168,87,0.15)",  "#30a857"];
+      case "OL":             return ["rgba(140,100,220,0.15)","#9b6fda"];
+      case "K":  case "P":  return ["rgba(128,128,160,0.15)","#8080a0"];
+      default:               return ["var(--surface)", "var(--text-muted)"];
+    }
+  }
+
+  function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function initTeams() {
+    buildYearSelect();
+
+    try {
+      _allTeams = await fetchTeams(_currentSeason);
+    } catch (e) {
+      document.getElementById("team-list").innerHTML = `<p class="empty-state">Failed to load teams: ${e.message}</p>`;
+      return;
+    }
+    buildConfFilter();
+    renderTeamList();
+    bindSidebarEvents();
+
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      const t = _allTeams.find(t => slugify(t.school) === hash);
+      if (t) showTeam(t);
+    }
+  }
+
+  function buildYearSelect() {
+    const sel = document.getElementById("year-select");
+    const years = [];
+    for (let y = CONFIG.CURRENT_SEASON; y >= 2021; y--) years.push(y);
+    sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+    sel.value = _currentSeason;
+    sel.addEventListener("change", async () => {
+      _currentSeason = parseInt(sel.value);
+      document.getElementById("team-list").innerHTML = '<p class="empty-state">Loading…</p>';
+      try { _allTeams = await fetchTeams(_currentSeason); } catch(e) { return; }
+      renderTeamList();
+      // Reload current team if one is selected
+      const main = document.getElementById("teams-main");
+      if (main.dataset.teamId) {
+        const t = _allTeams.find(t => t.id === parseInt(main.dataset.teamId));
+        if (t) showTeam(t);
+      }
+    });
+  }
+
+  function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+  function buildConfFilter() {
+    const confs = ["ALL", ...[...new Set(_allTeams.map(t => t.conference).filter(Boolean))].sort()];
+    const bar = document.getElementById("conf-filter");
+    bar.innerHTML = confs.map(c =>
+      `<button class="pos-chip${c === "ALL" ? " active" : ""}" data-conf="${c}">${c}</button>`
+    ).join("");
+    bar.querySelectorAll(".pos-chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        bar.querySelectorAll(".pos-chip").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        _activeConf = btn.dataset.conf;
+        renderTeamList();
+      });
+    });
+  }
+
+  function renderTeamList() {
+    const query = document.getElementById("team-search").value.toLowerCase();
+    const filtered = _allTeams.filter(t => {
+      if (_activeConf !== "ALL" && t.conference !== _activeConf) return false;
+      if (query && !t.school.toLowerCase().includes(query)) return false;
+      return true;
+    }).sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
+
+    const list = document.getElementById("team-list");
+    if (!filtered.length) { list.innerHTML = '<p class="empty-state">No teams match.</p>'; return; }
+    list.innerHTML = filtered.map(t => {
+      const rating = t.avg_rating ? Math.round(t.avg_rating) : "—";
+      const color  = t.avg_rating ? ratingColor(t.avg_rating) : "#666";
+      const txtCol = t.avg_rating ? ratingTextColor(t.avg_rating) : "#fff";
+      return `
+        <div class="team-list-item" data-id="${t.id}">
+          ${t.logo_url ? `<img src="${t.logo_url}" class="team-list-logo" alt="" onerror="this.style.display='none'">` : `<span class="team-list-logo-placeholder"></span>`}
+          <div class="team-list-info">
+            <span class="team-list-name">${t.school}</span>
+            <span class="team-list-conf">${t.conference || "Ind"}</span>
+          </div>
+          <span class="ovr" style="background:${color};color:${txtCol}">${rating}</span>
+        </div>`;
+    }).join("");
+
+    list.querySelectorAll(".team-list-item").forEach(el => {
+      el.addEventListener("click", () => {
+        list.querySelectorAll(".team-list-item").forEach(x => x.classList.remove("active"));
+        el.classList.add("active");
+        const team = _allTeams.find(t => t.id === parseInt(el.dataset.id));
+        if (team) showTeam(team);
+      });
+    });
+  }
+
+  function bindSidebarEvents() {
+    let debounce;
+    document.getElementById("team-search").addEventListener("input", () => {
+      clearTimeout(debounce); debounce = setTimeout(renderTeamList, 150);
+    });
+  }
+
+  // ── Conference standing widget ─────────────────────────────────────────────
+  function confStandingHTML(team) {
+    if (!team.conference) return "";
+    const confTeams = _allTeams
+      .filter(t => t.conference === team.conference)
+      .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
+    const rank  = confTeams.findIndex(t => t.id === team.id) + 1;
+    const total = confTeams.length;
+    const top5  = confTeams.slice(0, 5);
+    const listHTML = top5.map((ct, i) => {
+      const v = ct.avg_rating ? Math.round(ct.avg_rating) : "—";
+      return `<div class="d-conf-standing-row${ct.id === team.id ? " active" : ""}">
+        <span class="d-conf-rank">${i + 1}</span>
+        <span class="d-conf-team-name">${ct.school}</span>
+        <span class="d-conf-ovr" style="color:${ct.avg_rating ? ratingColor(ct.avg_rating) : "#666"}">${v}</span>
+      </div>`;
+    }).join("");
+    return `<div class="d-conf-standing-chip" onclick="this.classList.toggle('expanded')">
+      <span class="d-conf-standing-summary">#${rank} of ${total} in ${team.conference} ▾</span>
+      <div class="d-conf-standing-list">${listHTML}</div>
+    </div>`;
+  }
+
+  // ── Team detail view ───────────────────────────────────────────────────────
+  async function showTeam(team) {
+    window.location.hash = slugify(team.school);
+    const main = document.getElementById("teams-main");
+    main.dataset.teamId = team.id;
+    const teamColor = team.color || "var(--accent)";
+    const avgR  = team.avg_rating ? Math.round(team.avg_rating) : "—";
+    const rCol  = team.avg_rating ? ratingColor(team.avg_rating) : "#666";
+    const rTxt  = team.avg_rating ? ratingTextColor(team.avg_rating) : "#fff";
+
+    main.innerHTML = `
+      <div class="d-team-hero" style="--d-team-color:${teamColor};border-top-color:${teamColor}">
+        ${team.logo_url ? `<img class="d-hero-logo" src="${team.logo_url}" alt="${team.school}" onerror="this.style.display='none'">` : "<div style='width:84px'></div>"}
+        <div class="d-hero-info">
+          <div class="d-hero-name">${team.school}</div>
+          ${team.conference ? `<span class="d-hero-conf-badge">${team.conference}</span>` : ""}
+          ${confStandingHTML(team)}
+        </div>
+        <div class="d-hero-right">
+          <div class="d-hero-ovr-box">
+            <span class="d-hero-ovr-num" style="color:${rCol}">${avgR}</span>
+            <span class="d-hero-ovr-label">AVG OVR</span>
+          </div>
+          <div class="hero-stat-row">
+            <span class="hero-stat-sm">${team.player_count || "—"} players · ${_currentSeason} season</span>
+          </div>
+        </div>
+      </div>
+      <nav class="team-subnav" id="team-subnav">
+        ${["roster","schedule","transfers"].map(tab =>
+          `<button class="team-subnav-btn${_activeTab === tab ? " active" : ""}" data-tab="${tab}">${tab.charAt(0).toUpperCase()+tab.slice(1)}</button>`
+        ).join("")}
+      </nav>
+      <div id="team-tab-content" class="team-tab-content">
+        <p class="empty-state">Loading…</p>
+      </div>`;
+
+    document.querySelectorAll(".team-subnav-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".team-subnav-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        _activeTab = btn.dataset.tab;
+        _rosterPosFilter = "ALL";
+        loadTab(team, _activeTab);
+      });
+    });
+
+    loadTab(team, _activeTab);
+  }
+
+  async function loadTab(team, tab) {
+    const content = document.getElementById("team-tab-content");
+    content.innerHTML = '<p class="empty-state">Loading…</p>';
+    try {
+      if (tab === "roster")    content.innerHTML = await buildRosterHTML(team);
+      else if (tab === "schedule")  content.innerHTML = await buildScheduleHTML(team);
+      else if (tab === "transfers") content.innerHTML = await buildTransfersHTML(team);
+    } catch (e) {
+      content.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
+    }
+    bindRosterEvents(team);
+  }
+
+  // ── Roster ─────────────────────────────────────────────────────────────────
+  const OFF_FILTERS = ["ALL","QB","RB","WR","TE","OL"];
+  const DEF_FILTERS = ["DL","LB","DB","K","P"];
+
+  async function buildRosterHTML(team) {
+    const players = await fetchTeamRoster(team.id, _currentSeason);
+    if (!players.length) return '<p class="empty-state">No roster data for this season.</p>';
+
+    // Store for re-filter without re-fetching
+    team._rosterCache = players;
+
+    return renderRosterCards(players);
+  }
+
+  function renderRosterCards(players) {
+    const yearLabels = { 1:"FR", 2:"SO", 3:"JR", 4:"SR", 5:"GR" };
+    const filtered = _rosterPosFilter === "ALL"
+      ? players
+      : players.filter(p => p.position_group === _rosterPosFilter || p.position === _rosterPosFilter);
+
+    filtered.sort((a, b) => (_rosterSortAsc ? 1 : -1) * ((b.overall_rating || 0) - (a.overall_rating || 0)));
+
+    const makeChip = pg =>
+      `<span class="pos-chip${_rosterPosFilter === pg ? " active" : ""}" data-posfilter="${pg}">${pg}</span>`;
+
+    const filterBar = `
+      <div class="d-roster-filter-rows">
+        <div class="d-roster-filter-row">${OFF_FILTERS.map(makeChip).join("")}</div>
+        <div class="d-roster-filter-row">${DEF_FILTERS.map(makeChip).join("")}</div>
+      </div>`;
+
+    const cards = filtered.map(p => {
+      const ovr = p.overall_rating ? Math.round(p.overall_rating) : null;
+      const ovrBg  = ovr ? ratingColor(ovr) : "var(--surface-deep)";
+      const ovrTxt = ovr ? ratingTextColor(ovr) : "var(--text-muted)";
+      const [pgBg, pgColor] = posGroupColor(p.position_group || p.position);
+      const yr  = yearLabels[p.year] || "—";
+      const pos = p.position || p.position_group || "—";
+      const arch = ovr ? computeArchetype(p.position_group, ovr, p.shap) : "";
+      const stars = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "";
+      return `
+        <div class="d-depth-card">
+          <div class="d-depth-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">
+            ${(p.name || "?").split(" ").map(n => n[0]).slice(0,2).join("")}
+          </div>
+          <div class="d-depth-info">
+            <div class="d-depth-name">${p.name || "—"}</div>
+            <div class="d-depth-pos-tag" style="color:${pgColor}">${pos} · ${yr}${arch ? ` · <em>${arch}</em>` : ""}</div>
+            ${stars ? `<span class="stars" style="font-size:10px;color:#f5a623">${stars}</span>` : ""}
+          </div>
+          <div class="d-depth-ovr-box" style="background:${ovrBg};color:${ovrTxt}">
+            <span class="d-depth-ovr-num">${ovr || "—"}</span>
+            <span class="d-depth-ovr-label">OVR</span>
+          </div>
+        </div>`;
+    }).join("");
+
+    return `${filterBar}
+      <div class="d-unit-rows" id="roster-cards">${cards || '<p class="empty-state">No players for this filter.</p>'}</div>
+      <div class="roster-footer">${filtered.length} shown · ${players.length} total</div>`;
+  }
+
+  function bindRosterEvents(team) {
+    document.querySelectorAll("[data-posfilter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        _rosterPosFilter = btn.dataset.posfilter;
+        const content = document.getElementById("team-tab-content");
+        if (team._rosterCache) {
+          content.innerHTML = renderRosterCards(team._rosterCache);
+          bindRosterEvents(team);
+        }
+      });
+    });
+  }
+
+  // ── Schedule ───────────────────────────────────────────────────────────────
+  async function buildScheduleHTML(team) {
+    const games = await fetchTeamSchedule(team.id, _currentSeason);
+    if (!games.length) return '<p class="empty-state">No schedule data for this season.</p>';
+
+    // Sort by game_date ascending (handles bowl games at end correctly)
+    games.sort((a, b) => {
+      const da = a.game_date || "9999", db = b.game_date || "9999";
+      return da < db ? -1 : da > db ? 1 : (a.week || 99) - (b.week || 99);
+    });
+
+    const rows = games.map(g => {
+      const isHome = g.home_team_id === team.id;
+      const opp    = isHome ? g.away_team : g.home_team;
+      const site   = isHome ? "vs" : "@";
+      const teamScore = isHome ? g.home_score : g.away_score;
+      const oppScore  = isHome ? g.away_score : g.home_score;
+      let result = `<span style="color:var(--text-muted)">—</span>`;
+      if (teamScore !== null && teamScore !== undefined) {
+        const won = teamScore > oppScore;
+        result = `<span class="status-pill ${won ? "in" : "out"}">${won ? "W" : "L"} ${teamScore}–${oppScore}</span>`;
+      }
+      const wkLabel = g.week ? `Wk ${g.week}` : "Bowl";
+      const dateStr = g.game_date ? g.game_date.slice(0, 10) : "—";
+      return `
+        <tr>
+          <td style="color:var(--text-muted)">${wkLabel}</td>
+          <td style="color:var(--text-muted)">${dateStr}</td>
+          <td>${site} <strong>${opp || "TBD"}</strong>${g.neutral_site ? " <small>(N)</small>" : ""}</td>
+          <td>${result}</td>
+        </tr>`;
+    }).join("");
+
+    const wins   = games.filter(g => {
+      const ts = (g.home_team_id === team.id ? g.home_score : g.away_score);
+      const os = (g.home_team_id === team.id ? g.away_score : g.home_score);
+      return ts !== null && ts > os;
+    }).length;
+    const losses = games.filter(g => {
+      const ts = (g.home_team_id === team.id ? g.home_score : g.away_score);
+      const os = (g.home_team_id === team.id ? g.away_score : g.home_score);
+      return ts !== null && ts < os;
+    }).length;
+    const played = wins + losses;
+
+    return `
+      ${played ? `<div class="schedule-record"><span class="record-val">${wins}–${losses}</span> <span class="record-lbl">Record (${_currentSeason})</span></div>` : ""}
+      <table class="leaderboard-table">
+        <thead><tr><th>Wk</th><th>Date</th><th>Opponent</th><th>Result</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ── Transfers ──────────────────────────────────────────────────────────────
+  async function buildTransfersHTML(team) {
+    const transfers = await fetchTeamTransfers(team.id, _currentSeason);
+    if (!transfers.length) return `<p class="empty-state">No transfer portal data for ${_currentSeason}.</p>`;
+
+    const incoming = transfers.filter(t => t.direction === "in");
+    const outgoing = transfers.filter(t => t.direction === "out");
+
+    const makeRows = (arr) => arr.map(t => `
+      <tr>
+        <td class="name-col">${t.player_name || "—"}</td>
+        <td>${t.position || "—"}</td>
+        <td>${t.other_school || "—"}</td>
+        <td>${t.portal_date || "—"}</td>
+      </tr>`).join("");
+
+    const section = (title, arr, pillClass) => {
+      if (!arr.length) return "";
+      return `
+        <h3 style="font-family:var(--font-display);font-size:var(--fs-lg);color:var(--accent);margin:1.5rem 0 0.5rem;padding-left:4px;border-left:3px solid var(--accent)">
+          <span class="status-pill ${pillClass}">${pillClass === "in" ? "IN" : "OUT"}</span> ${title} (${arr.length})
+        </h3>
+        <table class="leaderboard-table">
+          <thead><tr><th>Player</th><th>Pos</th><th>${pillClass === "in" ? "From" : "To"}</th><th>Portal Date</th></tr></thead>
+          <tbody>${makeRows(arr)}</tbody>
+        </table>`;
+    };
+
+    return section("Transfers In", incoming, "in") + section("Transfers Out", outgoing, "out");
+  }
+
+  initTeams();
+</script>
+</body>
+</html>

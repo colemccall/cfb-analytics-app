@@ -1,31 +1,68 @@
 // Player search and card rendering for players.html
-// Data source: static JSON (players.json) for the grid; Supabase for detail modal.
+// Data source: Supabase for both grid and detail modal.
+
+function posGroupColor(g) {
+  switch (g) {
+    case "QB":             return ["rgba(200,146,42,0.18)", "#c8922a"];
+    case "RB": case "WR":
+    case "TE":             return ["rgba(56,139,253,0.15)", "#4fa3f7"];
+    case "DL": case "LB": return ["rgba(216,72,72,0.15)",  "#d84848"];
+    case "DB":             return ["rgba(48,168,87,0.15)",  "#30a857"];
+    case "OL":             return ["rgba(140,100,220,0.15)","#9b6fda"];
+    case "K":  case "P":  return ["rgba(128,128,160,0.15)","#8080a0"];
+    default:               return ["var(--surface)", "var(--text-muted)"];
+  }
+}
+function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
 
 let _allPlayers = [];
 let _filteredPlayers = [];
-let _activeFilters = { position: "ALL", team: "", conference: "", minRating: 0, query: "" };
+let _activeFilters = { position: "ALL", conference: "", minRating: 0, query: "", season: CONFIG.CURRENT_SEASON };
+
+const OFF_POS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
+const DEF_POS = ["DL", "LB", "DB", "K", "P"];
 
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 
 async function initPlayerSearch() {
-  const resp = await fetch(CONFIG.DATA_BASE + "players.json");
-  _allPlayers = await resp.json();
-  populateFilterOptions();
+  buildPosChips();
+  document.getElementById("player-grid").innerHTML = '<p class="empty-state">Loading players from database…</p>';
+  try {
+    _allPlayers = await fetchAllPlayers(_activeFilters.season);
+  } catch (e) {
+    document.getElementById("player-grid").innerHTML = `<p class="empty-state">Failed to load players: ${e.message}</p>`;
+    return;
+  }
+  populateConferenceOptions();
   applyFilters();
   bindFilterEvents();
 }
 
-function populateFilterOptions() {
-  const posSelect = document.getElementById("filter-position");
-  CONFIG.POSITIONS.forEach(pos => {
-    const opt = document.createElement("option");
-    opt.value = pos; opt.textContent = pos;
-    posSelect.appendChild(opt);
-  });
+function buildPosChips() {
+  const makeChip = (pg) => {
+    const btn = document.createElement("button");
+    btn.className = "pos-chip" + (pg === "ALL" ? " active" : "");
+    btn.dataset.pos = pg;
+    btn.textContent = pg;
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pos-chip").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _activeFilters.position = pg;
+      applyFilters();
+    });
+    return btn;
+  };
+  const offRow = document.getElementById("pos-chips-offense");
+  const defRow = document.getElementById("pos-chips-defense");
+  if (offRow) OFF_POS.forEach(p => offRow.appendChild(makeChip(p)));
+  if (defRow) DEF_POS.forEach(p => defRow.appendChild(makeChip(p)));
+}
 
+function populateConferenceOptions() {
   const confSelect = document.getElementById("filter-conference");
+  if (!confSelect) return;
   const conferences = [...new Set(_allPlayers.map(p => p.conference).filter(Boolean))].sort();
   conferences.forEach(c => {
     const opt = document.createElement("option");
@@ -56,24 +93,31 @@ function applyFilters() {
 }
 
 function bindFilterEvents() {
-  document.getElementById("filter-position").addEventListener("change", e => {
-    _activeFilters.position = e.target.value; applyFilters();
-  });
-  document.getElementById("filter-conference").addEventListener("change", e => {
+  document.getElementById("filter-conference")?.addEventListener("change", e => {
     _activeFilters.conference = e.target.value; applyFilters();
   });
-  document.getElementById("filter-min-rating").addEventListener("input", e => {
+  document.getElementById("filter-min-rating")?.addEventListener("input", e => {
     _activeFilters.minRating = parseInt(e.target.value) || 0;
     document.getElementById("min-rating-label").textContent = e.target.value || "0";
     applyFilters();
   });
 
   let debounceTimer;
-  document.getElementById("search-input").addEventListener("input", e => {
+  document.getElementById("search-input")?.addEventListener("input", e => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      _activeFilters.query = e.target.value; applyFilters();
-    }, 200);
+    debounceTimer = setTimeout(() => { _activeFilters.query = e.target.value; applyFilters(); }, 200);
+  });
+
+  document.getElementById("filter-season")?.addEventListener("change", async e => {
+    _activeFilters.season = parseInt(e.target.value);
+    document.getElementById("player-grid").innerHTML = '<p class="empty-state">Loading…</p>';
+    try {
+      _allPlayers = await fetchAllPlayers(_activeFilters.season);
+    } catch (err) {
+      document.getElementById("player-grid").innerHTML = `<p class="empty-state">Failed: ${err.message}</p>`;
+      return;
+    }
+    applyFilters();
   });
 }
 
@@ -96,23 +140,31 @@ function renderGrid() {
 }
 
 function playerCardHtml(p) {
-  const rating = p.overall_rating ? Math.round(p.overall_rating) : "—";
-  const color = p.overall_rating ? ratingColor(p.overall_rating) : "#666";
+  const ovr    = p.overall_rating ? Math.round(p.overall_rating) : null;
+  const ovrBg  = ovr ? ratingColor(ovr) : "var(--surface-deep)";
+  const ovrTxt = ovr ? ratingTextColor(ovr) : "var(--text-muted)";
+  const pg = p.position_group || p.position || "—";
+  const [pgBg, pgColor] = posGroupColor(pg);
   const traj = p.trajectory > 0 ? `<span class="traj-up">▲${p.trajectory.toFixed(1)}</span>`
              : p.trajectory < 0 ? `<span class="traj-down">▼${Math.abs(p.trajectory).toFixed(1)}</span>`
              : "";
-  const breakout = p.breakout_prob >= 0.35
-    ? `<span class="breakout-badge" title="Breakout candidate">🔥</span>` : "";
+  const breakout  = p.breakout_prob >= 0.35 ? `<span class="breakout-badge" title="Breakout candidate">🔥</span>` : "";
+  const archetype = ovr ? computeArchetype(pg, ovr, p.shap) : "";
+  const initials  = (p.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
 
   return `
     <div class="player-card" data-id="${p.id}" data-rating="${p.overall_rating || 0}">
-      <div class="card-rating" style="background:${color}">${rating}</div>
+      <div class="card-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">${initials}</div>
       <div class="card-body">
-        <div class="card-name">${p.name || "Unknown"} ${breakout}</div>
-        <div class="card-meta">${p.position_group || p.position || "—"} · ${p.team || "—"}</div>
-        <div class="card-meta">${p.conference || ""} · ${yearLabel(p.year)}</div>
+        <div class="card-header-row">
+          <span class="card-name">${p.name || "Unknown"} ${breakout}</span>
+          <span class="ovr" style="background:${ovrBg};color:${ovrTxt}">${ovr || "—"}</span>
+        </div>
+        <div class="card-pos-tag" style="color:${pgColor}">${pg} · ${yearLabel(p.year)}</div>
+        <div class="card-meta">${p.team || "—"} · ${p.conference || "—"}</div>
         <div class="card-footer">
           ${starsHtml(p.stars)} ${traj}
+          ${archetype ? `<span class="archetype-label">${archetype}</span>` : ""}
         </div>
       </div>
     </div>`;
@@ -135,16 +187,15 @@ async function openPlayerModal(playerId) {
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
 
-  // Fetch live stats from Supabase
-  let statsData = null;
-  try {
-    const statsRows = await fetchPlayerStats(playerId);
-    if (statsRows.length) statsData = statsRows[0].data;
-  } catch (e) {
-    console.warn("Stats fetch failed:", e);
-  }
+  // Fetch stats, rating history, and career stats in parallel
+  const [statsRows, ratingHistory, careerStats] = await Promise.all([
+    fetchPlayerStats(playerId, _activeFilters.season || CONFIG.CURRENT_SEASON).catch(() => []),
+    fetchPlayerRatingHistory(playerId).catch(() => []),
+    fetchPlayerCareerStats(playerId).catch(() => []),
+  ]);
 
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData);
+  const statsData = statsRows.length ? statsRows[0].data : null;
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats);
   bindModalClose(modal);
 }
 
@@ -157,64 +208,158 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = []) {
   const stats = statsData || {};
-  const rating = player.overall_rating ? Math.round(player.overall_rating) : "—";
-  const color = player.overall_rating ? ratingColor(player.overall_rating) : "#666";
-  const pg = player.position_group || "QB";
-  const skillAttrs = CONFIG.SKILL_ATTRS[pg] || [];
+  const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
+  const color = ovr ? ratingColor(ovr) : "#555";
+  const txtCol = ovr ? ratingTextColor(ovr) : "#fff";
+  const pg    = player.position_group || "QB";
+  const [pgBg, pgColor] = posGroupColor(pg);
+  const archetype = ovr ? computeArchetype(pg, ovr, player.shap) : "";
+  const initials  = (player.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
 
-  const shapBars = player.shap
-    ? Object.entries(player.shap)
+  // ── Rating header ──
+  const headerHtml = `
+    <div class="modal-header">
+      <div class="d-depth-avatar modal-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor};width:52px;height:52px;font-size:18px;flex-shrink:0">${initials}</div>
+      <div class="modal-title">
+        <h2>${player.name || "Unknown"}</h2>
+        <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
+        <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
+        ${archetype ? `<span class="archetype-label">${archetype}</span>` : ""}
+      </div>
+      <div class="modal-ovr-box" style="background:${color};color:${txtCol}">
+        <span class="modal-ovr-num">${ovr || "—"}</span>
+        <span class="modal-ovr-lbl">OVR</span>
+      </div>
+      <button class="modal-close">✕</button>
+    </div>`;
+
+  // ── Quick bio strip ──
+  const heightStr = player.height_in ? `${Math.floor(player.height_in/12)}'${player.height_in%12}"` : "—";
+  const bioHtml = `
+    <div class="modal-bio-strip">
+      <span>${starsHtml(player.stars)} <span style="color:var(--text-muted)">${player.composite_score ? player.composite_score.toFixed(4) : "N/A"}</span></span>
+      <span class="bio-sep">·</span>
+      <span title="Height">${heightStr}</span>
+      <span class="bio-sep">·</span>
+      <span title="Weight">${player.weight_lbs ? player.weight_lbs + " lbs" : "—"}</span>
+      <span class="bio-sep">·</span>
+      <span title="Hometown">${player.hometown_state || "—"}</span>
+      ${player.trajectory ? `<span class="bio-sep">·</span><span class="${player.trajectory > 0 ? 'traj-up' : 'traj-down'}">${player.trajectory > 0 ? "▲" : "▼"} ${Math.abs(player.trajectory).toFixed(1)} traj</span>` : ""}
+      ${player.breakout_prob >= 0.35 ? `<span class="bio-sep">·</span><span title="Breakout candidate">🔥 Breakout ${(player.breakout_prob * 100).toFixed(0)}%</span>` : ""}
+    </div>`;
+
+  // ── Season stats ──
+  const statSectionHtml = `
+    <div class="modal-section">
+      <div class="modal-section-title">Season Stats (${_activeFilters.season || CONFIG.CURRENT_SEASON})</div>
+      <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
+    </div>`;
+
+  // ── SHAP breakdown ──
+  const shapEntries = player.shap && typeof player.shap === "object" ? Object.entries(player.shap) : [];
+  const shapBars = shapEntries.length
+    ? shapEntries
         .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-        .slice(0, 6)
+        .slice(0, 8)
         .map(([feat, val]) => {
-          const label = (CONFIG.SKILL_ATTRS[pg] || []).find(([k]) => k === feat)?.[1] || feat;
-          const barWidth = Math.min(100, Math.abs(val) * 200);
-          const barColor = val > 0 ? "var(--positive)" : "var(--negative)";
+          const label = (CONFIG.SKILL_ATTRS[pg] || []).find(([k]) => k === feat)?.[1] || feat.replace(/_/g, " ");
+          const pct   = Math.min(100, Math.abs(val) * 300);
+          const bar   = val > 0 ? "var(--positive)" : "var(--negative)";
           return `
             <div class="shap-row">
               <span class="shap-label">${label}</span>
               <div class="shap-bar-wrap">
-                <div class="shap-bar" style="width:${barWidth}%;background:${barColor}"></div>
+                <div class="shap-bar" style="width:${pct}%;background:${bar}"></div>
               </div>
-              <span class="shap-val">${val > 0 ? "+" : ""}${val.toFixed(3)}</span>
+              <span class="shap-val" style="color:${bar}">${val > 0 ? "+" : ""}${val.toFixed(3)}</span>
             </div>`;
         }).join("")
-    : '<p class="text-muted">No SHAP data available</p>';
+    : '<p class="text-muted" style="font-size:var(--fs-xs);padding:4px 0">SHAP data not yet available for this player.</p>';
+
+  const shapHtml = `
+    <div class="modal-section">
+      <div class="modal-section-title">Rating Breakdown <span class="section-note">(SHAP — why this rating?)</span></div>
+      <div class="shap-bars">${shapBars}</div>
+    </div>`;
+
+  // ── Year-over-year ratings chart (inline SVG sparkline) ──
+  let yoyHtml = "";
+  if (ratingHistory.length >= 2) {
+    const W = 340, H = 80, PAD = { l: 28, r: 10, t: 10, b: 22 };
+    const vals = ratingHistory.map(r => r.overall_rating || 0);
+    const seasons = ratingHistory.map(r => r.season);
+    const minV = Math.max(0, Math.min(...vals) - 5);
+    const maxV = Math.min(100, Math.max(...vals) + 5);
+    const xS = i => PAD.l + (i / (vals.length - 1)) * (W - PAD.l - PAD.r);
+    const yS = v => PAD.t + (1 - (v - minV) / (maxV - minV)) * (H - PAD.t - PAD.b);
+    const pts = vals.map((v, i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(" ");
+    const dots = vals.map((v, i) => {
+      const col = ratingColor(v);
+      return `<circle cx="${xS(i).toFixed(1)}" cy="${yS(v).toFixed(1)}" r="4" fill="${col}">
+        <title>${seasons[i]}: ${Math.round(v)} OVR</title></circle>`;
+    }).join("");
+    const labels = seasons.map((s, i) =>
+      `<text x="${xS(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${s}</text>`
+    ).join("");
+    const ratings_labels = vals.map((v, i) =>
+      `<text x="${(xS(i) + 4).toFixed(1)}" y="${(yS(v) - 5).toFixed(1)}" font-size="10" fill="var(--text-muted)">${Math.round(v)}</text>`
+    ).join("");
+    yoyHtml = `
+      <div class="modal-section">
+        <div class="modal-section-title">Rating History (Year-over-Year)</div>
+        <svg width="${W}" height="${H}" style="display:block;overflow:visible;width:100%;max-width:${W}px">
+          <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          ${dots}${labels}${ratings_labels}
+        </svg>
+      </div>`;
+  }
+
+  // ── Career stats table ──
+  let careerHtml = "";
+  if (careerStats.length > 1) {
+    const CAREER_FIELDS = {
+      QB: [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
+      RB: [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
+      WR: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
+      TE: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"]],
+      DL: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
+      LB: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"]],
+      DB: [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
+      K:  [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"]],
+      P:  [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"]],
+    };
+    const fields = CAREER_FIELDS[pg] || [];
+    if (fields.length) {
+      const def = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : "—"; };
+      const rows = careerStats.map(cs => `
+        <tr>
+          <td><strong>${cs.season}</strong></td>
+          ${fields.map(([k]) => `<td>${def(cs.data, k)}</td>`).join("")}
+        </tr>`).join("");
+      careerHtml = `
+        <div class="modal-section">
+          <div class="modal-section-title">Career Stats</div>
+          <div style="overflow-x:auto">
+            <table class="leaderboard-table">
+              <thead><tr><th>Yr</th>${fields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+  }
 
   return `
-    <div class="modal-header">
-      <div class="modal-rating" style="background:${color}">${rating}</div>
-      <div class="modal-title">
-        <h2>${player.name}</h2>
-        <p>${pg} · ${player.team || "—"} · ${yearLabel(player.year)}</p>
-        <p>${player.conference || ""}</p>
-      </div>
-      <button class="modal-close">✕</button>
-    </div>
+    ${headerHtml}
     <div class="modal-body">
-      <div class="modal-section">
-        <h3>Rating Breakdown</h3>
-        <p class="section-sub">Why is this player rated ${rating}? (SHAP values — positive = helped rating)</p>
-        <div class="shap-bars">${shapBars}</div>
-      </div>
-      <div class="modal-section">
-        <h3>Player Info</h3>
-        <div class="info-grid">
-          <div><span class="info-label">Recruiting</span> ${starsHtml(player.stars)} (${player.composite_score?.toFixed(4) || "N/A"})</div>
-          <div><span class="info-label">Recruit Year</span> ${player.recruit_year || "—"}</div>
-          <div><span class="info-label">Height</span> ${player.height_in ? `${Math.floor(player.height_in/12)}'${player.height_in%12}"` : "—"}</div>
-          <div><span class="info-label">Weight</span> ${player.weight_lbs ? player.weight_lbs + " lbs" : "—"}</div>
-          <div><span class="info-label">Hometown</span> ${player.hometown_state || "—"}</div>
-          <div><span class="info-label">Trajectory</span> ${player.trajectory > 0 ? "▲ +" : player.trajectory < 0 ? "▼ " : "—"}${player.trajectory?.toFixed(1) || ""}</div>
-        </div>
-      </div>
-      ${statsData ? `
-      <div class="modal-section">
-        <h3>Season Stats (${player.season})</h3>
-        <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
-      </div>` : ""}
+      ${bioHtml}
+      ${statSectionHtml}
+      ${careerHtml}
+      ${yoyHtml}
+      ${shapHtml}
+    </div>`;
     </div>`;
 }
 

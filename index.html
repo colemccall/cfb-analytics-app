@@ -16,10 +16,15 @@
     <a href="index.html" class="active">Home</a>
     <a href="players.html">Players</a>
     <a href="ratings.html">Ratings</a>
+    <a href="teams.html">Teams</a>
     <a href="research.html">Research</a>
   </div>
   <span class="nav-spacer"></span>
-  <button class="theme-btn" onclick="cycleTheme()">Theme</button>
+  <div class="theme-swatches">
+    <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
+    <button class="theme-swatch" data-theme="mid" title="Slate"></button>
+    <button class="theme-swatch" data-theme="light" title="Light"></button>
+  </div>
 </nav>
 
 <section class="hero">
@@ -29,6 +34,7 @@
     <a href="ratings.html" class="btn btn-primary">View Top Ratings</a>
     <a href="players.html" class="btn btn-secondary">Search Players</a>
   </div>
+  <div class="hero-stats" id="hero-stats"></div>
 </section>
 
 <div class="feature-grid">
@@ -51,17 +57,36 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
-  function cycleTheme() {
-    const themes = ["dynasty-dark", "mid", "light"];
-    const html = document.documentElement;
-    const curr = html.getAttribute("data-theme") || "dynasty-dark";
-    const next = themes[(themes.indexOf(curr) + 1) % themes.length];
-    html.setAttribute("data-theme", next);
-    localStorage.setItem("cfb-theme", next);
+  // Theme swatches
+  const _savedTheme = localStorage.getItem("cfb-theme");
+  if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
+  document.querySelectorAll(".theme-swatch").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = btn.dataset.theme;
+      document.documentElement.setAttribute("data-theme", t);
+      localStorage.setItem("cfb-theme", t);
+    });
+  });
+
+  // Hero stats counter — loaded from Supabase
+  async function loadHeroStats() {
+    try {
+      const [players, teams] = await Promise.all([
+        fetchAllPlayers(),
+        fetchTeams(),
+      ]);
+      const rated = players.length;
+      const gems  = players.filter(p => p.stars <= 2 && p.overall_rating >= 75).length;
+      document.getElementById("hero-stats").innerHTML = `
+        <div class="hero-stat"><span class="hero-stat-val">${rated.toLocaleString()}</span><span class="hero-stat-lbl">Rated Players</span></div>
+        <div class="hero-stat"><span class="hero-stat-val">${teams.length}</span><span class="hero-stat-lbl">Programs</span></div>
+        <div class="hero-stat"><span class="hero-stat-val">${gems}</span><span class="hero-stat-lbl">Hidden Gems</span></div>
+      `;
+    } catch (e) { /* ratings not yet generated — silent */ }
   }
-  const savedTheme = localStorage.getItem("cfb-theme");
-  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+  loadHeroStats();
 </script>
 </body>
 </html>
