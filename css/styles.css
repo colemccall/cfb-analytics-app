@@ -301,12 +301,12 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .depth-rating { font-size: var(--fs-xs); font-weight: 700; padding: 2px 6px; border-radius: 3px; color: #000; }
 
 /* ── Modal ── */
-.modal-overlay {
+.modal-overlay, .modal {
   display: none; position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,0.75); overflow-y: auto;
   padding: 2rem 1rem; backdrop-filter: blur(2px);
 }
-.modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+.modal-overlay.open, .modal.open { display: flex; align-items: flex-start; justify-content: center; }
 .modal-inner {
   background: var(--surface); border: 1px solid var(--border-mid);
   border-radius: var(--radius); width: 100%; max-width: 600px;
@@ -359,13 +359,23 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .section-sub   { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 0.75rem; }
 .modal-loading { padding: 2rem; text-align: center; color: var(--text-muted); }
 
-/* ── SHAP bars ── */
+/* ── SHAP / rating breakdown bars ── */
 .shap-bars { display: flex; flex-direction: column; gap: 6px; }
-.shap-row { display: flex; align-items: center; gap: 8px; }
-.shap-label { font-size: var(--fs-xs); color: var(--text-muted); width: 120px; flex-shrink: 0; }
+.shap-row { display: flex; align-items: center; gap: 8px; cursor: default; }
+.shap-label { font-size: var(--fs-xs); color: var(--text); width: 120px; flex-shrink: 0; }
 .shap-bar-wrap { flex: 1; height: 8px; background: var(--surface-deep); border-radius: 4px; overflow: hidden; }
 .shap-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
-.shap-val { font-size: var(--fs-xs); color: var(--text-muted); width: 52px; text-align: right; }
+.shap-val { font-size: var(--fs-xs); width: 44px; text-align: right; font-weight: 600; }
+
+/* ── Rating breakdown plain-English ── */
+.breakdown-summary { font-size: var(--fs-sm); margin-bottom: 0.6rem; }
+.breakdown-lines { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; }
+.breakdown-line { display: flex; align-items: flex-start; gap: 8px; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.4; }
+.breakdown-icon { font-size: 14px; flex-shrink: 0; }
+.breakdown-line strong { color: var(--text); }
+.breakdown-factors { margin-top: 0.5rem; }
+.breakdown-factors-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+.breakdown-note { font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
 
 /* ── Info grid ── */
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: var(--fs-sm); }

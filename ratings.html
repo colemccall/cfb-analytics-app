@@ -18,6 +18,7 @@
     <a href="ratings.html" class="active">Ratings</a>
     <a href="teams.html">Teams</a>
     <a href="research.html">Research</a>
+    <a href="info.html">How It Works</a>
   </div>
   <span class="nav-spacer"></span>
   <div class="theme-swatches">
@@ -33,6 +34,15 @@
 </div>
 
 <div class="page-content">
+  <div class="filter-bar" style="margin-bottom:1rem">
+    <select id="ratings-season-select" title="Season">
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
+      <option value="2022">2022</option>
+      <option value="2021">2021</option>
+    </select>
+  </div>
   <div class="position-tabs" id="position-tabs"></div>
   <div id="leaderboard"></div>
 
@@ -46,8 +56,13 @@
   </div>
 </div>
 
+<div id="player-modal" class="modal">
+  <div class="modal-inner"></div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/playerSearch.js"></script>
 <script src="js/ratingsDisplay.js"></script>
 <script>
   const _savedTheme = localStorage.getItem("cfb-theme");
@@ -59,6 +74,13 @@
       localStorage.setItem("cfb-theme", t);
     });
   });
+
+  document.getElementById("ratings-season-select").addEventListener("change", async e => {
+    const season = parseInt(e.target.value);
+    document.getElementById("leaderboard").innerHTML = '<p class="empty-state">Loading…</p>';
+    await initRatings(season);
+  });
+
   initRatings();
 </script>
 </body>

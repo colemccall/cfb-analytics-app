@@ -3,42 +3,36 @@
 // Data: Supabase API (always current) for leaderboard; players.json for scatter plot.
 
 let _ratingsByPosition = {};
-let _allPlayers = [];
+let _allPlayers = [];        // used only for scatter plot
 let _activePosition = "QB";
+let _ratingSeason = CONFIG.CURRENT_SEASON;
 
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 
-async function initRatings() {
+async function initRatings(season) {
+  if (season) _ratingSeason = season;
+  _ratingsByPosition = {};
   document.getElementById("leaderboard").innerHTML = '<p class="empty-state">Loading ratings…</p>';
+
+  // Fetch top-50 per position in parallel — fast, server-side filtered
   try {
-    _allPlayers = await fetchAllPlayers();
+    const results = await Promise.all(
+      CONFIG.POSITIONS.map(pg =>
+        fetchPlayers({ season: _ratingSeason, position: pg, limit: 50 })
+          .then(players => ({ pg, players }))
+          .catch(() => ({ pg, players: [] }))
+      )
+    );
+    for (const { pg, players } of results) {
+      if (players.length) _ratingsByPosition[pg] = players;
+    }
+    // For scatter plot — flatten all fetched players
+    _allPlayers = results.flatMap(r => r.players);
   } catch (e) {
     document.getElementById("leaderboard").innerHTML = `<p class="empty-state">Failed to load ratings: ${e.message}</p>`;
     return;
-  }
-
-  // Group by position_group for the leaderboard tabs
-  for (const p of _allPlayers) {
-    const pg = p.position_group || "Other";
-    if (!_ratingsByPosition[pg]) _ratingsByPosition[pg] = [];
-    _ratingsByPosition[pg].push({
-      name:           p.name,
-      overall:        p.overall_rating,
-      trajectory:     p.trajectory,
-      breakout_prob:  p.breakout_prob,
-      team:           p.team,
-      team_abbr:      p.team,
-      conference:     p.conference,
-      year:           p.year,
-      stars:          p.stars,
-      composite:      p.composite_score,
-    });
-  }
-  // Sort each position group by overall rating desc
-  for (const pg of Object.keys(_ratingsByPosition)) {
-    _ratingsByPosition[pg].sort((a, b) => (b.overall || 0) - (a.overall || 0));
   }
 
   buildPositionTabs();
@@ -84,21 +78,21 @@ function renderLeaderboard(players, position) {
   }
 
   const rows = players.map((p, i) => {
-    const rating = p.overall ? Math.round(p.overall) : "—";
-    const color = p.overall ? ratingColor(p.overall) : "#666";
-    const traj = p.trajectory > 0.5 ? `<span class="traj-up">▲</span>`
-               : p.trajectory < -0.5 ? `<span class="traj-down">▼</span>` : "";
+    const rating = p.overall_rating ? Math.round(p.overall_rating) : "—";
+    const color  = p.overall_rating ? ratingColor(p.overall_rating) : "#666";
+    const traj   = p.trajectory > 0.5  ? `<span class="traj-up">▲</span>`
+                 : p.trajectory < -0.5 ? `<span class="traj-down">▼</span>` : "";
     const breakout = p.breakout_prob >= 0.35 ? "🔥" : "";
     return `
-      <tr>
+      <tr class="lb-row" data-player-id="${p.id}" style="cursor:pointer">
         <td class="rank-col">${i + 1}</td>
         <td><span class="rating-badge" style="background:${color}">${rating}</span> ${traj}</td>
         <td class="name-col">${p.name || "—"} ${breakout}</td>
-        <td>${p.team_abbr || p.team || "—"}</td>
+        <td>${p.team || "—"}</td>
         <td class="conf-col">${p.conference || "—"}</td>
         <td>${yearLabel(p.year)}</td>
         <td>${starsHtml(p.stars)}</td>
-        <td class="composite-col">${p.composite?.toFixed(4) || "—"}</td>
+        <td class="composite-col">${p.composite_score?.toFixed(4) || "—"}</td>
       </tr>`;
   }).join("");
 
@@ -112,6 +106,13 @@ function renderLeaderboard(players, position) {
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
+
+  container.querySelectorAll(".lb-row").forEach(row => {
+    row.addEventListener("click", () => {
+      const id = parseInt(row.dataset.playerId);
+      if (id) openPlayerModal(id, _ratingSeason);
+    });
+  });
 }
 
 function yearLabel(yr) {

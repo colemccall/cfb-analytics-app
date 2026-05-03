@@ -7,6 +7,153 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ── Home-page-specific layout ── */
+    .home-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 1.5rem 3rem;
+    }
+
+    .home-headline {
+      padding: 2.5rem 0 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .home-headline h1 {
+      font-family: var(--font-display);
+      font-size: 2.4rem; font-weight: 800;
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 1px; line-height: 1.1;
+      margin: 0 0 0.4rem;
+    }
+    .home-headline p {
+      color: var(--text-muted); font-size: var(--fs-md);
+      max-width: 680px; margin: 0;
+    }
+    .home-headline-actions {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    /* ── Summary stats bar ── */
+    .home-stats-bar {
+      display: flex; gap: 1.5rem; flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .home-stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.75rem 1.25rem;
+      flex: 1; min-width: 120px;
+    }
+    .home-stat-val {
+      font-family: var(--font-display); font-size: 1.75rem;
+      font-weight: 800; color: var(--accent); display: block;
+    }
+    .home-stat-lbl {
+      font-size: var(--fs-xs); color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* ── Two-column layout ── */
+    .home-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 760px) {
+      .home-columns { grid-template-columns: 1fr; }
+    }
+
+    .home-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .home-panel-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .home-panel-title {
+      font-family: var(--font-display); font-size: var(--fs-lg);
+      font-weight: 700; color: var(--text); text-transform: uppercase;
+      letter-spacing: 0.5px; margin: 0;
+    }
+    .home-panel-link {
+      font-size: var(--fs-xs); color: var(--accent); text-decoration: none;
+      font-weight: 600;
+    }
+    .home-panel-link:hover { text-decoration: underline; }
+
+    /* ── Top teams table ── */
+    .home-team-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.1s;
+      text-decoration: none; color: inherit;
+    }
+    .home-team-row:last-child { border-bottom: none; }
+    .home-team-row:hover { background: var(--accent-dim); }
+    .home-team-rank {
+      font-family: var(--font-display); font-size: var(--fs-sm);
+      color: var(--text-muted); width: 22px; flex-shrink: 0;
+    }
+    .home-team-logo {
+      width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
+    }
+    .home-team-info { flex: 1; min-width: 0; }
+    .home-team-name {
+      font-size: var(--fs-sm); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .home-team-conf { font-size: var(--fs-xs); color: var(--text-muted); }
+    .home-team-ovr {
+      font-family: var(--font-display); font-size: var(--fs-md);
+      font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Top players list ── */
+    .home-player-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .home-player-row:last-child { border-bottom: none; }
+    .home-player-row:hover { background: var(--accent-dim); }
+    .home-player-rank {
+      font-family: var(--font-display); font-size: var(--fs-sm);
+      color: var(--text-muted); width: 22px; flex-shrink: 0;
+    }
+    .home-player-info { flex: 1; min-width: 0; }
+    .home-player-name {
+      font-size: var(--fs-sm); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .home-player-meta { font-size: var(--fs-xs); color: var(--text-muted); }
+    .home-player-rating {
+      font-family: var(--font-display); font-size: var(--fs-md);
+      font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── EDGE explainer strip ── */
+    .home-edge-strip {
+      margin-top: 1.5rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      display: flex; align-items: flex-start; gap: 1rem;
+    }
+    .home-edge-icon {
+      font-size: 1.5rem; flex-shrink: 0; line-height: 1;
+    }
+    .home-edge-text h3 {
+      font-family: var(--font-display); font-size: var(--fs-md);
+      color: var(--accent); margin: 0 0 0.25rem; text-transform: uppercase;
+    }
+    .home-edge-text p {
+      font-size: var(--fs-sm); color: var(--text-muted); margin: 0;
+    }
+  </style>
 </head>
 <body>
 
@@ -18,6 +165,7 @@
     <a href="ratings.html">Ratings</a>
     <a href="teams.html">Teams</a>
     <a href="research.html">Research</a>
+    <a href="info.html">How It Works</a>
   </div>
   <span class="nav-spacer"></span>
   <div class="theme-swatches">
@@ -27,39 +175,87 @@
   </div>
 </nav>
 
-<section class="hero">
-  <h1>College Football Analytics</h1>
-  <p>XGBoost-powered player ratings that outperform recruiting rankings. Find the hidden gems — players whose production exceeds their stars.</p>
-  <div class="hero-cta">
-    <a href="ratings.html" class="btn btn-primary">View Top Ratings</a>
-    <a href="players.html" class="btn btn-secondary">Search Players</a>
-  </div>
-  <div class="hero-stats" id="hero-stats"></div>
-</section>
+<div class="home-wrap">
 
-<div class="feature-grid">
-  <div class="feature-card">
-    <h3>ML-Powered Ratings</h3>
-    <p>XGBoost models trained per position group. Ratings explain themselves via SHAP values — no black boxes.</p>
+  <!-- Headline -->
+  <div class="home-headline">
+    <h1>CFB Analytics</h1>
+    <p>Opponent-adjusted player ratings built from play-by-play data, not just season totals. Find the players whose production exceeds their recruiting hype.</p>
+    <div class="home-headline-actions">
+      <a href="teams.html" class="btn btn-primary">Browse Teams</a>
+      <a href="players.html" class="btn btn-secondary">Search Players</a>
+      <a href="ratings.html" class="btn btn-secondary">Top Ratings</a>
+    </div>
   </div>
-  <div class="feature-card">
-    <h3>Hidden Gems</h3>
-    <p>Find players whose production far exceeds their recruiting ranking. The Rating vs Stars scatter plot makes overperformers instantly visible.</p>
+
+  <!-- Stats bar -->
+  <div class="home-stats-bar" id="home-stats-bar">
+    <div class="home-stat">
+      <span class="home-stat-val" id="stat-players">—</span>
+      <span class="home-stat-lbl">Rated Players</span>
+    </div>
+    <div class="home-stat">
+      <span class="home-stat-val" id="stat-teams">—</span>
+      <span class="home-stat-lbl">Programs</span>
+    </div>
+    <div class="home-stat">
+      <span class="home-stat-val" id="stat-gems">—</span>
+      <span class="home-stat-lbl">Hidden Gems</span>
+    </div>
+    <div class="home-stat">
+      <span class="home-stat-val" id="stat-seasons">5</span>
+      <span class="home-stat-lbl">Seasons (2021–2025)</span>
+    </div>
   </div>
-  <div class="feature-card">
-    <h3>Transfer Portal Intelligence</h3>
-    <p>Track which G5 players succeed at P4, which transfers overperform in Year 1 vs Year 2, and which serial transfers are red flags.</p>
+
+  <!-- Two-column: teams + players -->
+  <div class="home-columns">
+
+    <!-- Top teams -->
+    <div class="home-panel">
+      <div class="home-panel-header">
+        <h2 class="home-panel-title">Top Programs</h2>
+        <a href="teams.html" class="home-panel-link">All Teams →</a>
+      </div>
+      <div id="home-top-teams">
+        <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:var(--fs-sm)">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Top players -->
+    <div class="home-panel">
+      <div class="home-panel-header">
+        <h2 class="home-panel-title">Top Rated Players</h2>
+        <a href="ratings.html" class="home-panel-link">Full Leaderboard →</a>
+      </div>
+      <div id="home-top-players">
+        <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:var(--fs-sm)">Loading…</div>
+      </div>
+    </div>
+
   </div>
-  <div class="feature-card">
-    <h3>Research-Driven</h3>
-    <p>Genuine analytical findings on bye weeks, scheme fit, altitude advantage, and more — published with methodology and accuracy reports.</p>
+
+  <!-- EDGE explainer -->
+  <div class="home-edge-strip">
+    <div class="home-edge-icon">⚡</div>
+    <div class="home-edge-text">
+      <h3>EDGE — Efficiency-Driven Grade per Event</h3>
+      <p>Our custom metric. Crunch-time plays count 2×. Garbage-time plays count 0.25×. Every play is opponent-adjusted using SP+ ratings. The result is a rating that reflects what a player actually did when it mattered — not just how many yards they accumulated.</p>
+    </div>
   </div>
+
+</div>
+
+<!-- Player modal (opened from top-players list) -->
+<div id="player-modal" class="modal">
+  <div class="modal-inner"></div>
 </div>
 
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/playerSearch.js"></script>
 <script>
-  // Theme swatches
+  // Theme persistence
   const _savedTheme = localStorage.getItem("cfb-theme");
   if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
   document.querySelectorAll(".theme-swatch").forEach(btn => {
@@ -70,23 +266,75 @@
     });
   });
 
-  // Hero stats counter — loaded from Supabase
-  async function loadHeroStats() {
-    try {
-      const [players, teams] = await Promise.all([
-        fetchAllPlayers(),
-        fetchTeams(),
-      ]);
-      const rated = players.length;
-      const gems  = players.filter(p => p.stars <= 2 && p.overall_rating >= 75).length;
-      document.getElementById("hero-stats").innerHTML = `
-        <div class="hero-stat"><span class="hero-stat-val">${rated.toLocaleString()}</span><span class="hero-stat-lbl">Rated Players</span></div>
-        <div class="hero-stat"><span class="hero-stat-val">${teams.length}</span><span class="hero-stat-lbl">Programs</span></div>
-        <div class="hero-stat"><span class="hero-stat-val">${gems}</span><span class="hero-stat-lbl">Hidden Gems</span></div>
-      `;
-    } catch (e) { /* ratings not yet generated — silent */ }
+  // Rating color helper (duplicated here in case config.js isn't loaded yet)
+  function _ratingColor(r) {
+    if (!r) return "var(--text-muted)";
+    if (r >= 85) return "#22c55e";
+    if (r >= 70) return "#84cc16";
+    if (r >= 55) return "#eab308";
+    if (r >= 40) return "#f97316";
+    return "#ef4444";
   }
-  loadHeroStats();
+
+  async function loadHome() {
+    try {
+      // Fetch top-rated players (2025)
+      const players = await fetchPlayers({ season: 2025, limit: 10 });
+
+      // Stats bar
+      document.getElementById("stat-players").textContent = players.length >= 10 ? "10,000+" : players.length;
+      const gems = players.filter(p => (p.stars || 0) <= 2 && (p.overall_rating || 0) >= 75).length;
+      document.getElementById("stat-gems").textContent = gems;
+
+      // Top players list (show top 8)
+      const top8 = players.slice(0, 8);
+      document.getElementById("home-top-players").innerHTML = top8.map((p, i) => `
+        <div class="home-player-row" data-player-id="${p.id}">
+          <span class="home-player-rank">${i + 1}</span>
+          <div class="home-player-info">
+            <div class="home-player-name">${p.name}</div>
+            <div class="home-player-meta">${p.position_group || ""} · ${p.team || ""}</div>
+          </div>
+          <span class="home-player-rating" style="color:${_ratingColor(p.overall_rating)}">${Math.round(p.overall_rating || 0)}</span>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".home-player-row[data-player-id]").forEach(el => {
+        el.addEventListener("click", () => openPlayerModal(parseInt(el.dataset.playerId), 2025));
+      });
+    } catch (e) {
+      document.getElementById("home-top-players").innerHTML =
+        '<div style="padding:1rem;color:var(--text-muted);font-size:var(--fs-sm)">Ratings not yet generated. Run script 06.</div>';
+    }
+
+    try {
+      // Top teams by avg rating
+      const teams = await fetchTeams();
+      document.getElementById("stat-teams").textContent = teams.length;
+
+      const sorted = [...teams]
+        .filter(t => t.avg_rating)
+        .sort((a, b) => b.avg_rating - a.avg_rating)
+        .slice(0, 8);
+
+      document.getElementById("home-top-teams").innerHTML = sorted.map((t, i) => `
+        <a class="home-team-row" href="teams.html?team=${encodeURIComponent(t.school)}">
+          <span class="home-team-rank">${i + 1}</span>
+          ${t.logo_url ? `<img class="home-team-logo" src="${t.logo_url}" alt="" loading="lazy">` : '<span class="home-team-logo"></span>'}
+          <div class="home-team-info">
+            <div class="home-team-name">${t.school}</div>
+            <div class="home-team-conf">${t.conference || ""}</div>
+          </div>
+          <span class="home-team-ovr" style="color:${_ratingColor(t.avg_rating)}">${Math.round(t.avg_rating || 0)}</span>
+        </a>
+      `).join("");
+    } catch (e) {
+      document.getElementById("home-top-teams").innerHTML =
+        '<div style="padding:1rem;color:var(--text-muted);font-size:var(--fs-sm)">Team data loading…</div>';
+    }
+  }
+
+  loadHome();
 </script>
 </body>
 </html>

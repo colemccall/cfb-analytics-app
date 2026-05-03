@@ -18,6 +18,7 @@
     <a href="ratings.html">Ratings</a>
     <a href="teams.html" class="active">Teams</a>
     <a href="research.html">Research</a>
+    <a href="info.html">How It Works</a>
   </div>
   <span class="nav-spacer"></span>
   <div class="theme-swatches">
@@ -48,8 +49,13 @@
   </main>
 </div>
 
+<div id="player-modal" class="modal">
+  <div class="modal-inner"></div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/playerSearch.js"></script>
 <script>
   const _savedTheme = localStorage.getItem("cfb-theme");
   if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
@@ -67,7 +73,6 @@
   let _activeTab = "roster";
   let _currentSeason = CONFIG.CURRENT_SEASON;
   let _rosterPosFilter = "ALL";
-  let _rosterSortCol = "overall_rating";
   let _rosterSortAsc = false;
 
   // ── Position group badge colors ────────────────────────────────────────────
@@ -314,7 +319,7 @@
       const arch = ovr ? computeArchetype(p.position_group, ovr, p.shap) : "";
       const stars = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "";
       return `
-        <div class="d-depth-card">
+        <div class="d-depth-card" data-player-id="${p.id}" style="cursor:pointer">
           <div class="d-depth-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">
             ${(p.name || "?").split(" ").map(n => n[0]).slice(0,2).join("")}
           </div>
@@ -344,6 +349,17 @@
           content.innerHTML = renderRosterCards(team._rosterCache);
           bindRosterEvents(team);
         }
+      });
+    });
+
+    // Player card click → modal (playerSearch.js openPlayerModal uses _allPlayers)
+    if (team._rosterCache) {
+      // Make roster available to openPlayerModal (defined in playerSearch.js)
+      window._allPlayers = team._rosterCache;
+    }
+    document.querySelectorAll(".d-depth-card[data-player-id]").forEach(card => {
+      card.addEventListener("click", () => {
+        openPlayerModal(parseInt(card.dataset.playerId), _currentSeason);
       });
     });
   }

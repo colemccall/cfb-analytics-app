@@ -15,12 +15,19 @@ function posGroupColor(g) {
 }
 function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
 
-let _allPlayers = [];
-let _filteredPlayers = [];
+let _allPlayers = [];        // current page of results (from server)
+let _filteredPlayers = [];   // client-side text/minRating filter applied to _allPlayers
 let _activeFilters = { position: "ALL", conference: "", minRating: 0, query: "", season: CONFIG.CURRENT_SEASON };
+let _fetchPending = false;
 
 const OFF_POS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
 const DEF_POS = ["DL", "LB", "DB", "K", "P"];
+
+// All known conferences — populated on first load
+const _CONFERENCES = [
+  "ACC","American Athletic","Big 12","Big Ten","Conference USA",
+  "FBS Independents","Mid-American","Mountain West","Pac-12","SEC","Sun Belt",
+];
 
 // ---------------------------------------------------------------------------
 // Init
@@ -28,16 +35,26 @@ const DEF_POS = ["DL", "LB", "DB", "K", "P"];
 
 async function initPlayerSearch() {
   buildPosChips();
-  document.getElementById("player-grid").innerHTML = '<p class="empty-state">Loading players from database…</p>';
+  populateConferenceOptions();
+  bindFilterEvents();
+  await fetchAndRender();
+}
+
+async function fetchAndRender() {
+  if (_fetchPending) return;
+  _fetchPending = true;
+  const grid = document.getElementById("player-grid");
+  const { position, conference, season } = _activeFilters;
+  grid.innerHTML = '<p class="empty-state">Loading…</p>';
   try {
-    _allPlayers = await fetchAllPlayers(_activeFilters.season);
+    _allPlayers = await fetchPlayers({ season, position, conference, limit: 50 });
   } catch (e) {
-    document.getElementById("player-grid").innerHTML = `<p class="empty-state">Failed to load players: ${e.message}</p>`;
+    grid.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
+    _fetchPending = false;
     return;
   }
-  populateConferenceOptions();
-  applyFilters();
-  bindFilterEvents();
+  _fetchPending = false;
+  applyClientFilters();
 }
 
 function buildPosChips() {
@@ -50,7 +67,7 @@ function buildPosChips() {
       document.querySelectorAll(".pos-chip").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       _activeFilters.position = pg;
-      applyFilters();
+      fetchAndRender();
     });
     return btn;
   };
@@ -63,8 +80,7 @@ function buildPosChips() {
 function populateConferenceOptions() {
   const confSelect = document.getElementById("filter-conference");
   if (!confSelect) return;
-  const conferences = [...new Set(_allPlayers.map(p => p.conference).filter(Boolean))].sort();
-  conferences.forEach(c => {
+  _CONFERENCES.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c; opt.textContent = c;
     confSelect.appendChild(opt);
@@ -72,52 +88,41 @@ function populateConferenceOptions() {
 }
 
 // ---------------------------------------------------------------------------
-// Filtering
+// Filtering — server handles position+conference+season, client handles text+minRating
 // ---------------------------------------------------------------------------
 
-function applyFilters() {
-  const { position, team, conference, minRating, query } = _activeFilters;
+function applyClientFilters() {
+  const { minRating, query } = _activeFilters;
   const q = query.toLowerCase();
-
   _filteredPlayers = _allPlayers.filter(p => {
-    if (position !== "ALL" && p.position_group !== position) return false;
-    if (team && p.team?.toLowerCase() !== team.toLowerCase()) return false;
-    if (conference && p.conference !== conference) return false;
     if (minRating && (p.overall_rating || 0) < minRating) return false;
     if (q && !p.name?.toLowerCase().includes(q) && !p.team?.toLowerCase().includes(q)) return false;
     return true;
   });
-
   renderGrid();
-  document.getElementById("result-count").textContent = `${_filteredPlayers.length} players`;
+  const rc = document.getElementById("result-count");
+  if (rc) rc.textContent = `${_filteredPlayers.length} shown`;
 }
 
 function bindFilterEvents() {
   document.getElementById("filter-conference")?.addEventListener("change", e => {
-    _activeFilters.conference = e.target.value; applyFilters();
+    _activeFilters.conference = e.target.value;
+    fetchAndRender();
   });
   document.getElementById("filter-min-rating")?.addEventListener("input", e => {
     _activeFilters.minRating = parseInt(e.target.value) || 0;
-    document.getElementById("min-rating-label").textContent = e.target.value || "0";
-    applyFilters();
+    const lbl = document.getElementById("min-rating-label");
+    if (lbl) lbl.textContent = e.target.value || "0";
+    applyClientFilters();
   });
-
   let debounceTimer;
   document.getElementById("search-input")?.addEventListener("input", e => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { _activeFilters.query = e.target.value; applyFilters(); }, 200);
+    debounceTimer = setTimeout(() => { _activeFilters.query = e.target.value; applyClientFilters(); }, 200);
   });
-
-  document.getElementById("filter-season")?.addEventListener("change", async e => {
+  document.getElementById("filter-season")?.addEventListener("change", e => {
     _activeFilters.season = parseInt(e.target.value);
-    document.getElementById("player-grid").innerHTML = '<p class="empty-state">Loading…</p>';
-    try {
-      _allPlayers = await fetchAllPlayers(_activeFilters.season);
-    } catch (err) {
-      document.getElementById("player-grid").innerHTML = `<p class="empty-state">Failed: ${err.message}</p>`;
-      return;
-    }
-    applyFilters();
+    fetchAndRender();
   });
 }
 
@@ -178,24 +183,44 @@ function yearLabel(yr) {
 // Player detail modal
 // ---------------------------------------------------------------------------
 
-async function openPlayerModal(playerId) {
-  const player = _allPlayers.find(p => p.id === playerId);
-  if (!player) return;
+async function openPlayerModal(playerId, seasonOverride) {
+  const season = seasonOverride
+    || (typeof _activeFilters !== "undefined" ? _activeFilters.season : null)
+    || (typeof _ratingSeason  !== "undefined" ? _ratingSeason          : null)
+    || CONFIG.CURRENT_SEASON;
 
   const modal = document.getElementById("player-modal");
-  modal.querySelector(".modal-inner").innerHTML = modalLoadingHtml(player);
+  if (!modal) return;
+
+  // Show a loading shell immediately — we'll fetch the full profile
+  modal.querySelector(".modal-inner").innerHTML = `
+    <div class="modal-header">
+      <h2 style="color:var(--text-muted)">Loading…</h2>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-loading">Fetching player data…</div>`;
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
+  bindModalClose(modal);
 
-  // Fetch stats, rating history, and career stats in parallel
-  const [statsRows, ratingHistory, careerStats] = await Promise.all([
-    fetchPlayerStats(playerId, _activeFilters.season || CONFIG.CURRENT_SEASON).catch(() => []),
+  // Fetch profile + stats + history in parallel
+  const [player, statsRows, ratingHistory, careerStats] = await Promise.all([
+    fetchPlayerProfile(playerId, season).catch(() => null),
+    fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
     fetchPlayerCareerStats(playerId).catch(() => []),
   ]);
 
+  if (!player) {
+    modal.querySelector(".modal-inner").innerHTML = `
+      <div class="modal-header"><h2>Player not found</h2><button class="modal-close">✕</button></div>
+      <div class="modal-loading">No rating data for this player in ${season}.</div>`;
+    bindModalClose(modal);
+    return;
+  }
+
   const statsData = statsRows.length ? statsRows[0].data : null;
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats);
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season);
   bindModalClose(modal);
 }
 
@@ -208,7 +233,7 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData, ratingHistory = [], careerStats = []) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "#555";
@@ -253,36 +278,12 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   // ── Season stats ──
   const statSectionHtml = `
     <div class="modal-section">
-      <div class="modal-section-title">Season Stats (${_activeFilters.season || CONFIG.CURRENT_SEASON})</div>
+      <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON})</div>
       <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
     </div>`;
 
-  // ── SHAP breakdown ──
-  const shapEntries = player.shap && typeof player.shap === "object" ? Object.entries(player.shap) : [];
-  const shapBars = shapEntries.length
-    ? shapEntries
-        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-        .slice(0, 8)
-        .map(([feat, val]) => {
-          const label = (CONFIG.SKILL_ATTRS[pg] || []).find(([k]) => k === feat)?.[1] || feat.replace(/_/g, " ");
-          const pct   = Math.min(100, Math.abs(val) * 300);
-          const bar   = val > 0 ? "var(--positive)" : "var(--negative)";
-          return `
-            <div class="shap-row">
-              <span class="shap-label">${label}</span>
-              <div class="shap-bar-wrap">
-                <div class="shap-bar" style="width:${pct}%;background:${bar}"></div>
-              </div>
-              <span class="shap-val" style="color:${bar}">${val > 0 ? "+" : ""}${val.toFixed(3)}</span>
-            </div>`;
-        }).join("")
-    : '<p class="text-muted" style="font-size:var(--fs-xs);padding:4px 0">SHAP data not yet available for this player.</p>';
-
-  const shapHtml = `
-    <div class="modal-section">
-      <div class="modal-section-title">Rating Breakdown <span class="section-note">(SHAP — why this rating?)</span></div>
-      <div class="shap-bars">${shapBars}</div>
-    </div>`;
+  // ── Rating breakdown ──
+  const shapHtml = renderRatingBreakdown(player, pg);
 
   // ── Year-over-year ratings chart (inline SVG sparkline) ──
   let yoyHtml = "";
@@ -360,6 +361,88 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${yoyHtml}
       ${shapHtml}
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Rating breakdown — plain-English explanation of what drives the rating
+// ---------------------------------------------------------------------------
+
+function renderRatingBreakdown(player, pg) {
+  const shap = player.shap && typeof player.shap === "object" ? player.shap : null;
+  const ovr  = player.overall_rating ? Math.round(player.overall_rating) : null;
+  const tier = ovr ? getRatingTier(ovr) : null;
+
+  // Tier context sentence
+  const tierSentence = tier && ovr
+    ? `<p class="breakdown-summary">${player.name?.split(" ")[0]} is rated <strong style="color:${tier.color}">${ovr} (${tier.label})</strong> among ${pg}s in ${player.season || CONFIG.CURRENT_SEASON}.</p>`
+    : "";
+
+  // Recruiting context
+  const recLine = player.stars
+    ? `<div class="breakdown-line"><span class="breakdown-icon">${player.stars >= 4 ? "⭐" : "📋"}</span><span>Recruited as a <strong>${player.stars}-star</strong> prospect${player.composite_score ? ` (composite ${player.composite_score.toFixed(4)})` : ""}</span></div>`
+    : `<div class="breakdown-line"><span class="breakdown-icon">📋</span><span>No recruiting data on record</span></div>`;
+
+  // Trajectory line
+  const trajLine = player.trajectory && Math.abs(player.trajectory) > 0.5
+    ? `<div class="breakdown-line"><span class="breakdown-icon">${player.trajectory > 0 ? "📈" : "📉"}</span><span>Rating ${player.trajectory > 0 ? "up" : "down"} <strong>${Math.abs(player.trajectory).toFixed(1)} points</strong> from last season</span></div>`
+    : "";
+
+  // Breakout line
+  const breakoutLine = player.breakout_prob >= 0.35
+    ? `<div class="breakdown-line"><span class="breakdown-icon">🔥</span><span><strong>Breakout candidate</strong> — young player with high recruiting pedigree below current production median (${(player.breakout_prob * 100).toFixed(0)}% probability)</span></div>`
+    : "";
+
+  // SHAP factor bars — normalized to % of total absolute influence
+  let factorsHtml = "";
+  if (shap) {
+    const entries = Object.entries(shap)
+      .filter(([, v]) => Math.abs(v) > 0.001)
+      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+      .slice(0, 6);
+
+    if (entries.length) {
+      const totalAbs = entries.reduce((s, [, v]) => s + Math.abs(v), 0) || 1;
+      const bars = entries.map(([feat, val]) => {
+        const label     = (CONFIG.SKILL_ATTRS[pg] || []).find(([k]) => k === feat)?.[1] || feat.replace(/_/g, " ");
+        const pct       = Math.round(Math.abs(val) / totalAbs * 100);
+        const positive  = val > 0;
+        const barColor  = positive ? "var(--positive)" : "var(--negative)";
+        const arrow     = positive ? "▲" : "▼";
+        const effect    = positive ? "boosted" : "reduced";
+        return `
+          <div class="shap-row" title="${label} ${effect} this rating by ${pct}% of total model influence">
+            <span class="shap-label">${label}</span>
+            <div class="shap-bar-wrap">
+              <div class="shap-bar" style="width:${pct}%;background:${barColor}"></div>
+            </div>
+            <span class="shap-val" style="color:${barColor}">${arrow} ${pct}%</span>
+          </div>`;
+      }).join("");
+      factorsHtml = `
+        <div class="breakdown-factors">
+          <div class="breakdown-factors-title">Model factors (% of rating influence)</div>
+          <div class="shap-bars">${bars}</div>
+          <p class="breakdown-note">Bars show each stat's share of the model's total influence on this rating. ▲ = raised the score, ▼ = lowered it.</p>
+        </div>`;
+    }
+  }
+
+  // If no SHAP, explain the fallback
+  const fallbackNote = !shap || !Object.keys(shap).length
+    ? `<div class="breakdown-line"><span class="breakdown-icon">ℹ️</span><span>This rating uses a recruiting-anchored estimate — not enough game stats to run the full model for this player.</span></div>`
+    : "";
+
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">Why this rating?</div>
+      ${tierSentence}
+      <div class="breakdown-lines">
+        ${recLine}
+        ${trajLine}
+        ${breakoutLine}
+        ${fallbackNote}
+      </div>
+      ${factorsHtml}
     </div>`;
 }
 
