@@ -364,22 +364,27 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
 }
 
 function renderStatBlocks(stats, pg) {
+  // Key names match what script 01 stores in the JSONB blob
   const fields = {
-    QB: [["passingYds","Pass Yds"],["passingTd","TDs"],["passingInt","INTs"],["passingComp","Comp"],["passingAtt","Att"]],
-    RB: [["rushingYds","Rush Yds"],["rushingTd","TDs"],["rushingCar","Carries"],["receivingYds","Rec Yds"]],
-    WR: [["receivingYds","Rec Yds"],["receivingTd","TDs"],["receivingRec","Rec"],["receivingYar","YAC"]],
-    TE: [["receivingYds","Rec Yds"],["receivingTd","TDs"],["receivingRec","Rec"]],
-    DL: [["defensiveTot","Tackles"],["defensiveSacks","Sacks"],["defensiveTfl","TFL"]],
-    LB: [["defensiveTot","Tackles"],["defensiveSacks","Sacks"],["defensiveTfl","TFL"],["defensiveInt","INTs"]],
-    DB: [["defensiveTot","Tackles"],["defensiveInt","INTs"],["defensivePd","PDs"]],
-    K:  [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLng","Long"]],
-    P:  [["puntingYds","Yds"],["puntingPunts","Punts"],["puntingIn20","In 20"]],
+    QB: [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingCOMPLETIONS","Comp"],["passingATT","Att"],["passingYPA","YPA"],["rushingYDS","Rush Yds"]],
+    RB: [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
+    WR: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"],["rushingYDS","Rush Yds"]],
+    TE: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
+    OL: [],
+    DL: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","QB Hur"],["defensivePD","PDs"]],
+    LB: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
+    DB: [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
+    K:  [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"],["kickingXPM","XPM"]],
+    P:  [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"],["puntingYPP","Avg"]],
   };
   const cols = fields[pg] || [];
-  return cols.map(([key, label]) => {
+  if (!cols.length) return '<p class="text-muted" style="font-size:var(--fs-xs)">No individual stats tracked for this position.</p>';
+  const blocks = cols.map(([key, label]) => {
     const val = stats[key];
-    return `<div class="stat-block"><span class="stat-val">${val ?? "—"}</span><span class="stat-label">${label}</span></div>`;
+    const display = val !== null && val !== undefined ? (typeof val === "number" ? (Number.isInteger(val) ? val : parseFloat(val).toFixed(1)) : val) : "—";
+    return `<div class="stat-block"><span class="stat-val">${display}</span><span class="stat-label">${label}</span></div>`;
   }).join("");
+  return blocks;
 }
 
 function bindModalClose(modal) {
