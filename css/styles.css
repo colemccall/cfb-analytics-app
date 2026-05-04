@@ -357,6 +357,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 }
 .section-note  { font-size: var(--fs-xs); color: var(--text-muted); font-family: var(--font-ui); text-transform: none; letter-spacing: 0; font-weight: 400; }
 .section-sub   { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 0.75rem; }
+.stats-sub-label { font-size: var(--fs-xs); font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 0.3rem; }
 .modal-loading { padding: 2rem; text-align: center; color: var(--text-muted); }
 
 /* ── SHAP / rating breakdown bars ── */

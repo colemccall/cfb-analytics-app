@@ -154,7 +154,6 @@ function playerCardHtml(p) {
              : p.trajectory < 0 ? `<span class="traj-down">▼${Math.abs(p.trajectory).toFixed(1)}</span>`
              : "";
   const breakout  = p.breakout_prob >= 0.35 ? `<span class="breakout-badge" title="Breakout candidate">🔥</span>` : "";
-  const archetype = ovr ? computeArchetype(pg, ovr, p.shap) : "";
   const initials  = (p.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
 
   return `
@@ -169,7 +168,6 @@ function playerCardHtml(p) {
         <div class="card-meta">${p.team || "—"} · ${p.conference || "—"}</div>
         <div class="card-footer">
           ${starsHtml(p.stars)} ${traj}
-          ${archetype ? `<span class="archetype-label">${archetype}</span>` : ""}
         </div>
       </div>
     </div>`;
@@ -219,8 +217,11 @@ async function openPlayerModal(playerId, seasonOverride) {
     return;
   }
 
-  const statsData = statsRows.length ? statsRows[0].data : null;
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season);
+  const regularRow    = statsRows.find(r => r.stat_type === "season_aggregate");
+  const postseasonRow = statsRows.find(r => r.stat_type === "postseason_aggregate");
+  const statsData     = regularRow ? regularRow.data : null;
+  const postseasonData = postseasonRow ? postseasonRow.data : null;
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData);
   bindModalClose(modal);
 }
 
@@ -233,14 +234,13 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "#555";
   const txtCol = ovr ? ratingTextColor(ovr) : "#fff";
   const pg    = player.position_group || "QB";
   const [pgBg, pgColor] = posGroupColor(pg);
-  const archetype = ovr ? computeArchetype(pg, ovr, player.shap) : "";
   const initials  = (player.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
 
   // ── Rating header ──
@@ -251,7 +251,6 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <h2>${player.name || "Unknown"}</h2>
         <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
         <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
-        ${archetype ? `<span class="archetype-label">${archetype}</span>` : ""}
       </div>
       <div class="modal-ovr-box" style="background:${color};color:${txtCol}">
         <span class="modal-ovr-num">${ovr || "—"}</span>
@@ -276,10 +275,20 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     </div>`;
 
   // ── Season stats ──
+  const psData  = postseasonData || null;
+  const hasPost = psData && Object.keys(psData).length > 0;
+  const totalData = hasPost ? mergeStatTotals(stats, psData, pg) : null;
   const statSectionHtml = `
     <div class="modal-section">
       <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON})</div>
+      ${hasPost ? '<div class="stats-sub-label">Regular Season</div>' : ""}
       <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
+      ${hasPost ? `
+        <div class="stats-sub-label" style="margin-top:10px">Postseason</div>
+        <div class="stats-grid">${renderStatBlocks(psData, pg)}</div>
+        <div class="stats-sub-label" style="margin-top:10px">Total</div>
+        <div class="stats-grid">${renderStatBlocks(totalData, pg)}</div>
+      ` : ""}
     </div>`;
 
   // ── Rating breakdown ──
@@ -444,6 +453,32 @@ function renderRatingBreakdown(player, pg) {
       </div>
       ${factorsHtml}
     </div>`;
+}
+
+function mergeStatTotals(reg, post, pg) {
+  // Additive keys — summed directly
+  const addKeys = [
+    "passingYDS","passingTD","passingINT","passingCOMPLETIONS","passingATT",
+    "rushingYDS","rushingTD","rushingCAR",
+    "receivingYDS","receivingTD","receivingREC",
+    "defensiveTOT","defensiveSACKS","defensiveTFL","defensiveQB HUR","defensivePD",
+    "interceptionsINT",
+    "kickingFGM","kickingFGA","kickingXPM","kickingXPA",
+    "puntingYDS","puntingNO","puntingIn 20",
+  ];
+  const out = {};
+  for (const k of addKeys) {
+    const rv = parseFloat(reg[k] || 0);
+    const pv = parseFloat(post[k] || 0);
+    if (rv || pv) out[k] = rv + pv;
+  }
+  // Recompute rate stats
+  if (out.passingATT)    out.passingYPA  = parseFloat((out.passingYDS  / out.passingATT).toFixed(1));
+  if (out.rushingCAR)    out.rushingYPC  = parseFloat((out.rushingYDS  / out.rushingCAR).toFixed(1));
+  if (out.receivingREC)  out.receivingYPR = parseFloat((out.receivingYDS / out.receivingREC).toFixed(1));
+  if (out.puntingNO)     out.puntingYPP  = parseFloat((out.puntingYDS  / out.puntingNO).toFixed(1));
+  if (out.kickingFGA)    out.kickingLNG  = Math.max(parseFloat(reg.kickingLNG || 0), parseFloat(post.kickingLNG || 0)) || undefined;
+  return out;
 }
 
 function renderStatBlocks(stats, pg) {

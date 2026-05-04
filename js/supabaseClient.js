@@ -63,7 +63,8 @@ async function fetchPlayers(options = {}) {
   const params = {
     select: [
       "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state,teams!inner(school,conference,color,logo_url))",
+      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
+      "season_team:teams!team_id(school,conference,color,logo_url)",
     ].join(","),
     "season":          `eq.${season}`,
     "order":           "overall_rating.desc",
@@ -99,7 +100,9 @@ async function fetchPlayers(options = {}) {
 
 function _shapePlayer(r, recMap = {}) {
   const p   = r.players || {};
-  const t   = p.teams   || {};
+  // season_team comes from ratings.team_id join — season-correct for transfers
+  // fall back to p.teams (players.team_id) only if ratings.team_id is null
+  const t   = r.season_team || p.teams || {};
   const rec = recMap[r.player_id] || {};
   return {
     id:              p.id,
@@ -131,7 +134,8 @@ async function fetchAllPlayers(season = CONFIG.CURRENT_SEASON) {
   const rows = await _getAll("ratings", {
     select: [
       "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state,teams!inner(school,conference,color,logo_url))",
+      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
+      "season_team:teams!team_id(school,conference,color,logo_url)",
     ].join(","),
     "season":         `eq.${season}`,
     "order":          "overall_rating.desc",
@@ -197,12 +201,13 @@ async function fetchTeamRoster(teamId, season = CONFIG.CURRENT_SEASON) {
   const rows = await _get("ratings", {
     select: [
       "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state,team_id)",
+      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
+      "season_team:teams!team_id(school,conference,color,logo_url)",
     ].join(","),
-    "season":            `eq.${season}`,
-    "players.team_id":   `eq.${teamId}`,
-    "order":             "overall_rating.desc",
-    "limit":             "300",
+    "season":    `eq.${season}`,
+    "team_id":   `eq.${teamId}`,
+    "order":     "overall_rating.desc",
+    "limit":     "300",
   });
 
   if (!rows.length) return [];
@@ -249,7 +254,8 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
   const rows = await _get("ratings", {
     select: [
       "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state,teams(school,conference,color,logo_url))",
+      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
+      "season_team:teams!team_id(school,conference,color,logo_url)",
     ].join(","),
     "player_id": `eq.${playerId}`,
     "season":    `eq.${season}`,
@@ -259,7 +265,7 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
   if (!rows.length) return null;
   const r   = rows[0];
   const p   = r.players || {};
-  const t   = p.teams   || {};
+  const t   = r.season_team || {};
 
   // Best recruiting record
   const recRows = await _get("recruiting", {
@@ -363,11 +369,12 @@ async function fetchTeamTransfers(teamId, season = null) {
 // Single player live stats (for modal)
 // ---------------------------------------------------------------------------
 async function fetchPlayerStats(playerId, season = CONFIG.CURRENT_SEASON) {
+  // Returns both regular-season and postseason aggregates for the player card
   return _get("stats", {
     "player_id": `eq.${playerId}`,
     "season":    `eq.${season}`,
-    "stat_type": `eq.season_aggregate`,
-    limit: "1",
+    "stat_type": `in.(season_aggregate,postseason_aggregate)`,
+    limit: "2",
   });
 }
 
@@ -391,9 +398,9 @@ async function fetchPlayerCareerStats(playerId) {
   const rows = await _get("stats", {
     select: "season,stat_type,data",
     "player_id": `eq.${playerId}`,
-    "stat_type": `eq.season_aggregate`,
+    "stat_type": `in.(season_aggregate,postseason_aggregate)`,
     order: "season.asc",
-    limit: "10",
+    limit: "20",
   });
   return rows;
 }

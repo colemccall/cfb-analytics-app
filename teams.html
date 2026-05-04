@@ -298,7 +298,9 @@
       ? players
       : players.filter(p => p.position_group === _rosterPosFilter || p.position === _rosterPosFilter);
 
-    filtered.sort((a, b) => (_rosterSortAsc ? 1 : -1) * ((b.overall_rating || 0) - (a.overall_rating || 0)));
+    filtered.sort((a, b) => _rosterSortAsc
+      ? (a.overall_rating || 0) - (b.overall_rating || 0)
+      : (b.overall_rating || 0) - (a.overall_rating || 0));
 
     const makeChip = pg =>
       `<span class="pos-chip${_rosterPosFilter === pg ? " active" : ""}" data-posfilter="${pg}">${pg}</span>`;
@@ -316,7 +318,6 @@
       const [pgBg, pgColor] = posGroupColor(p.position_group || p.position);
       const yr  = yearLabels[p.year] || "—";
       const pos = p.position || p.position_group || "—";
-      const arch = ovr ? computeArchetype(p.position_group, ovr, p.shap) : "";
       const stars = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "";
       return `
         <div class="d-depth-card" data-player-id="${p.id}" style="cursor:pointer">
@@ -325,7 +326,7 @@
           </div>
           <div class="d-depth-info">
             <div class="d-depth-name">${p.name || "—"}</div>
-            <div class="d-depth-pos-tag" style="color:${pgColor}">${pos} · ${yr}${arch ? ` · <em>${arch}</em>` : ""}</div>
+            <div class="d-depth-pos-tag" style="color:${pgColor}">${pos} · ${yr}</div>
             ${stars ? `<span class="stars" style="font-size:10px;color:#f5a623">${stars}</span>` : ""}
           </div>
           <div class="d-depth-ovr-box" style="background:${ovrBg};color:${ovrTxt}">
