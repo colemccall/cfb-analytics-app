@@ -328,7 +328,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
 
   // ── Career stats table ──
   let careerHtml = "";
-  if (careerStats.length > 1) {
+  if (careerStats.length >= 1) {
     const CAREER_FIELDS = {
       QB: [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
       RB: [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
@@ -342,12 +342,28 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     };
     const fields = CAREER_FIELDS[pg] || [];
     if (fields.length) {
-      const def = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : "—"; };
-      const rows = careerStats.map(cs => `
-        <tr>
-          <td><strong>${cs.season}</strong></td>
-          ${fields.map(([k]) => `<td>${def(cs.data, k)}</td>`).join("")}
-        </tr>`).join("");
+      // Merge regular + postseason rows by season into one row each
+      const seasonMap = {};
+      for (const cs of careerStats) {
+        if (!seasonMap[cs.season]) seasonMap[cs.season] = { season: cs.season, reg: null, post: null };
+        if (cs.stat_type === "postseason_aggregate") seasonMap[cs.season].post = cs.data;
+        else seasonMap[cs.season].reg = cs.data;
+      }
+      const mergedSeasons = Object.values(seasonMap).sort((a, b) => a.season - b.season);
+
+      const def = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : null; };
+      const rows = mergedSeasons.map(({ season: yr, reg, post }) => {
+        const combined = (reg && post) ? mergeStatTotals(reg, post, pg) : (reg || post || {});
+        return `
+          <tr>
+            <td><strong>${yr}</strong></td>
+            ${fields.map(([k]) => {
+              const v = def(combined, k);
+              const disp = v !== null ? (typeof v === "number" ? (Number.isInteger(v) ? v : parseFloat(v).toFixed(1)) : v) : "—";
+              return `<td>${disp}</td>`;
+            }).join("")}
+          </tr>`;
+      }).join("");
       careerHtml = `
         <div class="modal-section">
           <div class="modal-section-title">Career Stats</div>
