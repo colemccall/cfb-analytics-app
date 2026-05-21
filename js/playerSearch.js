@@ -2,16 +2,8 @@
 // Data source: Supabase for both grid and detail modal.
 
 function posGroupColor(g) {
-  switch (g) {
-    case "QB":             return ["rgba(200,146,42,0.18)", "#c8922a"];
-    case "RB": case "WR":
-    case "TE":             return ["rgba(56,139,253,0.15)", "#4fa3f7"];
-    case "DL": case "LB": return ["rgba(216,72,72,0.15)",  "#d84848"];
-    case "DB":             return ["rgba(48,168,87,0.15)",  "#30a857"];
-    case "OL":             return ["rgba(140,100,220,0.15)","#9b6fda"];
-    case "K":  case "P":  return ["rgba(128,128,160,0.15)","#8080a0"];
-    default:               return ["var(--surface)", "var(--text-muted)"];
-  }
+  const c = posColor(g);  // from config.js
+  return [c + "22", c];
 }
 function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
 
@@ -20,8 +12,22 @@ let _filteredPlayers = [];   // client-side text/minRating filter applied to _al
 let _activeFilters = { position: "ALL", conference: "", minRating: 0, query: "", season: CONFIG.CURRENT_SEASON };
 let _fetchPending = false;
 
+// Similar players — loaded lazily from data/similar_players.json
+let _similarPlayersCache = null;
+
+async function loadSimilarPlayers() {
+  if (_similarPlayersCache) return _similarPlayersCache;
+  try {
+    const res = await fetch("data/similar_players.json");
+    _similarPlayersCache = await res.json();
+  } catch (e) {
+    _similarPlayersCache = {};
+  }
+  return _similarPlayersCache;
+}
+
 const OFF_POS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
-const DEF_POS = ["DL", "LB", "DB", "K", "P"];
+const DEF_POS = ["EDGE", "DL", "LB", "CB", "S", "DB", "K", "P"];
 
 // All known conferences — populated on first load
 const _CONFERENCES = [
@@ -47,7 +53,13 @@ async function fetchAndRender() {
   const { position, conference, season } = _activeFilters;
   grid.innerHTML = '<p class="empty-state">Loading…</p>';
   try {
-    _allPlayers = await fetchPlayers({ season, position, conference, limit: 50 });
+    if (position && position !== "ALL") {
+      // Position selected: fetch top 200 at that specific position
+      _allPlayers = await fetchPlayers({ season, position, conference, limit: 200 });
+    } else {
+      // No position filter: fetch top 1000 overall, filter client-side
+      _allPlayers = await fetchPlayers({ season, conference, limit: 1000 });
+    }
   } catch (e) {
     grid.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
     _fetchPending = false;
@@ -63,9 +75,19 @@ function buildPosChips() {
     btn.className = "pos-chip" + (pg === "ALL" ? " active" : "");
     btn.dataset.pos = pg;
     btn.textContent = pg;
+    const color = posColor(pg);
+    if (pg !== "ALL") {
+      btn.style.setProperty("--chip-color", color);
+      btn.style.borderColor = color + "44";
+    }
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".pos-chip").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".pos-chip").forEach(b => {
+        b.classList.remove("active");
+        b.style.background = "";
+        b.style.color = "";
+      });
       btn.classList.add("active");
+      if (pg !== "ALL") { btn.style.background = color; btn.style.color = "#fff"; }
       _activeFilters.position = pg;
       fetchAndRender();
     });
@@ -92,7 +114,7 @@ function populateConferenceOptions() {
 // ---------------------------------------------------------------------------
 
 function applyClientFilters() {
-  const { minRating, query } = _activeFilters;
+  const { minRating, query, position } = _activeFilters;
   const q = query.toLowerCase();
   _filteredPlayers = _allPlayers.filter(p => {
     if (minRating && (p.overall_rating || 0) < minRating) return false;
@@ -132,44 +154,48 @@ function bindFilterEvents() {
 
 function renderGrid() {
   const grid = document.getElementById("player-grid");
-  if (!_filteredPlayers.length) {
+  // Filter out unknown/blank players
+  const valid = _filteredPlayers.filter(p => p.name && p.name !== "Unknown" && p.name !== "—" && p.team);
+  if (!valid.length) {
     grid.innerHTML = '<p class="empty-state">No players match your filters.</p>';
     return;
   }
-  grid.innerHTML = _filteredPlayers.map(p => playerCardHtml(p)).join("");
+  grid.innerHTML = `<div class="draft-board-header animate-pop">
+    <span>#</span><span>Player</span>
+    <span>OVR</span><span>Traj</span><span>OAP</span>
+  </div><div class="stagger-children">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Attach click handlers
-  grid.querySelectorAll(".player-card").forEach(card => {
-    card.addEventListener("click", () => openPlayerModal(parseInt(card.dataset.id)));
+  grid.querySelectorAll(".draft-row").forEach(row => {
+    row.addEventListener("click", () => openPlayerModal(parseInt(row.dataset.id)));
   });
 }
 
-function playerCardHtml(p) {
+function playerRowHtml(p, rank) {
   const ovr    = p.overall_rating ? Math.round(p.overall_rating) : null;
-  const ovrBg  = ovr ? ratingColor(ovr) : "var(--surface-deep)";
-  const ovrTxt = ovr ? ratingTextColor(ovr) : "var(--text-muted)";
-  const pg = p.position_group || p.position || "—";
-  const [pgBg, pgColor] = posGroupColor(pg);
-  const traj = p.trajectory > 0 ? `<span class="traj-up">▲${p.trajectory.toFixed(1)}</span>`
-             : p.trajectory < 0 ? `<span class="traj-down">▼${Math.abs(p.trajectory).toFixed(1)}</span>`
-             : "";
-  const breakout  = p.breakout_prob >= 0.35 ? `<span class="breakout-badge" title="Breakout candidate">🔥</span>` : "";
-  const initials  = (p.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
+  const tier   = getRatingTier(ovr || 0);
+  const pg     = p.position_group || p.position || "ATH";
+  const color  = posColor(pg);
+  const rankCls = rank < 3 ? "top3" : rank < 10 ? "top10" : "";
+  const oap    = p.edge_score != null ? p.edge_score.toFixed(2) : "—";
+  const breakout = p.breakout_prob >= 0.35 ? ' <span title="Breakout candidate" style="font-size:10px">🔥</span>' : "";
+  const teamColor = p.team_color ? `#${p.team_color.replace("#","")}` : color;
 
   return `
-    <div class="player-card" data-id="${p.id}" data-rating="${p.overall_rating || 0}">
-      <div class="card-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">${initials}</div>
-      <div class="card-body">
-        <div class="card-header-row">
-          <span class="card-name">${p.name || "Unknown"} ${breakout}</span>
-          <span class="ovr" style="background:${ovrBg};color:${ovrTxt}">${ovr || "—"}</span>
+    <div class="draft-row animate-up ${tier.cls}" data-id="${p.id}" data-rating="${p.overall_rating || 0}"
+         style="--tier-color:${tier.color || "transparent"};border-left-color:${tier.color || "var(--border)"}">
+      <div class="draft-rank ${rankCls}">#${rank + 1}</div>
+      <div class="draft-info">
+        <div class="draft-name">
+          <span class="pos-badge-color" style="background:${color}">${pg}</span>
+          ${tier.label ? `<span class="tier-label" style="background:${tier.color}">${tier.label}</span>` : ""}
+          <span class="player-name-text">${p.name}${breakout}</span>
         </div>
-        <div class="card-pos-tag" style="color:${pgColor}">${pg} · ${yearLabel(p.year)}</div>
-        <div class="card-meta">${p.team || "—"} · ${p.conference || "—"}</div>
-        <div class="card-footer">
-          ${starsHtml(p.stars)} ${traj}
-        </div>
+        <div class="draft-meta">${p.team || "—"} · ${yearLabel(p.year)} · ${p.conference || "—"} · ${starsHtml(p.stars)}</div>
       </div>
+      <div class="draft-ovr" style="background:${tier.color || "transparent"};color:${tier.color ? "#111" : "var(--text-muted)"}">${ovr || "—"}</div>
+      <div class="draft-traj">${trajHtml(p.trajectory)}</div>
+      <div class="draft-edge">${oap}</div>
     </div>`;
 }
 
@@ -201,12 +227,13 @@ async function openPlayerModal(playerId, seasonOverride) {
   document.body.style.overflow = "hidden";
   bindModalClose(modal);
 
-  // Fetch profile + stats + history in parallel
-  const [player, statsRows, ratingHistory, careerStats] = await Promise.all([
+  // Fetch profile + stats + history + similar in parallel
+  const [player, statsRows, ratingHistory, careerStats, similarMap] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
     fetchPlayerCareerStats(playerId).catch(() => []),
+    loadSimilarPlayers().catch(() => ({})),
   ]);
 
   if (!player) {
@@ -221,7 +248,10 @@ async function openPlayerModal(playerId, seasonOverride) {
   const postseasonRow = statsRows.find(r => r.stat_type === "postseason_aggregate");
   const statsData     = regularRow ? regularRow.data : null;
   const postseasonData = postseasonRow ? postseasonRow.data : null;
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData);
+  // Look up similar players by player_season_id (the key in similar_players.json)
+  const psId = player.player_season_id;
+  const similarPlayers = psId && similarMap ? (similarMap[psId] || []) : [];
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers);
   bindModalClose(modal);
 }
 
@@ -234,7 +264,7 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = []) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "#555";
@@ -291,6 +321,25 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ` : ""}
     </div>`;
 
+  // ── EDGE score panel (EDGE-rated positions only) ──
+  const EDGE_POS = ["QB","RB","WR","TE","EDGE","DL","LB","CB","S","DB"];
+  let edgeHtml = "";
+  if (EDGE_POS.includes(pg) && player.edge_score != null) {
+    const edgeVal = player.edge_score.toFixed(2);
+    const gp      = player.games_played != null ? player.games_played : "—";
+    const sm      = player.stats_measured != null ? player.stats_measured : "—";
+    edgeHtml = `
+      <div class="modal-section">
+        <div class="modal-section-title">EDGE Score</div>
+        <div class="stats-grid">
+          <div class="stat-block"><span class="stat-val">${edgeVal}</span><span class="stat-label">EDGE</span></div>
+          <div class="stat-block"><span class="stat-val">${gp}</span><span class="stat-label">Games</span></div>
+          <div class="stat-block"><span class="stat-val">${sm}</span><span class="stat-label">Stats Measured</span></div>
+        </div>
+        <p class="breakdown-note" style="margin-top:6px">Opponent-adjusted production per √games. Higher = more impactful vs stronger competition.</p>
+      </div>`;
+  }
+
   // ── Rating breakdown ──
   const shapHtml = renderRatingBreakdown(player, pg);
 
@@ -330,33 +379,37 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   let careerHtml = "";
   if (careerStats.length >= 1) {
     const CAREER_FIELDS = {
-      QB: [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
-      RB: [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
-      WR: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
-      TE: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"]],
-      DL: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
-      LB: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"]],
-      DB: [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
-      K:  [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"]],
-      P:  [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"]],
+      QB:   [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
+      RB:   [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
+      WR:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
+      TE:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"]],
+      EDGE: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"],["defensivePD","PDs"]],
+      DL:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"]],
+      LB:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
+      CB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"],["defensiveSACKS","Sacks"]],
+      S:    [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
+      DB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
+      K:    [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"]],
+      P:    [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"]],
     };
     const fields = CAREER_FIELDS[pg] || [];
     if (fields.length) {
       // Merge regular + postseason rows by season into one row each
       const seasonMap = {};
       for (const cs of careerStats) {
-        if (!seasonMap[cs.season]) seasonMap[cs.season] = { season: cs.season, reg: null, post: null };
+        if (!seasonMap[cs.season]) seasonMap[cs.season] = { season: cs.season, reg: null, post: null, team: cs.team || null };
         if (cs.stat_type === "postseason_aggregate") seasonMap[cs.season].post = cs.data;
-        else seasonMap[cs.season].reg = cs.data;
+        else { seasonMap[cs.season].reg = cs.data; if (cs.team) seasonMap[cs.season].team = cs.team; }
       }
       const mergedSeasons = Object.values(seasonMap).sort((a, b) => a.season - b.season);
 
       const def = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : null; };
-      const rows = mergedSeasons.map(({ season: yr, reg, post }) => {
+      const rows = mergedSeasons.map(({ season: yr, reg, post, team: rowTeam }) => {
         const combined = (reg && post) ? mergeStatTotals(reg, post, pg) : (reg || post || {});
         return `
           <tr>
             <td><strong>${yr}</strong></td>
+            <td style="color:var(--text-muted);font-size:var(--fs-xs)">${rowTeam || "—"}</td>
             ${fields.map(([k]) => {
               const v = def(combined, k);
               const disp = v !== null ? (typeof v === "number" ? (Number.isInteger(v) ? v : parseFloat(v).toFixed(1)) : v) : "—";
@@ -369,7 +422,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
           <div class="modal-section-title">Career Stats</div>
           <div style="overflow-x:auto">
             <table class="leaderboard-table">
-              <thead><tr><th>Yr</th>${fields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
+              <thead><tr><th>Yr</th><th>Team</th>${fields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
@@ -377,14 +430,43 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     }
   }
 
+  // Similar players section
+  let similarHtml = "";
+  if (similarPlayers && similarPlayers.length) {
+    const rows = similarPlayers.map(s => {
+      const pct = Math.round(s.similarity * 100);
+      const ovrColor = ratingColor(Math.round(s.ovr || 50));
+      return `
+        <div class="similar-row" data-player-id="${s.id}" style="cursor:pointer">
+          <div class="similar-info">
+            <span class="similar-name">${s.name}</span>
+            <span class="similar-meta">${s.team || "—"} · ${s.season}</span>
+          </div>
+          <div class="similar-match-bar">
+            <div class="similar-match-fill" style="width:${pct}%"></div>
+          </div>
+          <span class="similar-pct">${pct}%</span>
+          <span class="similar-ovr" style="color:${ovrColor}">${Math.round(s.ovr || 0)}</span>
+        </div>`;
+    }).join("");
+    similarHtml = `
+      <div class="modal-section">
+        <div class="modal-section-title">Similar Players (Cross-Era)</div>
+        <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:0.5rem">Players from any season with the most similar production profile at this position.</p>
+        <div class="similar-list">${rows}</div>
+      </div>`;
+  }
+
   return `
     ${headerHtml}
     <div class="modal-body">
       ${bioHtml}
       ${statSectionHtml}
+      ${edgeHtml}
       ${careerHtml}
       ${yoyHtml}
       ${shapHtml}
+      ${similarHtml}
     </div>`;
 }
 
@@ -505,9 +587,12 @@ function renderStatBlocks(stats, pg) {
     WR: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"],["rushingYDS","Rush Yds"]],
     TE: [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
     OL: [],
-    DL: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","QB Hur"],["defensivePD","PDs"]],
-    LB: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
-    DB: [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
+    EDGE: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","QB Hur"],["defensivePD","PDs"]],
+    DL:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","QB Hur"],["defensivePD","PDs"]],
+    LB:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
+    CB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"],["defensiveSACKS","Sacks"]],
+    S:    [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
+    DB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
     K:  [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"],["kickingXPM","XPM"]],
     P:  [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"],["puntingYPP","Avg"]],
   };
@@ -525,6 +610,13 @@ function bindModalClose(modal) {
   modal.querySelector(".modal-close").addEventListener("click", closeModal);
   modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); }, { once: true });
+  // Similar player rows — navigate to that player
+  modal.querySelectorAll(".similar-row[data-player-id]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = parseInt(el.dataset.playerId);
+      if (id) openPlayerModal(id);
+    });
+  });
 }
 
 function closeModal() {

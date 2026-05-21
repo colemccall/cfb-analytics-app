@@ -5,209 +5,318 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>How Ratings Work — CFB Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
   <style>
-    .info-page { max-width: 820px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    .info-page h1 { font-family: var(--font-display); font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
-    .info-page h2 { font-family: var(--font-display); font-size: 1.3rem; color: var(--accent); margin: 2rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .info-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.35rem; }
-    .info-page p  { color: var(--text-muted); line-height: 1.65; margin-bottom: 0.75rem; }
+    .info-page { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .info-page h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 900; color: var(--accent); margin-bottom: 0.25rem; letter-spacing: 1px; text-transform: uppercase; }
+    .info-page .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: var(--fs-sm); }
+    .info-page h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 2.25rem 0 0.6rem; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .info-page h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.35rem; }
+    .info-page p  { color: var(--text-muted); line-height: 1.7; margin-bottom: 0.8rem; }
     .info-page p strong { color: var(--text); }
-    .info-page ul { color: var(--text-muted); line-height: 1.7; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+    .info-page ul { color: var(--text-muted); line-height: 1.75; padding-left: 1.25rem; margin-bottom: 0.8rem; }
     .info-page li strong { color: var(--text); }
-    .callout { background: var(--surface); border-left: 3px solid var(--accent); padding: 0.75rem 1rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1rem 0; }
-    .callout p { margin: 0; }
+    .callout {
+      background: var(--surface);
+      border-left: 3px solid var(--accent);
+      padding: 0.875rem 1.125rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 1rem 0;
+      box-shadow: var(--shadow);
+    }
+    .callout p { margin: 0; color: var(--text-muted); }
+    .callout p strong { color: var(--text); }
+    .callout-alt {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-top: 2px solid var(--accent);
+      padding: 0.875rem 1.125rem;
+      border-radius: var(--radius);
+      margin: 1rem 0;
+      box-shadow: var(--shadow);
+    }
+    .callout-alt p { margin: 0; }
+
+    .formula-block {
+      background: var(--surface-deep); border: 1px solid var(--border-mid);
+      border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0;
+      font-family: 'Barlow Condensed', monospace; font-size: 1.05rem;
+      color: var(--accent); letter-spacing: 0.3px; line-height: 1.6;
+    }
+    .formula-block .formula-note { font-family: var(--font-ui); font-size: var(--fs-xs); color: var(--text-muted); margin-top: 6px; display: block; }
+
     .weight-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin: 0.75rem 0 1.25rem; }
-    .weight-table th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); }
-    .weight-table td { padding: 5px 8px 5px 0; color: var(--text-muted); border-bottom: 1px solid var(--border-mid); vertical-align: top; }
+    .weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-mid); }
+    .weight-table td { padding: 7px 10px 7px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: middle; }
     .weight-table td:first-child { color: var(--text); font-weight: 500; }
     .weight-table .w-bar-cell { min-width: 120px; }
-    .w-bar-wrap { display: inline-block; width: 100%; max-width: 100px; height: 6px; background: var(--surface-deep); border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+    .w-bar-wrap { display: inline-block; width: 90px; height: 6px; background: var(--surface-deep); border-radius: 3px; vertical-align: middle; margin-right: 6px; }
     .w-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+
     .step-list { list-style: none; padding: 0; counter-reset: steps; }
-    .step-list li { counter-increment: steps; display: flex; gap: 0.75rem; margin-bottom: 1rem; }
-    .step-list li::before { content: counter(steps); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; min-width: 26px; background: var(--accent); color: #000; font-weight: 700; font-size: 12px; border-radius: 50%; font-family: var(--font-display); }
-    .step-text { color: var(--text-muted); line-height: 1.55; }
+    .step-list li { counter-increment: steps; display: flex; gap: 0.875rem; margin-bottom: 1.1rem; }
+    .step-list li::before {
+      content: counter(steps);
+      display: flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; min-width: 26px;
+      background: var(--accent); color: #000; font-weight: 800;
+      font-size: 12px; border-radius: 50%;
+      font-family: var(--font-display);
+      flex-shrink: 0;
+    }
+    .step-text { color: var(--text-muted); line-height: 1.6; padding-top: 2px; }
     .step-text strong { color: var(--text); }
+
     .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
-    .pos-card { background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius); padding: 0.75rem 1rem; }
-    .pos-card-name { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 0.4rem; }
-    .pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.6; }
-    .tier-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: var(--fs-sm); }
+    .pos-card {
+      background: var(--surface); border: 1px solid var(--border-mid);
+      border-radius: var(--radius); padding: 0.875rem 1rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .pos-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
+    .pos-card-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; color: var(--accent); margin-bottom: 0.5rem; letter-spacing: 0.3px; }
+    .pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.7; }
+
+    .tier-rows { display: flex; flex-direction: column; gap: 8px; margin: 0.75rem 0 1.5rem; }
+    .tier-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-sm); padding: 8px 12px; background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
     .tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-    .limitations-box { background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0; }
+    .tier-range { font-family: var(--font-display); font-size: 1rem; font-weight: 800; min-width: 50px; }
+    .tier-desc { color: var(--text-muted); font-size: var(--fs-xs); }
+
+    .limitations-box { background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius); padding: 1.125rem 1.375rem; margin: 1rem 0; }
     .limitations-box h3 { margin-top: 0; color: var(--text); }
+
+    .version-note { margin-top: 2.5rem; color: var(--text-muted); font-size: var(--fs-xs); padding-top: 1rem; border-top: 1px solid var(--border); }
+    .version-note a { color: var(--accent); }
   </style>
 </head>
 <body>
 
-<nav>
-  <span class="nav-brand">CFB Analytics</span>
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="players.html">Players</a>
-    <a href="ratings.html">Ratings</a>
-    <a href="teams.html">Teams</a>
-    <a href="research.html">Research</a>
-    <a href="info.html" class="active">How It Works</a>
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
+    <a href="players.html"  class="snav-item"><span class="snav-icon">👤</span> Players</a>
+    <a href="teams.html"    class="snav-item"><span class="snav-icon">🏟</span> Teams</a>
+    <a href="ratings.html"  class="snav-item"><span class="snav-icon">📊</span> Ratings</a>
+    <a href="research.html" class="snav-item"><span class="snav-icon">🔬</span> Research</a>
+    <a href="info.html"     class="snav-item active"><span class="snav-icon">ℹ</span> How It Works</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div>
+      <div class="sidebar-theme-label">Theme</div>
+      <div class="theme-swatches">
+        <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
+        <button class="theme-swatch" data-theme="mid" title="Slate"></button>
+        <button class="theme-swatch" data-theme="light" title="Light"></button>
+      </div>
+    </div>
   </div>
-  <span class="nav-spacer"></span>
-  <div class="theme-swatches">
-    <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
-    <button class="theme-swatch" data-theme="mid" title="Slate"></button>
-    <button class="theme-swatch" data-theme="light" title="Light"></button>
-  </div>
-</nav>
+</aside>
+<div class="main-content">
+
+<div class="page-hero animate-pop">
+  <h1>How Ratings Work</h1>
+  <p class="page-hero-sub">A plain-English explanation of the EDGE rating system — formula, inputs, calibration, and known limitations.</p>
+</div>
 
 <div class="info-page">
 
-  <h1>How Player Ratings Work</h1>
-  <p style="color:var(--text-muted);margin-bottom:2rem">A plain-English explanation of the model, its inputs, its weights, and its known limitations.</p>
 
-  <!-- ── The Big Idea ── -->
-  <h2>The core idea</h2>
+  <!-- ── Core idea ── -->
+  <h2>The Core Idea</h2>
   <p>
-    CFB recruiting rankings measure <strong>potential</strong> — how scouts evaluate a player before they've played a college snap.
-    Our ratings measure <strong>production</strong> — what a player actually did on the field, relative to every other player at their position in the same season.
+    CFB recruiting rankings measure <strong>potential</strong> — scout projections before a player has played a college snap.
+    Our ratings measure <strong>production</strong> — what a player actually did on the field, adjusted for the quality of competition they faced.
   </p>
   <div class="callout">
-    <p>A 3-star wide receiver who leads the SEC in yards per reception will rate higher than a 5-star recruit who hasn't lived up to his billing. That gap is the "hidden gem" this platform is designed to find.</p>
+    <p>A 3-star receiver who dominates in a Power 4 conference will rate higher than a 5-star recruit who hasn't produced. That gap — production vs. hype — is what this platform is designed to find.</p>
   </div>
   <p>
-    Ratings run from <strong>30 to 99</strong>. They are relative rankings within a season — a 90-rated QB is not absolutely better than a 90-rated DL; they are each in roughly the top 10% of their position group that year.
+    Ratings run from <strong>30 to 99</strong>. They are absolute scores, not relative rankings — the same production produces the same rating regardless of how many other players had a great year. A 90-rated QB in 2023 met the same performance threshold as a 90-rated QB in 2025.
   </p>
 
   <!-- ── Rating tiers ── -->
-  <h2>Rating tiers</h2>
-  <div style="margin:0.75rem 0 1.5rem">
-    <div class="tier-row"><div class="tier-dot" style="background:#00c853"></div><strong>85–99 Elite</strong> — top ~10% of the position group</div>
-    <div class="tier-row"><div class="tier-dot" style="background:#4caf50"></div><strong>70–84 Great</strong> — clear starter, above-average production</div>
-    <div class="tier-row"><div class="tier-dot" style="background:#8bc34a"></div><strong>55–69 Solid</strong> — contributing starter</div>
-    <div class="tier-row"><div class="tier-dot" style="background:#ffc107"></div><strong>45–54 Average</strong> — rotation or fringe starter</div>
-    <div class="tier-row"><div class="tier-dot" style="background:#f44336"></div><strong>&lt;45 Below</strong> — backup or insufficient data</div>
+  <h2>Rating Tiers</h2>
+  <div class="tier-rows">
+    <div class="tier-row">
+      <div class="tier-dot" style="background:#FFD700"></div>
+      <div class="tier-range" style="color:#FFD700">90–99</div>
+      <div><strong>ELITE</strong> — <span class="tier-desc">All-American caliber; top ~5% of the position group nationally</span></div>
+    </div>
+    <div class="tier-row">
+      <div class="tier-dot" style="background:#FFA000"></div>
+      <div class="tier-range" style="color:#FFA000">80–89</div>
+      <div><strong>GOLD</strong> — <span class="tier-desc">Clear starter with above-average production</span></div>
+    </div>
+    <div class="tier-row">
+      <div class="tier-dot" style="background:#78909C"></div>
+      <div class="tier-range" style="color:#78909C">70–79</div>
+      <div><strong>SILVER</strong> — <span class="tier-desc">Contributing starter, solid production</span></div>
+    </div>
+    <div class="tier-row">
+      <div class="tier-dot" style="background:#8D6E63"></div>
+      <div class="tier-range" style="color:#8D6E63">55–69</div>
+      <div><strong>BRONZE</strong> — <span class="tier-desc">Rotation player or limited sample size</span></div>
+    </div>
+    <div class="tier-row">
+      <div class="tier-dot" style="background:var(--border-mid)"></div>
+      <div class="tier-range" style="color:var(--text-muted)">&lt;55</div>
+      <div><strong>DEVELOPING</strong> — <span class="tier-desc">Bench, redshirt, or insufficient data — recruiting-anchored estimate</span></div>
+    </div>
   </div>
 
-  <!-- ── How it's calculated ── -->
-  <h2>How ratings are calculated</h2>
-  <p>Ratings are built from two data sources depending on the position:</p>
+  <!-- ── EDGE formula ── -->
+  <h2>The EDGE Formula</h2>
+  <p>
+    EDGE (<strong>E</strong>fficiency-<strong>D</strong>riven <strong>G</strong>rade per <strong>E</strong>vent) is the core metric behind every rating. It answers: <em>"How much did this player produce, game by game, against the quality of defense or offense they faced?"</em>
+  </p>
 
-  <div class="callout" style="margin-bottom:1.25rem">
-    <p><strong>Offensive skill players (QB, RB, WR, TE)</strong> are primarily rated on <strong>EDGE</strong> — our opponent-adjusted, situation-weighted play-by-play metric. Recruiting composite is a 5% anchor only.</p>
+  <div class="formula-block">
+    EDGE = Σ (stat_composite<sub>i</sub> × opp_mult<sub>i</sub>) / √(games_played)
+    <span class="formula-note">Where i = each game the player appeared in with recorded stats</span>
   </div>
-  <div class="callout" style="margin-bottom:1.25rem">
-    <p><strong>Defensive and OL players</strong> are rated on season stat composites (tackles, sacks, TFLs, etc.) because play-by-play EPA attribution is not available for these positions. Recruiting composite is included at 15–20%.</p>
+
+  <h3>Step 1 — Stat Composite (per game)</h3>
+  <p>
+    Each position has a position-specific weighted formula applied to that game's stats. Weights are calibrated to prioritize <em>impactful</em> plays — touchdowns, turnovers, disruption — over volume-based counting stats.
+  </p>
+  <p>
+    Example weights: QB composite = <code>passYds×1.0 + passTD×25 + rushYds×0.7 + rushTD×20 − INTs×20</code>. A QB who throws 4 TDs in one game scores much higher than one with the same total yards but no touchdowns.
+  </p>
+
+  <h3>Step 2 — Opponent Quality Multiplier</h3>
+  <p>
+    Each game's composite is scaled by the opponent's SP+ rating for the relevant side of the ball: <strong>defensive SP+</strong> for offensive players, <strong>offensive SP+</strong> for defensive players. The multiplier is normalized per game to a range of <strong>[0.55, 1.45]</strong> — a great performance against a top-10 defense counts up to 1.45×, while the same production against a weak defense counts as low as 0.55×.
+  </p>
+  <div class="callout">
+    <p>This is why scheme matters. A QB in an air-raid offense facing MAC defenses will not rate the same as one producing equal totals against SEC and Big Ten defenses — even if their raw stat lines look identical.</p>
   </div>
 
-  <h3>What is EDGE?</h3>
-  <p>EDGE (Efficiency-Driven Grade per Event) is our custom player efficiency metric built from raw play-by-play data. It answers: "how much did this player improve his team's scoring odds per play, accounting for <em>who</em> he was playing and <em>when</em> in the game it happened?"</p>
+  <h3>Step 3 — Sample Size Normalization</h3>
+  <p>
+    The sum of opponent-adjusted game composites is divided by <strong>√(games played)</strong>. This rewards production over many games without catastrophically penalizing players who miss games to injury. A player who dominates for 14 games rates higher than one with one great game.
+  </p>
+  <p>
+    Each position has a minimum <strong>stats_measured</strong> threshold — the season total of primary countable stats (e.g., passing attempts for QBs, tackles + disruption plays for defenders). Players below the threshold are treated as non-qualifiers and receive recruiting-blended estimates instead of pure production ratings.
+  </p>
 
-  <ol class="step-list">
-    <li>
-      <div class="step-text">
-        <strong>Classify every play</strong> by game situation. Crunch time (one-possession game in the 4th quarter) = 2× weight. Garbage time (blowout, 8+ minutes left, period 3+) = 0.25× weight. Normal situations = 1× weight.
-      </div>
-    </li>
-    <li>
-      <div class="step-text">
-        <strong>Apply opponent quality multiplier.</strong> Each play's EPA is scaled by the opponent's SP+ rating. A great play against a top-25 defense counts 1.5×; the same play against a weak defense counts closer to 0.5×. This prevents players on weak schedules from appearing elite.
-      </div>
-    </li>
-    <li>
-      <div class="step-text">
-        <strong>Sum adjusted EPA, scale by volume.</strong> Total weighted EPA is divided by √(plays counted) — this rewards players who are productive over many opportunities, while not harshly penalizing players with fewer snaps.
-      </div>
-    </li>
-    <li>
-      <div class="step-text">
-        <strong>Blend with season stats and percentile-rank</strong> within the position group. EDGE is 55% of the score for skill players; traditional efficiency stats (yards per carry, TD:INT ratio, etc.) fill the remaining 40%. Recruiting composite is the final 5%.
-      </div>
-    </li>
-    <li>
-      <div class="step-text">
-        <strong>Scale to 30–99</strong> using MinMax scaling within the position group. Players below the starter threshold receive a recruiting-anchored fallback rating — if a player hasn't played, recruiting stars are the best available signal.
-      </div>
-    </li>
-  </ol>
+  <!-- ── OVR mapping ── -->
+  <h2>EDGE → Overall Rating</h2>
+  <p>
+    EDGE scores map to Overall Ratings (OVR) through fixed <strong>position-specific piecewise linear anchors</strong>. The anchors are calibrated from known reference players — elite All-American seasons produce 95+, average starters land in the 65–75 range, and backups with minimal production land around 50.
+  </p>
+  <p>
+    This is a <em>rating</em> system, not a <em>ranking</em> system. The thresholds don't change year to year. If no one in the 2024 class hit the 99 threshold, no one rates 99 — there's no forced distribution curve.
+  </p>
 
   <!-- ── Per-position weights ── -->
-  <h2>What we measure per position</h2>
+  <h2>What We Measure Per Position</h2>
   <div class="pos-grid">
 
     <div class="pos-card">
       <div class="pos-card-name">QB</div>
       <ul>
-        <li>EDGE score — 55%</li>
-        <li>Yards per attempt — 15%</li>
-        <li>TD:INT ratio — 15%</li>
-        <li>Completion % — 10%</li>
-        <li>Recruiting composite — 5%</li>
+        <li>Passing yards × 1.0</li>
+        <li>Rushing yards × 0.7</li>
+        <li>Passing TDs × 25</li>
+        <li>Rushing TDs × 20</li>
+        <li>Interceptions × −20</li>
       </ul>
     </div>
 
     <div class="pos-card">
       <div class="pos-card-name">RB</div>
       <ul>
-        <li>EDGE score — 55%</li>
-        <li>Yards per carry — 20%</li>
-        <li>Total rush yards — 15%</li>
-        <li>Receiving versatility — 5%</li>
-        <li>Recruiting composite — 5%</li>
+        <li>Rushing yards × 1.0</li>
+        <li>Receiving yards × 0.9</li>
+        <li>Rushing TDs × 20</li>
+        <li>Receiving TDs × 20</li>
       </ul>
     </div>
 
     <div class="pos-card">
-      <div class="pos-card-name">WR / TE</div>
+      <div class="pos-card-name">WR</div>
       <ul>
-        <li>EDGE score — 55%</li>
-        <li>Yards per reception — 20%</li>
-        <li>Total receiving yards — 15%</li>
-        <li>Reception volume — 5%</li>
-        <li>Recruiting composite — 5%</li>
+        <li>Receiving yards × 1.0</li>
+        <li>Receiving TDs × 25</li>
+        <li>Receptions × 2.0</li>
+      </ul>
+    </div>
+
+    <div class="pos-card">
+      <div class="pos-card-name">TE</div>
+      <ul>
+        <li>Receiving yards × 1.0</li>
+        <li>Receiving TDs × 25</li>
+        <li>Receptions × 2.5</li>
       </ul>
     </div>
 
     <div class="pos-card">
       <div class="pos-card-name">OL</div>
       <ul>
-        <li>Team rush YPA — 40%</li>
-        <li>Team sack rate (inverted) — 35%</li>
-        <li>Award tier — 10%</li>
-        <li>Recruiting composite — 15%</li>
+        <li>Team rush YPA — 30%</li>
+        <li>Team sack rate (inverted) — 25%</li>
+        <li>Recruiting composite — 30%</li>
+        <li>Experience — 10%</li>
+        <li>Award tier — 5%</li>
+      </ul>
+    </div>
+
+    <div class="pos-card">
+      <div class="pos-card-name">EDGE Rusher</div>
+      <ul>
+        <li>Sacks × 7.0</li>
+        <li>TFLs × 4.0</li>
+        <li>QB hurries × 2.5</li>
+        <li>Tackles × 0.3</li>
+        <li>INTs × 4.0 · PBUs × 1.5</li>
       </ul>
     </div>
 
     <div class="pos-card">
       <div class="pos-card-name">DL</div>
       <ul>
-        <li>TFLs — 30%</li>
-        <li>Sacks — 30%</li>
-        <li>Total tackles — 15%</li>
-        <li>Volume (tackles) — 10%</li>
-        <li>Recruiting composite — 15%</li>
+        <li>Sacks × 6.0</li>
+        <li>TFLs × 4.0</li>
+        <li>QB hurries × 2.0</li>
+        <li>Tackles × 0.4</li>
+        <li>INTs × 3.0 · PBUs × 0.5</li>
       </ul>
     </div>
 
     <div class="pos-card">
       <div class="pos-card-name">LB</div>
       <ul>
-        <li>Total tackles — 30%</li>
-        <li>TFLs — 20%</li>
-        <li>Sacks — 15%</li>
-        <li>Interceptions — 10%</li>
-        <li>Volume (tackles) — 10%</li>
-        <li>Recruiting composite — 15%</li>
+        <li>INTs × 6.5</li>
+        <li>Sacks × 5.5</li>
+        <li>TFLs × 4.0</li>
+        <li>PBUs × 2.5</li>
+        <li>QB hurries × 1.5 · Tackles × 0.6</li>
       </ul>
     </div>
 
     <div class="pos-card">
-      <div class="pos-card-name">DB</div>
+      <div class="pos-card-name">CB</div>
       <ul>
-        <li>Interceptions — 30%</li>
-        <li>Pass breakups — 25%</li>
-        <li>Tackles — 15%</li>
-        <li>Volume (tackles) — 10%</li>
-        <li>Recruiting composite — 20%</li>
+        <li>INTs × 8.0</li>
+        <li>PBUs × 5.0</li>
+        <li>Sacks × 2.5</li>
+        <li>TFLs × 2.0</li>
+        <li>QB hurries × 1.0 · Tackles × 0.4</li>
+      </ul>
+    </div>
+
+    <div class="pos-card">
+      <div class="pos-card-name">S / DB</div>
+      <ul>
+        <li>INTs × 7.0</li>
+        <li>PBUs × 4.0</li>
+        <li>Sacks × 3.0</li>
+        <li>TFLs × 3.0</li>
+        <li>QB hurries × 1.5 · Tackles × 0.6</li>
       </ul>
     </div>
 
@@ -225,89 +334,125 @@
       <div class="pos-card-name">P</div>
       <ul>
         <li>Average yards — 55%</li>
-        <li>Inside 20 % — 30%</li>
+        <li>Inside 20% — 30%</li>
         <li>Volume (punts) — 15%</li>
       </ul>
     </div>
 
   </div>
 
-  <!-- ── What the breakdown bars mean ── -->
-  <h2>What the "Why this rating?" bars mean</h2>
-  <p>
-    When you open a player card, the <em>Why this rating?</em> section shows a bar for each model factor.
-    Each bar represents <strong>how much that factor deviated from the median</strong>, expressed as a share of total model weight.
-  </p>
-  <ul>
-    <li><strong>▲ green bar</strong> — this factor is above the median for the position and raised the rating</li>
-    <li><strong>▼ red bar</strong> — this factor is below the median and pulled the rating down</li>
-    <li>A wider bar means the factor had more influence (either its weight is high, or the player is a strong outlier on that metric)</li>
-  </ul>
-  <p>
-    Example: A QB showing ▲ 28% for <em>Yards/Att</em> and ▼ 18% for <em>TD:INT</em> is a high-volume, efficient passer who is turnover-prone. The net of those two forces, plus the other factors, produces the overall rating.
-  </p>
+  <!-- ── Defensive tackles note ── -->
+  <div class="callout-alt">
+    <p><strong>Why are raw tackles weighted so low for defenders?</strong> Tackles are credited based on proximity, not necessarily impact — a linebacker being "in the right spot" on a 4-yard run differs enormously from one making a tackle for loss. TFLs (behind the line of scrimmage), sacks, and hurries are genuine disruption plays with meaningful weight. Tackles are included but given a fraction of the weight to avoid rewarding volume over impact.</p>
+  </div>
 
-  <!-- ── Starter threshold ── -->
-  <h2>The starter threshold</h2>
+  <!-- ── Playing-time tiers ── -->
+  <h2>Playing-Time Tiers</h2>
   <p>
-    The formula is only reliable when a player has enough statistical volume to be meaningful. A QB who threw 3 passes has a meaningless yards-per-attempt figure. Players below the threshold for their position receive a <strong>recruiting-anchored fallback rating</strong> instead:
+    Formulas are only reliable with enough volume — a QB with 15 passing attempts has a meaningless yards-per-attempt figure. Rather than a binary cutoff, we use <strong>four tiers</strong> that blend production stats and recruiting composite differently based on how much a player recorded:
   </p>
   <table class="weight-table">
-    <thead><tr><th>Position</th><th>Minimum volume required</th></tr></thead>
+    <thead><tr><th>Tier</th><th>Formula treatment</th><th>What it means</th></tr></thead>
     <tbody>
-      <tr><td>QB</td><td>100 passing attempts</td></tr>
-      <tr><td>RB</td><td>60 carries</td></tr>
-      <tr><td>WR / TE</td><td>20 / 10 receptions</td></tr>
-      <tr><td>DL / LB / DB</td><td>10 / 20 / 15 total tackles</td></tr>
-      <tr><td>K</td><td>5 field goal makes</td></tr>
-      <tr><td>P</td><td>10 punts</td></tr>
-      <tr><td>OL</td><td>No threshold — always uses team-level proxy</td></tr>
+      <tr><td>Starter</td><td>100% EDGE-based OVR</td><td>Full season contributor — stats drive the rating</td></tr>
+      <tr><td>Role player</td><td>75% EDGE + 25% recruiting</td><td>Regular contributor, limited sample; stats partially trusted</td></tr>
+      <tr><td>Reserve</td><td>40% EDGE + 60% recruiting</td><td>Spot duty; recruiting anchors more heavily</td></tr>
+      <tr><td>Bench / Redshirt</td><td>100% recruiting composite</td><td>No qualifying production to evaluate yet</td></tr>
     </tbody>
   </table>
   <p>
-    The fallback formula: <code>position average + star offset</code>, where the star offsets are −3 (5★), −8 (4★), −15 (3★), −22 (2★), −28 (1★). A 3-star backup on a 70-OVR team averages would rate around 55.
+    There are <strong>no artificial caps</strong> on any tier. A highly-recruited backup at a major program can still rate well — the tier controls how much we trust the stats, not the rating ceiling.
   </p>
 
   <!-- ── Trajectory and breakout ── -->
-  <h2>Trajectory and breakout probability</h2>
+  <h2>Trajectory and Breakout</h2>
   <p>
-    <strong>Trajectory (▲▼)</strong> is simply the change in overall rating from the prior season. A player trending up has improved production relative to their positional peers.
+    <strong>Trajectory (▲▼)</strong> is the change in overall rating from the prior season — positive = improved production relative to the same position threshold.
   </p>
   <p>
-    <strong>Breakout probability 🔥</strong> identifies players who are young (FR/SO), have a high recruiting composite (&gt;70/100), but are currently rated below the median for their position group — suggesting they haven't yet hit their ceiling. The probability is a heuristic, not a model output.
+    <strong>Breakout candidate 🔥</strong> flags players who are young (FR/SO), have a high recruiting composite (&gt;70/100), but are currently rated below the positional median — suggesting upside not yet reflected in production. This is a heuristic, not a model prediction.
   </p>
 
   <!-- ── Known limitations ── -->
-  <h2>Known limitations</h2>
+  <h2>Known Limitations</h2>
   <div class="limitations-box">
-    <h3>What this model does NOT account for (yet)</h3>
+    <h3>What this model does not yet account for</h3>
     <ul>
-      <li><strong>Games played</strong> — the CFB Data API doesn't return games_played reliably. We use raw season totals, which slightly disadvantages players who missed games due to injury. EDGE mitigates this by scaling by √(plays counted).</li>
-      <li><strong>Quality of competition for defensive / OL positions</strong> — EDGE handles opponent quality for QB/RB/WR/TE via SP+ multiplier. Defensive and OL ratings still use raw counting stats; a DL with 8 sacks in the MAC and in the SEC rate similarly. Opponent-adjusted defensive metrics are planned.</li>
-      <li><strong>Offensive line — individual contribution</strong> — no individual OL stats exist in college football data. OL ratings reflect team-level run blocking and pass protection efficiency, spread equally across the unit.</li>
-      <li><strong>Coverage snaps for DB</strong> — we count interceptions and PBUs but not targets allowed or yards allowed in coverage. A lockdown corner who never gets targeted will show low counting stats and rate poorly.</li>
-      <li><strong>Receiver targets for WR</strong> — EDGE captures production value per reception, but can't distinguish a WR who ran perfect routes but was never targeted from one who was targeted but dropped passes.</li>
-      <li><strong>Transfer adjustment</strong> — the model doesn't yet adjust for Year 1 transfer context. Research question RQ9 (Year 1 vs Year 2 transfer performance) is planned.</li>
-      <li><strong>Play attribution gaps</strong> — the CFB Data API's play-by-play player name fields aren't populated for every play, which means some plays can't be credited to a specific player. EDGE scores may be slightly underestimated for players on teams with sparse play attribution data.</li>
+      <li><strong>OL — individual contribution</strong>: No individual OL stats exist in college football data. OL ratings are team-level proxies (run efficiency + pass protection efficiency) distributed evenly across the unit.</li>
+      <li><strong>Coverage snaps for CB/S</strong>: We count INTs and PBUs, not targets allowed or coverage yards. A lockdown corner who is never thrown at will show low counting stats and rate below their true impact.</li>
+      <li><strong>Tackle quality beyond TFLs</strong>: We minimize raw tackle weight for this reason, but can't distinguish a broken-tackle stop from a gang-tackle pile-on with existing data.</li>
+      <li><strong>Receiver targets for WR/TE</strong>: EDGE reflects production per game, but can't distinguish a receiver who ran perfect routes but was ignored by the QB from one who was targeted and dropped passes.</li>
+      <li><strong>Transfer Year 1 context</strong>: The model doesn't yet adjust for first-year transfer learning curves. Research question RQ9 (Year 1 vs. Year 2 transfer performance) is planned.</li>
+      <li><strong>Games missed due to injury</strong>: The √(games_played) normalization reduces the penalty for missing games, but a player who misses half a season still has a lower cumulative EDGE than a healthy peer with equal per-game output.</li>
     </ul>
   </div>
 
-  <!-- ── Roadmap ── -->
-  <h2>What's next for the model</h2>
-  <p>The current ratings are <strong>descriptive</strong> — they summarize what a player did relative to peers in one season. The goal is to make them <strong>predictive</strong>:</p>
-  <ul>
-    <li><strong>Engine B — breakout prediction</strong> — a separate XGBoost classifier trained on 2021–2024 data to predict which players will break out next season, using lagged features (recruiting composite, EDGE trajectory, age, snap share change, scheme continuity).</li>
-    <li><strong>Opponent-adjusted defensive metrics</strong> — extend EDGE-style opponent weighting to DL/LB/DB using opposing offense SP+ ratings.</li>
-    <li><strong>Transfer portal ROI model</strong> — identify which types of transfers (position, class year, conference, EDGE trajectory) produce above-expected Year 1 ratings (Research Question 9/10).</li>
-    <li><strong>NIL valuation vs EDGE</strong> — compare On3 NIL estimates against EDGE scores to surface undervalued and overvalued players in the market.</li>
-  </ul>
+  <!-- ── Team ratings ── -->
+  <h2>Team Ratings</h2>
+  <p>
+    Team overall ratings blend four signals: <strong>SP+</strong> (schedule-adjusted performance), <strong>roster quality</strong> (average EDGE rating of starter-tier players), <strong>recruiting pipeline</strong> (5-year rolling composite average), and a small <strong>stability anchor</strong> toward the national mean to prevent teams with missing data from collapsing to zero.
+  </p>
 
-  <p style="margin-top:2rem;color:var(--text-muted);font-size:var(--fs-xs)">
-    Data sources: <a href="https://collegefootballdata.com" target="_blank" style="color:var(--accent)">CFB Data API</a> (stats, games, play-by-play, SP+, teams, transfers),
-    247Sports (recruiting composite). Model version: v3.0-edge. Last run: 2025 season.
+  <div class="formula-block">
+    Team OVR = 45% SP+ + 35% Roster Quality + 15% Recruiting + 5% Anchor (50)
+    <span class="formula-note">Offense/Defense splits use 50% SP+ + 45% side-specific roster avg + 5% recruiting</span>
+  </div>
+
+  <h3>SP+ Scaling</h3>
+  <p>
+    SP+ is a raw number centered near 0 (national average). It is passed through a <strong>sigmoid function</strong> scaled to the season's mean and standard deviation, mapping the full SP+ range to 0–100. An SP+ of roughly +30 (historically elite) maps to ~85; −30 (basement) maps to ~15; the national mean maps to ~50.
+  </p>
+
+  <h3>Roster Quality</h3>
+  <p>
+    Only <strong>starter-tier</strong> players contribute — players who crossed the position-specific minimum-snap threshold in script 06. Offensive and defensive averages are computed separately from each side's position groups. This means a team's team offense rating reflects actual offensive starter quality, not the full roster.
+  </p>
+
+  <h3>Recruiting</h3>
+  <p>
+    A 5-year rolling average of the 247Sports composite score for all players who signed with the team in that window. Scaled from the realistic range (roughly 0.80–1.00 composite) to 0–100. This rewards programs that consistently land top classes even before those players contribute production ratings.
+  </p>
+
+  <div class="callout">
+    <p>Team ratings are available for 2025. Historical seasons (2021–2024) are on the roadmap — they require re-running scripts 06 and 10 for each year after the full historical player data backfill is complete.</p>
+  </div>
+
+  <!-- ── Roadmap ── -->
+  <h2>What's Next</h2>
+  <p>The current system is <strong>descriptive</strong> — it summarizes what a player and team did relative to calibrated performance thresholds. The roadmap extends it toward prediction:</p>
+
+  <table class="weight-table">
+    <thead><tr><th>Engine / Feature</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>EDGE (Engine A)</td><td style="color:var(--positive)">✓ Live</td><td>Per-game opponent-adjusted stat composites → 30–99 OVR, all positions, 2008–2025</td></tr>
+      <tr><td>Team Ratings</td><td style="color:var(--positive)">✓ Live</td><td>SP+ + roster quality + recruiting pipeline composite, 2025</td></tr>
+      <tr><td>Similar Players</td><td style="color:var(--positive)">✓ Live</td><td>Cosine similarity across EDGE vectors — top 5 comp players per season</td></tr>
+      <tr><td>Engine B (NIL)</td><td style="color:var(--warning)">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite for market value vs production gap</td></tr>
+      <tr><td>Engine C (EA CFB26)</td><td style="color:var(--warning)">In progress</td><td>EA Sports ratings scraped and mapped to our player IDs for direct comparison</td></tr>
+      <tr><td>ML Breakout Engine (D)</td><td style="color:var(--text-muted)">Planned</td><td>XGBoost regressor on 2008–2024 lagged EDGE + trajectory + recruiting to predict next-season OVR. Requires full historical backfill.</td></tr>
+      <tr><td>Historical explorer</td><td style="color:var(--text-muted)">Planned</td><td>Season-by-season leaderboards and cross-era comparisons for 2008–2025 — who were the best players of each decade?</td></tr>
+      <tr><td>Transfer portal ROI</td><td style="color:var(--text-muted)">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>
+      <tr><td>Team ratings history</td><td style="color:var(--text-muted)">Planned</td><td>Multi-year team rating trends, conference strength over time, coaching-change impact tracking</td></tr>
+    </tbody>
+  </table>
+
+  <p class="version-note">
+    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite.
   </p>
 
 </div>
+
+</div><!-- /.main-content -->
+
+<nav class="mobile-tab-bar" aria-label="Mobile navigation">
+  <div class="mobile-tab-bar-inner">
+    <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>
+    <a href="players.html"  class="mobile-tab-btn"><span class="tab-icon">👤</span>Players</a>
+    <a href="teams.html"    class="mobile-tab-btn"><span class="tab-icon">🏟</span>Teams</a>
+    <a href="ratings.html"  class="mobile-tab-btn"><span class="tab-icon">📊</span>Ratings</a>
+    <a href="research.html" class="mobile-tab-btn"><span class="tab-icon">🔬</span>Research</a>
+  </div>
+</nav>
 
 <script src="js/config.js"></script>
 <script>

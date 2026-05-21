@@ -7,27 +7,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
-<nav>
-  <span class="nav-brand">CFB Analytics</span>
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="players.html">Players</a>
-    <a href="ratings.html">Ratings</a>
-    <a href="teams.html" class="active">Teams</a>
-    <a href="research.html">Research</a>
-    <a href="info.html">How It Works</a>
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
+    <a href="players.html"  class="snav-item"><span class="snav-icon">👤</span> Players</a>
+    <a href="teams.html"    class="snav-item active"><span class="snav-icon">🏟</span> Teams</a>
+    <a href="ratings.html"  class="snav-item"><span class="snav-icon">📊</span> Ratings</a>
+    <a href="research.html" class="snav-item"><span class="snav-icon">🔬</span> Research</a>
+    <a href="info.html"     class="snav-item"><span class="snav-icon">ℹ</span> How It Works</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div>
+      <div class="sidebar-theme-label">Theme</div>
+      <div class="theme-swatches">
+        <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
+        <button class="theme-swatch" data-theme="mid" title="Slate"></button>
+        <button class="theme-swatch" data-theme="light" title="Light"></button>
+      </div>
+    </div>
   </div>
-  <span class="nav-spacer"></span>
-  <div class="theme-swatches">
-    <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
-    <button class="theme-swatch" data-theme="mid" title="Slate"></button>
-    <button class="theme-swatch" data-theme="light" title="Light"></button>
-  </div>
-</nav>
-
+</aside>
+<div class="main-content">
 <div class="teams-layout">
   <!-- Sidebar: team list -->
   <aside class="teams-sidebar">
@@ -53,6 +57,17 @@
   <div class="modal-inner"></div>
 </div>
 
+<!-- Mobile bottom tab bar -->
+<nav class="mobile-tab-bar" aria-label="Mobile navigation">
+  <div class="mobile-tab-bar-inner">
+    <a href="index.html"    class="mobile-tab-btn">           <span class="tab-icon">🏠</span>Home</a>
+    <a href="players.html"  class="mobile-tab-btn">           <span class="tab-icon">🔍</span>Players</a>
+    <a href="teams.html"    class="mobile-tab-btn active">    <span class="tab-icon">🏟️</span>Teams</a>
+    <a href="ratings.html"  class="mobile-tab-btn">           <span class="tab-icon">📊</span>Ratings</a>
+    <a href="research.html" class="mobile-tab-btn">           <span class="tab-icon">🔬</span>Research</a>
+  </div>
+</nav>
+
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/playerSearch.js"></script>
@@ -75,20 +90,8 @@
   let _rosterPosFilter = "ALL";
   let _rosterSortAsc = false;
 
-  // ── Position group badge colors ────────────────────────────────────────────
-  function posGroupColor(g) {
-    switch (g) {
-      case "QB":             return ["rgba(200,146,42,0.18)", "#c8922a"];
-      case "RB": case "WR":
-      case "TE":             return ["rgba(56,139,253,0.15)", "#4fa3f7"];
-      case "DL": case "LB": return ["rgba(216,72,72,0.15)",  "#d84848"];
-      case "DB":             return ["rgba(48,168,87,0.15)",  "#30a857"];
-      case "OL":             return ["rgba(140,100,220,0.15)","#9b6fda"];
-      case "K":  case "P":  return ["rgba(128,128,160,0.15)","#8080a0"];
-      default:               return ["var(--surface)", "var(--text-muted)"];
-    }
-  }
-
+  // posGroupColor and ratingTextColor delegate to config.js / playerSearch.js globals
+  function posGroupColor(g) { const c = posColor(g); return [c + "22", c]; }
   function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
 
   // ── Init ───────────────────────────────────────────────────────────────────
@@ -106,9 +109,13 @@
     bindSidebarEvents();
 
     const hash = window.location.hash.replace("#", "");
+    const qTeam = new URLSearchParams(window.location.search).get("team");
     if (hash) {
       const t = _allTeams.find(t => slugify(t.school) === hash);
-      if (t) showTeam(t);
+      if (t) { showTeam(t); document.querySelector(`[data-id="${t.id}"]`)?.classList.add("active"); }
+    } else if (qTeam) {
+      const t = _allTeams.find(t => t.school.toLowerCase() === qTeam.toLowerCase());
+      if (t) { showTeam(t); document.querySelector(`[data-id="${t.id}"]`)?.classList.add("active"); }
     }
   }
 
@@ -244,7 +251,7 @@
         </div>
       </div>
       <nav class="team-subnav" id="team-subnav">
-        ${["roster","schedule","transfers"].map(tab =>
+        ${["roster","ratings","schedule","transfers"].map(tab =>
           `<button class="team-subnav-btn${_activeTab === tab ? " active" : ""}" data-tab="${tab}">${tab.charAt(0).toUpperCase()+tab.slice(1)}</button>`
         ).join("")}
       </nav>
@@ -270,6 +277,7 @@
     content.innerHTML = '<p class="empty-state">Loading…</p>';
     try {
       if (tab === "roster")    content.innerHTML = await buildRosterHTML(team);
+      else if (tab === "ratings")   content.innerHTML = await buildTeamRatingsHTML(team);
       else if (tab === "schedule")  content.innerHTML = await buildScheduleHTML(team);
       else if (tab === "transfers") content.innerHTML = await buildTransfersHTML(team);
     } catch (e) {
@@ -278,9 +286,86 @@
     bindRosterEvents(team);
   }
 
+  // ── Team Ratings ──────────────────────────────────────────────────────────
+  let _teamRatingsCache = null;
+
+  async function loadTeamRatings() {
+    if (_teamRatingsCache) return _teamRatingsCache;
+    try {
+      const res = await fetch("data/team_ratings.json");
+      _teamRatingsCache = await res.json();
+    } catch (e) {
+      _teamRatingsCache = [];
+    }
+    return _teamRatingsCache;
+  }
+
+  async function buildTeamRatingsHTML(team) {
+    const all = await loadTeamRatings();
+    const tr = all.find(r => r.team_id === team.id && r.season === _currentSeason)
+            || all.find(r => r.team_id === team.id);
+
+    if (!tr) {
+      return `<div class="team-ratings-card">
+        <p class="empty-state" style="padding:2rem">
+          No team ratings data for ${team.school} (${_currentSeason}).<br>
+          Run <code>python scripts/10_compute_team_ratings.py</code> then <code>07_export_static_json.py</code>.
+        </p>
+      </div>`;
+    }
+
+    const sub = [
+      { label: "Pass Offense", key: "pass_off",      icon: "🏈" },
+      { label: "Run Offense",  key: "run_off",        icon: "💨" },
+      { label: "Pass Defense", key: "pass_def",       icon: "🛡️" },
+      { label: "Run Defense",  key: "run_def",        icon: "🧱" },
+      { label: "Special Teams",key: "special_teams",  icon: "⚡" },
+    ];
+
+    const subBars = sub.map(s => {
+      const v = tr[s.key] != null ? Math.round(tr[s.key]) : null;
+      const pct = v != null ? Math.round((v - 30) / 69 * 100) : 0;
+      const color = v != null ? ratingColor(v) : "#444";
+      return `
+        <div class="tr-sub-row">
+          <span class="tr-sub-label">${s.icon} ${s.label}</span>
+          <div class="tr-bar-wrap">
+            <div class="tr-bar" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <span class="tr-sub-val" style="color:${color}">${v ?? "—"}</span>
+        </div>`;
+    }).join("");
+
+    const ovr   = tr.overall_rating != null ? Math.round(tr.overall_rating) : "—";
+    const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "#666";
+    const spStr = tr.sp_plus != null ? `SP+ ${tr.sp_plus > 0 ? "+" : ""}${parseFloat(tr.sp_plus).toFixed(1)}` : "";
+    const rcStr = tr.recruit_score != null ? `Recruit ${Math.round(tr.recruit_score)}` : "";
+
+    return `
+      <div class="team-ratings-card">
+        <div class="tr-hero">
+          <div class="tr-ovr-circle" style="border-color:${ovrColor};color:${ovrColor}">
+            <span class="tr-ovr-num">${ovr}</span>
+            <span class="tr-ovr-lbl">OVR</span>
+          </div>
+          <div class="tr-hero-meta">
+            <div class="tr-hero-name">${team.school} ${tr.season || _currentSeason}</div>
+            ${spStr || rcStr ? `<div class="tr-hero-sub">${[spStr, rcStr].filter(Boolean).join(" · ")}</div>` : ""}
+          </div>
+        </div>
+        <div class="tr-sub-section">
+          <div class="tr-sub-heading">Rating Breakdown</div>
+          ${subBars}
+        </div>
+        <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:1rem">
+          Formula: SP+ (45%) + Top-5 Starter EDGE avg (35%) + 5-yr Recruiting (15%) + stability pull (5%).
+        </p>
+      </div>`;
+  }
+
   // ── Roster ─────────────────────────────────────────────────────────────────
   const OFF_FILTERS = ["ALL","QB","RB","WR","TE","OL"];
-  const DEF_FILTERS = ["DL","LB","DB","K","P"];
+  const DEF_FILTERS = ["EDGE","DL","LB","CB","S","DB","K","P"];
 
   async function buildRosterHTML(team) {
     const players = await fetchTeamRoster(team.id, _currentSeason);
@@ -313,14 +398,14 @@
 
     const cards = filtered.map(p => {
       const ovr = p.overall_rating ? Math.round(p.overall_rating) : null;
-      const ovrBg  = ovr ? ratingColor(ovr) : "var(--surface-deep)";
-      const ovrTxt = ovr ? ratingTextColor(ovr) : "var(--text-muted)";
+      const ovrColor = ovr ? ratingColor(ovr) : "#666";
+      const rowTint  = ovr ? `${ovrColor}12` : "transparent";  // ~7% opacity tint
       const [pgBg, pgColor] = posGroupColor(p.position_group || p.position);
       const yr  = yearLabels[p.year] || "—";
       const pos = p.position || p.position_group || "—";
       const stars = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "";
       return `
-        <div class="d-depth-card" data-player-id="${p.id}" style="cursor:pointer">
+        <div class="d-depth-card" data-player-id="${p.id}" style="cursor:pointer;background:${rowTint};border-left:3px solid ${ovrColor}">
           <div class="d-depth-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">
             ${(p.name || "?").split(" ").map(n => n[0]).slice(0,2).join("")}
           </div>
@@ -329,8 +414,8 @@
             <div class="d-depth-pos-tag" style="color:${pgColor}">${pos} · ${yr}</div>
             ${stars ? `<span class="stars" style="font-size:10px;color:#f5a623">${stars}</span>` : ""}
           </div>
-          <div class="d-depth-ovr-box" style="background:${ovrBg};color:${ovrTxt}">
-            <span class="d-depth-ovr-num">${ovr || "—"}</span>
+          <div class="d-depth-ovr-plain">
+            <span class="d-depth-ovr-num" style="color:${ovrColor}">${ovr || "—"}</span>
             <span class="d-depth-ovr-label">OVR</span>
           </div>
         </div>`;
@@ -451,5 +536,16 @@
 
   initTeams();
 </script>
+</div><!-- /.main-content -->
+
+<nav class="mobile-tab-bar" aria-label="Mobile navigation">
+  <div class="mobile-tab-bar-inner">
+    <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>
+    <a href="players.html"  class="mobile-tab-btn"><span class="tab-icon">👤</span>Players</a>
+    <a href="teams.html"    class="mobile-tab-btn active"><span class="tab-icon">🏟</span>Teams</a>
+    <a href="ratings.html"  class="mobile-tab-btn"><span class="tab-icon">📊</span>Ratings</a>
+    <a href="research.html" class="mobile-tab-btn"><span class="tab-icon">🔬</span>Research</a>
+  </div>
+</nav>
 </body>
 </html>

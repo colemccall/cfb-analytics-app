@@ -57,34 +57,52 @@ async function _getByIds(path, idField, ids, extraParams = {}, batchSize = 200) 
 // ---------------------------------------------------------------------------
 async function fetchPlayers(options = {}) {
   const season     = options.season     || CONFIG.CURRENT_SEASON;
-  const limit      = options.limit      || 50;
+  const limit      = options.limit      || 200;
   const minRating  = options.minRating  || 1;
 
+  // v2 schema: ratings.player_season_id → player_seasons.id
+  // player_seasons has: players (via player_id FK), teams (via team_id FK), player_edge (via player_season_id FK)
   const params = {
-    select: [
-      "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
-      "season_team:teams!team_id(school,conference,color,logo_url)",
-    ].join(","),
-    "season":          `eq.${season}`,
-    "order":           "overall_rating.desc",
-    "overall_rating":  `gte.${minRating}`,
-    "limit":           String(limit),
+    select: "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season,player_seasons!player_season_id(id,player_id,season,team_id,position_group,year,players!player_id(id,name,position,height_in,weight_lbs,hometown_state),teams!team_id(id,school,conference,color,logo_url),player_edge!player_season_id(edge_score,stats_measured,games_played))",
+    "season":         `eq.${season}`,
+    "order":          "overall_rating.desc",
+    "overall_rating": `gte.${minRating}`,
+    "limit":          String(limit),
   };
 
-  // Server-side position filter via embedded table column
+  // PostgREST embedded resource filter — filters rows of the joined table
   if (options.position && options.position !== "ALL") {
-    params["players.position_group"] = `eq.${options.position}`;
+    params["player_seasons.position_group"] = `eq.${options.position}`;
   }
-  // Server-side conference filter
   if (options.conference) {
-    params["players.teams.conference"] = `eq.${options.conference}`;
+    params["player_seasons.teams.conference"] = `eq.${options.conference}`;
   }
 
-  const rows = await _get("ratings", params);
-  if (!rows.length) return [];
+  let rows;
+  try {
+    rows = await _get("ratings", params);
+  } catch (e) {
+    console.error("[fetchPlayers] Supabase error:", e.message, "params:", params);
+    // Fallback: try without nested filter (returns all positions, client-side filtered)
+    const fallbackParams = { ...params };
+    delete fallbackParams["player_seasons.position_group"];
+    delete fallbackParams["player_seasons.teams.conference"];
+    try {
+      rows = await _get("ratings", fallbackParams);
+      if (options.position && options.position !== "ALL") {
+        rows = rows.filter(r => {
+          const ps = Array.isArray(r.player_seasons) ? r.player_seasons[0] : r.player_seasons;
+          return ps && ps.position_group === options.position;
+        });
+      }
+    } catch (e2) {
+      console.error("[fetchPlayers] Fallback also failed:", e2.message);
+      return [];
+    }
+  }
+  if (!rows || !rows.length) return [];
 
-  const playerIds = rows.map(r => r.player_id);
+  const playerIds = rows.map(r => r.player_id).filter(id => id != null);
   const recRows = await _getByIds("recruiting", "player_id", playerIds, {
     select: "player_id,stars,composite_score,recruit_year",
     order:  "stars.desc",
@@ -95,21 +113,27 @@ async function fetchPlayers(options = {}) {
       recMap[r.player_id] = r;
   }
 
-  return rows.map(r => _shapePlayer(r, recMap));
+  return rows.map(r => _shapePlayer(r, recMap)).filter(Boolean);
 }
 
 function _shapePlayer(r, recMap = {}) {
-  const p   = r.players || {};
-  // season_team comes from ratings.team_id join — season-correct for transfers
-  // fall back to p.teams (players.team_id) only if ratings.team_id is null
-  const t   = r.season_team || p.teams || {};
+  // v2 schema: ratings → player_seasons (with nested player, teams, player_edge)
+  const ps  = Array.isArray(r.player_seasons) ? r.player_seasons[0] : (r.player_seasons || {});
+  const p   = ps.players || {};
+  const t   = ps.teams || (ps.season_team && ps.season_team.teams) || {};
   const rec = recMap[r.player_id] || {};
+  // player_edge is one-to-many but we want the matching season row
+  const edgeArr = Array.isArray(ps.player_edge) ? ps.player_edge : (ps.player_edge ? [ps.player_edge] : []);
+  const edge = edgeArr[0] || {};
+  // Filter out blank names
+  if (!p.id || !p.name) return null;
   return {
     id:              p.id,
+    player_season_id: ps.id,
     name:            p.name,
     position:        p.position,
-    position_group:  p.position_group,
-    year:            p.year,
+    position_group:  ps.position_group,
+    year:            ps.year,
     height_in:       p.height_in,
     weight_lbs:      p.weight_lbs,
     hometown_state:  p.hometown_state,
@@ -126,17 +150,16 @@ function _shapePlayer(r, recMap = {}) {
     stars:           rec.stars,
     composite_score: rec.composite_score,
     recruit_year:    rec.recruit_year,
+    edge_score:      edge.edge_score    != null ? parseFloat(edge.edge_score)    : null,
+    stats_measured:  edge.stats_measured != null ? parseInt(edge.stats_measured)  : null,
+    games_played:    edge.games_played   != null ? parseInt(edge.games_played)    : null,
   };
 }
 
-// Legacy — used by scatter plot and index page hero stats. Fetches top 1000.
+// Used by index page hero stats. Fetches top 1000 via v2 schema.
 async function fetchAllPlayers(season = CONFIG.CURRENT_SEASON) {
   const rows = await _getAll("ratings", {
-    select: [
-      "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
-      "season_team:teams!team_id(school,conference,color,logo_url)",
-    ].join(","),
+    select: "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season,player_seasons!player_season_id(id,player_id,season,team_id,position_group,year,players!player_id(id,name,position,height_in,weight_lbs,hometown_state),teams!team_id(id,school,conference,color,logo_url),player_edge!player_season_id(edge_score,stats_measured,games_played))",
     "season":         `eq.${season}`,
     "order":          "overall_rating.desc",
     "overall_rating": "gte.50",
@@ -153,7 +176,7 @@ async function fetchAllPlayers(season = CONFIG.CURRENT_SEASON) {
     if (!recMap[r.player_id] || (r.stars || 0) > (recMap[r.player_id].stars || 0))
       recMap[r.player_id] = r;
   }
-  return rows.map(r => _shapePlayer(r, recMap));
+  return rows.map(r => _shapePlayer(r, recMap)).filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
@@ -167,8 +190,9 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
   });
 
   // Use top 1000 rated players per season to compute team averages (sufficient for display)
+  // v2 schema: ratings → player_seasons (has team_id) → players
   const ratRows = await _get("ratings", {
-    select: "overall_rating,players(team_id)",
+    select: "overall_rating,player_seasons!player_season_id(team_id)",
     "season": `eq.${season}`,
     "order": "overall_rating.desc",
     "limit": "1000",
@@ -177,7 +201,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
   const avgByTeam = {};
   const countByTeam = {};
   for (const r of ratRows) {
-    const tid = r.players?.team_id;
+    const tid = r.player_seasons?.team_id;
     if (!tid || !r.overall_rating) continue;
     avgByTeam[tid] = (avgByTeam[tid] || 0) + r.overall_rating;
     countByTeam[tid] = (countByTeam[tid] || 0) + 1;
@@ -196,23 +220,25 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
 // only appears on a team for seasons where they have a rating on that roster).
 // ---------------------------------------------------------------------------
 async function fetchTeamRoster(teamId, season = CONFIG.CURRENT_SEASON) {
-  // Join: ratings → players (→ teams) for players whose current team_id matches
-  // We filter players by team_id and ratings by season in one round-trip.
-  const rows = await _get("ratings", {
-    select: [
-      "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
-      "season_team:teams!team_id(school,conference,color,logo_url)",
-    ].join(","),
-    "season":    `eq.${season}`,
-    "team_id":   `eq.${teamId}`,
-    "order":     "overall_rating.desc",
-    "limit":     "300",
+  // Query player_seasons directly so team_id filter is authoritative (PostgREST embedded
+  // filters without !inner don't restrict parent rows — querying the join table directly does)
+  const psRows = await _get("player_seasons", {
+    select: "id,player_id,season,team_id,position_group,year,players!player_id(id,name,position,height_in,weight_lbs,hometown_state),ratings!player_season_id(overall_rating,position_rating,trajectory_score,breakout_probability,shap_values)",
+    "team_id": `eq.${teamId}`,
+    "season":  `eq.${season}`,
+    "limit":   "150",
   });
 
-  if (!rows.length) return [];
+  if (!psRows.length) return [];
 
-  const playerIds = rows.map(r => r.player_id);
+  // Sort by overall_rating desc client-side (can't order by embedded resource server-side)
+  psRows.sort((a, b) => {
+    const ra = Array.isArray(a.ratings) ? (a.ratings[0]?.overall_rating ?? 0) : (a.ratings?.overall_rating ?? 0);
+    const rb = Array.isArray(b.ratings) ? (b.ratings[0]?.overall_rating ?? 0) : (b.ratings?.overall_rating ?? 0);
+    return rb - ra;
+  });
+
+  const playerIds = psRows.map(r => r.player_id).filter(id => id != null);
   const recRows = await _getByIds("recruiting", "player_id", playerIds, {
     select: "player_id,stars,composite_score",
     order:  "recruit_year.desc",
@@ -223,27 +249,28 @@ async function fetchTeamRoster(teamId, season = CONFIG.CURRENT_SEASON) {
     if (!recMap[r.player_id]) recMap[r.player_id] = r;
   }
 
-  return rows.map(r => {
-    const p   = r.players || {};
-    const rec = recMap[r.player_id] || {};
+  return psRows.map(ps => {
+    const p   = ps.players || {};
+    const rat = Array.isArray(ps.ratings) ? (ps.ratings[0] || {}) : (ps.ratings || {});
+    const rec = recMap[ps.player_id] || {};
     return {
       id:              p.id,
       name:            p.name,
       position:        p.position,
-      position_group:  p.position_group,
-      year:            p.year,
+      position_group:  ps.position_group,
+      year:            ps.year,
       height_in:       p.height_in,
       weight_lbs:      p.weight_lbs,
       hometown_state:  p.hometown_state,
-      overall_rating:  r.overall_rating,
-      position_rating: r.position_rating,
-      trajectory:      r.trajectory_score,
-      breakout_prob:   r.breakout_probability,
-      shap:            r.shap_values,
+      overall_rating:  rat.overall_rating,
+      position_rating: rat.position_rating,
+      trajectory:      rat.trajectory_score,
+      breakout_prob:   rat.breakout_probability,
+      shap:            rat.shap_values,
       stars:           rec.stars,
       composite_score: rec.composite_score,
     };
-  });
+  }).filter(player => player.id && player.name);
 }
 
 // ---------------------------------------------------------------------------
@@ -251,12 +278,9 @@ async function fetchTeamRoster(teamId, season = CONFIG.CURRENT_SEASON) {
 // Returns a player object with all fields needed by modalContentHtml.
 // ---------------------------------------------------------------------------
 async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
+  // v2 schema: ratings → player_seasons → players, teams
   const rows = await _get("ratings", {
-    select: [
-      "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season",
-      "players!inner(id,name,position,position_group,year,height_in,weight_lbs,hometown_state)",
-      "season_team:teams!team_id(school,conference,color,logo_url)",
-    ].join(","),
+    select: "player_id,overall_rating,position_rating,trajectory_score,breakout_probability,shap_values,season,player_seasons!player_season_id(id,player_id,season,team_id,position_group,year,players!player_id(id,name,position,height_in,weight_lbs,hometown_state),teams!team_id(id,school,conference,color,logo_url),player_edge!player_season_id(edge_score,stats_measured,games_played))",
     "player_id": `eq.${playerId}`,
     "season":    `eq.${season}`,
     "limit":     "1",
@@ -264,8 +288,9 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
 
   if (!rows.length) return null;
   const r   = rows[0];
-  const p   = r.players || {};
-  const t   = r.season_team || {};
+  const ps  = Array.isArray(r.player_seasons) ? r.player_seasons[0] : (r.player_seasons || {});
+  const p   = ps.players || {};
+  const t   = ps.teams || {};
 
   // Best recruiting record
   const recRows = await _get("recruiting", {
@@ -280,8 +305,8 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
     id:              p.id,
     name:            p.name,
     position:        p.position,
-    position_group:  p.position_group,
-    year:            p.year,
+    position_group:  ps.position_group,
+    year:            ps.year,
     height_in:       p.height_in,
     weight_lbs:      p.weight_lbs,
     hometown_state:  p.hometown_state,
@@ -298,6 +323,9 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
     stars:           rec.stars,
     composite_score: rec.composite_score,
     recruit_year:    rec.recruit_year,
+    edge_score:      (() => { const ea = Array.isArray(ps.player_edge) ? ps.player_edge : (ps.player_edge ? [ps.player_edge] : []); const e = ea[0] || {}; return e.edge_score     != null ? parseFloat(e.edge_score)    : null; })(),
+    stats_measured:  (() => { const ea = Array.isArray(ps.player_edge) ? ps.player_edge : (ps.player_edge ? [ps.player_edge] : []); const e = ea[0] || {}; return e.stats_measured != null ? parseInt(e.stats_measured)  : null; })(),
+    games_played:    (() => { const ea = Array.isArray(ps.player_edge) ? ps.player_edge : (ps.player_edge ? [ps.player_edge] : []); const e = ea[0] || {}; return e.games_played   != null ? parseInt(e.games_played)    : null; })(),
   };
 }
 
@@ -395,12 +423,27 @@ async function fetchPlayerRatingHistory(playerId) {
 // Player full profile — stats for all seasons (for modal career tab)
 // ---------------------------------------------------------------------------
 async function fetchPlayerCareerStats(playerId) {
-  const rows = await _get("stats", {
-    select: "season,stat_type,data",
-    "player_id": `eq.${playerId}`,
-    "stat_type": `in.(season_aggregate,postseason_aggregate)`,
-    order: "season.asc",
-    limit: "20",
-  });
-  return rows;
+  const [rows, psRows] = await Promise.all([
+    _get("stats", {
+      select: "season,stat_type,data",
+      "player_id": `eq.${playerId}`,
+      "stat_type": `in.(season_aggregate,postseason_aggregate)`,
+      order: "season.asc",
+      limit: "20",
+    }),
+    _get("player_seasons", {
+      select: "season,teams(school)",
+      "player_id": `eq.${playerId}`,
+      order: "season.asc",
+      limit: "10",
+    }),
+  ]);
+  // Build season → school map
+  const teamBySeason = {};
+  for (const ps of psRows) {
+    if (ps.season && ps.teams?.school) teamBySeason[ps.season] = ps.teams.school;
+  }
+  // Attach team to each stats row
+  const enriched = rows.map(r => ({ ...r, team: teamBySeason[r.season] || null }));
+  return enriched;
 }
