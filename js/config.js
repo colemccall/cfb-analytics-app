@@ -48,15 +48,27 @@ const CONFIG = {
 
 // Rating tier — returns {label, color, cls}
 function getRatingTier(rating) {
-  if (rating >= 90) return { label: "ELITE",  color: "#FFD700", cls: "tier-elite"  };
-  if (rating >= 80) return { label: "GOLD",   color: "#FFA000", cls: "tier-gold"   };
-  if (rating >= 70) return { label: "SILVER", color: "#78909C", cls: "tier-silver" };
-  if (rating >= 55) return { label: "BRONZE", color: "#8D6E63", cls: "tier-bronze" };
-  return                    { label: "",       color: null,      cls: "tier-normal" };
+  const c = ratingColor(rating);
+  if (rating >= 90) return { label: "", color: c, cls: "tier-elite"  };
+  if (rating >= 80) return { label: "", color: c, cls: "tier-gold"   };
+  if (rating >= 70) return { label: "", color: c, cls: "tier-silver" };
+  if (rating >= 55) return { label: "", color: c, cls: "tier-bronze" };
+  return                    { label: "", color: null, cls: "tier-normal" };
 }
 
-// Rating color gradient
+// Rating color gradient — adapts to light vs dark theme
 function ratingColor(v) {
+  const isLight = document.documentElement.getAttribute("data-theme") === "light";
+  if (isLight) {
+    // Blue-based palette for light mode (gold washes out on white)
+    if (v >= 90) return "#1565C0";  // deep blue
+    if (v >= 80) return "#1976D2";  // blue
+    if (v >= 70) return "#0288D1";  // light blue
+    if (v >= 55) return "#455A64";  // slate
+    if (v >= 40) return "#8D6E63";  // warm gray
+    return "#c62828";
+  }
+  // Dark / mid theme — gold/amber palette
   if (v >= 90) return "#FFD700";
   if (v >= 80) return "#FFA000";
   if (v >= 70) return "#78909C";

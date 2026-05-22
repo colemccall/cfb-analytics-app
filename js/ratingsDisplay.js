@@ -16,17 +16,24 @@ async function initRatings(season) {
   _ratingsByPosition = {};
   document.getElementById("leaderboard").innerHTML = '<p class="empty-state">Loading ratings…</p>';
 
-  // Fetch top-50 per position in parallel — fast, server-side filtered
+  // Fetch top-300 per position in parallel (includes DB which is in EDGE_POSITIONS)
+  const allPositions = [...CONFIG.POSITIONS, "DB"].filter((v, i, a) => a.indexOf(v) === i);
   try {
     const results = await Promise.all(
-      CONFIG.POSITIONS.map(pg =>
-        fetchPlayers({ season: _ratingSeason, position: pg, limit: 100 })
+      allPositions.map(pg =>
+        fetchPlayers({ season: _ratingSeason, position: pg, limit: 300 })
           .then(players => { console.log(`[ratings] ${pg}: ${players.length} players`); return { pg, players }; })
           .catch(e => { console.error(`[ratings] ${pg} fetch failed:`, e.message); return { pg, players: [] }; })
       )
     );
     for (const { pg, players } of results) {
       if (players.length) _ratingsByPosition[pg] = players;
+    }
+    // Merge CB+S+DB into combined "DB" tab if they don't already exist separately
+    if (!_ratingsByPosition["DB"]) {
+      const combined = [...(_ratingsByPosition["CB"] || []), ...(_ratingsByPosition["S"] || [])];
+      combined.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
+      if (combined.length) _ratingsByPosition["DB"] = combined;
     }
     // For scatter plot — flatten all fetched players
     _ratingsAllPlayers = results.flatMap(r => r.players);
@@ -56,7 +63,8 @@ async function initRatings(season) {
 
 function buildPositionTabs() {
   const tabBar = document.getElementById("position-tabs");
-  CONFIG.POSITIONS.forEach(pos => {
+  const displayPositions = [...CONFIG.POSITIONS, "DB"].filter((v, i, a) => a.indexOf(v) === i);
+  displayPositions.forEach(pos => {
     if (!_ratingsByPosition[pos]) return;
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (pos === _activePosition ? " active" : "");
@@ -88,34 +96,45 @@ function renderLeaderboard(players, position) {
   }
 
   const rows = players.map((p, i) => {
-    const ovr    = p.overall_rating ? Math.round(p.overall_rating) : null;
-    const tier   = getRatingTier(ovr || 0);
-    const pg     = p.position_group || p.position || "—";
-    const color  = posColor(pg);
-    const rankCls = i < 3 ? "top3" : i < 10 ? "top10" : "";
-    const edgeVal = p.edge_score != null ? parseFloat(p.edge_score).toFixed(2) : null;
+    const ovr      = p.overall_rating ? Math.round(p.overall_rating) : null;
+    const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
+    const rowTint  = ovr ? `${ovrColor}10` : "transparent";
+    const pg       = p.position_group || p.position || "—";
+    const posClr   = posColor(pg);
+    const rankCls  = i < 3 ? "top3" : i < 10 ? "top10" : "";
+    const edgeVal  = p.edge_score != null ? parseFloat(p.edge_score).toFixed(2) : "—";
     const breakout = p.breakout_prob >= 0.35 ? " 🔥" : "";
+    const yr       = yearLabel(p.year);
+    const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
+    const ht       = p.height_in ? `${Math.floor(p.height_in/12)}'${p.height_in%12}"` : "—";
+    const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
     return `
-      <div class="draft-row animate-up ${tier.cls}" data-player-id="${p.id}"
-           style="--tier-color:${tier.color || "transparent"}">
-        <div class="draft-rank ${rankCls}">#${i + 1}</div>
-        <div class="draft-info">
-          <div class="draft-name">
-            <span class="pos-badge-color" style="background:${color};font-size:9px;padding:1px 5px;margin-right:4px">${pg}</span>${p.name || "—"}${breakout}
-          </div>
-          <div class="draft-meta">${p.team || "—"} · ${yearLabel(p.year)} · ${p.conference || "—"} · ${starsHtml(p.stars)}</div>
+      <div class="draft-row animate-up" data-player-id="${p.id}"
+           style="background:${rowTint};border-left-color:${ovrColor}">
+        <div class="draft-rank ${rankCls}">${i + 1}</div>
+        <div class="draft-pos">
+          <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
         </div>
-        <div class="draft-ovr" style="--tier-color:${tier.color || "var(--text)"}">${ovr || "—"}</div>
-        <div class="draft-edge">${edgeVal != null ? edgeVal : "—"}</div>
+        <div class="draft-name" title="${p.hometown_state ? p.name + ' · ' + p.hometown_state : (p.name || '')}">
+          <span class="player-name-text">${p.name || "—"}${breakout}</span>
+        </div>
+        <div class="draft-team">${p.team || "—"}</div>
+        <div class="draft-yr-conf">${yr} · ${p.conference || "—"}</div>
+        <div class="draft-stars">${starsStr}</div>
+        <div class="draft-ht">${ht}</div>
+        <div class="draft-wt">${wt}</div>
+        <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor}">${ovr || "—"}</span></div>
         <div class="draft-traj">${trajHtml(p.trajectory)}</div>
-        <div style="font-size:var(--fs-xs);color:var(--text-muted);text-align:right">${p.composite_score?.toFixed(4) || "—"}</div>
+        <div class="draft-edge">${edgeVal}</div>
       </div>`;
   }).join("");
 
   container.innerHTML = `
     <div class="draft-board-header animate-pop">
-      <span>#</span><span>Player</span>
-      <span>OVR</span><span>OAP</span><span>Traj</span><span style="text-align:right">Recruit</span>
+      <span>#</span><span>POS</span><span>Player</span>
+      <span>Team</span><span>Yr / Conf</span><span>Stars</span>
+      <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
+      <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
     </div>
     <div class="draft-board-rows stagger-children">${rows}</div>`;
 

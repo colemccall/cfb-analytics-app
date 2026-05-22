@@ -301,21 +301,18 @@
         const posColor = posColor_fn(p.position_group || p.position || "ATH");
         return `
         <div class="home-player-row" data-player-id="${p.id}" style="
-          display:flex;align-items:center;gap:0;
+          display:flex;align-items:center;gap:8px;
           border-left:3px solid ${tier.color || 'transparent'};
-          padding:8px 12px;border-bottom:1px solid var(--border);
+          padding:7px 12px;border-bottom:1px solid var(--border);
           cursor:pointer;transition:background 0.12s;
         ">
-          <span style="font-family:var(--font-display);font-size:22px;font-weight:900;
-            color:${tier.color || 'var(--text-muted)'};width:38px;flex-shrink:0">${Math.round(p.overall_rating || 0)}</span>
+          <span style="font-family:var(--font-display);font-size:17px;font-weight:900;
+            color:${tier.color || 'var(--text-muted)'};width:36px;flex-shrink:0;text-align:right">${Math.round(p.overall_rating || 0)}</span>
           <span style="display:inline-block;background:${posColor};color:#fff;
-            font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;
-            margin-right:8px;flex-shrink:0">${p.position_group || ''}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-            <div style="font-size:var(--fs-xs);color:var(--text-muted)">${p.team || ''} · ${{1:'FR',2:'SO',3:'JR',4:'SR',5:'GR'}[p.year]||''}</div>
-          </div>
-          <span style="font-size:9px;color:var(--text-muted);flex-shrink:0">${starsHtml(p.stars)}</span>
+            font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;
+            flex-shrink:0">${p.position_group || ''}</span>
+          <span style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${p.name}</span>
+          <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">${p.team || ''} · ${{1:'FR',2:'SO',3:'JR',4:'SR',5:'GR'}[p.year]||''}</span>
         </div>`;
       }).join("");
 

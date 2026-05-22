@@ -66,12 +66,12 @@
 }
 
 [data-theme="light"] {
-  --bg:           #f0f3f8;
-  --surface:      #ffffff;
-  --surface-deep: #e4e9f0;
-  --surface-lift: #fafbfd;
-  --input-bg:     #ffffff;
-  --sidebar-bg:   #e8ecf4;
+  --bg:           #edf0f5;
+  --surface:      #f5f7fb;
+  --surface-deep: #dde3ec;
+  --surface-lift: #f2f4f9;
+  --input-bg:     #f5f7fb;
+  --sidebar-bg:   #e3e8f0;
   --text:         #0c1a30;
   --text-muted:   #405070;
   --text-dim:     #809ab8;
@@ -886,8 +886,12 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   .leaderboard-table .conf-col,
   .leaderboard-table .composite-col { display: none; }
   .teams-layout { flex-direction: column; height: auto; overflow: visible; }
-  .teams-sidebar { width: 100%; height: 220px; overflow-y: auto; }
+  .teams-sidebar { width: 100%; height: 320px; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); }
   .teams-main { overflow-y: visible; }
+  .team-list-item { padding: 7px 12px; gap: 8px; }
+  .team-list-name { font-size: 13px; }
+  .team-list-conf { display: none; }
+  .team-list-logo { width: 22px; height: 22px; }
   .draft-row        { grid-template-columns: 38px 1fr 52px 48px; }
   .draft-board-header { grid-template-columns: 38px 1fr 52px 48px; }
   .draft-row .draft-edge, .draft-board-header .draft-edge-header { display: none; }
@@ -968,83 +972,97 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .traj-down1 { color: var(--negative); font-weight: 600; font-size: var(--fs-xs); }
 .traj-down2 { color: var(--negative); font-weight: 700; font-size: var(--fs-xs); }
 
-/* ── Draft-board rows ── */
+/* ── Draft-board rows — Madden-style spread table layout ── */
 .draft-board { width: 100%; border-collapse: collapse; }
-.draft-row {
+
+/* columns: # | POS | Name | Team | Yr/Conf | Stars | Ht | Wt | OVR | Traj | OAP */
+.draft-row, .draft-board-header {
   display: grid;
-  grid-template-columns: 46px 1fr 58px 52px 60px;
+  grid-template-columns: 32px 46px minmax(110px,1fr) 110px 80px 56px 44px 44px 54px 44px 52px;
   gap: 0;
   align-items: center;
-  border-left: 4px solid transparent;
+}
+.draft-row {
+  border-left: 3px solid transparent;
   border-bottom: 1px solid var(--border);
-  padding: 10px 14px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: background 0.12s, border-left-color 0.12s, box-shadow 0.12s;
-  min-height: 62px;
-  position: relative;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tier-color, transparent) 5%, transparent) 0%, transparent 40%);
+  transition: filter 0.12s;
+  min-height: 44px;
 }
-.draft-row:hover {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tier-color, var(--accent)) 10%, var(--surface-lift)) 0%, var(--surface-lift) 40%);
-  border-left-color: var(--tier-color, var(--accent));
-  box-shadow: inset 0 0 0 1px var(--border-mid);
-}
-.draft-row.tier-elite  { border-left-color: var(--tier-elite); }
-.draft-row.tier-gold   { border-left-color: var(--tier-gold); }
-.draft-row.tier-silver { border-left-color: var(--tier-silver); }
-.draft-row.tier-bronze { border-left-color: var(--tier-bronze); }
-
-/* Ratings leaderboard extra column */
-#leaderboard .draft-row         { grid-template-columns: 46px 1fr 58px 60px 52px 68px; }
-#leaderboard .draft-board-header { grid-template-columns: 46px 1fr 58px 60px 52px 68px; }
+.draft-row:hover { filter: brightness(1.07); }
 
 .draft-rank {
   font-family: var(--font-display);
-  font-size: 18px; font-weight: 800;
-  color: var(--text-muted); text-align: right; padding-right: 10px;
+  font-size: 13px; font-weight: 700;
+  color: var(--text-muted); text-align: right; padding-right: 8px;
   line-height: 1;
 }
-.draft-rank.top3  { color: var(--tier-elite); font-size: 22px; }
+.draft-rank.top3  { color: var(--tier-elite); font-size: 15px; }
 .draft-rank.top10 { color: #a78bfa; }
 
-.draft-info { min-width: 0; }
+/* POS badge cell */
+.draft-pos {
+  display: flex; align-items: center;
+}
+
+/* Name cell */
 .draft-name {
   font-weight: 600; font-size: var(--fs-sm);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  display: flex; align-items: center; gap: 5px;
+  display: flex; align-items: center; gap: 4px;
 }
 .player-name-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.draft-meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
 
-/* OVR pill */
+/* Team, Yr/Conf, Stars cells */
+.draft-team {
+  font-size: var(--fs-xs); color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 0 4px;
+}
+.draft-yr-conf {
+  font-size: var(--fs-xs); color: var(--text-muted);
+  white-space: nowrap; padding: 0 4px;
+}
+.draft-stars { font-size: 9px; color: #f5a623; text-align: center; letter-spacing: -1px; }
+.draft-ht, .draft-wt { font-size: var(--fs-xs); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
+
+/* OVR number — pill badge with colored background */
 .draft-ovr {
   font-family: var(--font-display);
-  font-size: 18px; font-weight: 900;
+  font-size: 14px; font-weight: 900;
   text-align: center; font-variant-numeric: tabular-nums;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  min-width: 46px;
-  justify-self: center;
-  color: var(--tier-color, var(--text));
-  text-shadow: 0 0 12px color-mix(in srgb, var(--tier-color, transparent) 40%, transparent);
+  display: flex; align-items: center; justify-content: center;
 }
+.draft-ovr-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 900;
+  font-family: var(--num-font);
+  color: #111;
+  min-width: 34px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.draft-traj { font-size: var(--fs-xs); text-align: center; }
 .draft-edge { font-size: var(--fs-xs); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
-.draft-traj { text-align: center; }
 
 .draft-board-header {
-  display: grid;
-  grid-template-columns: 46px 1fr 58px 52px 60px;
-  gap: 0;
-  padding: 7px 14px;
+  padding: 6px 12px;
   background: var(--surface-deep);
   border-bottom: 2px solid var(--border-mid);
-  font-size: var(--fs-xs); font-weight: 700;
+  font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--text-muted);
+  border-left: 3px solid transparent;
 }
-.draft-board-header span { cursor: pointer; user-select: none; }
-.draft-board-header span:hover { color: var(--text); }
-.draft-board-header span.sorted::after { content: ' ▼'; }
+.draft-board-header span { user-select: none; }
+
+/* Legacy — no longer used but keep so old references don't break */
+.draft-info { min-width: 0; }
+.draft-meta { font-size: var(--fs-xs); color: var(--text-muted); }
 
 /* ── Animated stat bars ── */
 @keyframes bar-grow {

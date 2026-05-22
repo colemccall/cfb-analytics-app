@@ -122,7 +122,7 @@
   function buildYearSelect() {
     const sel = document.getElementById("year-select");
     const years = [];
-    for (let y = CONFIG.CURRENT_SEASON; y >= 2021; y--) years.push(y);
+    for (let y = CONFIG.CURRENT_SEASON; y >= 2008; y--) years.push(y);
     sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
     sel.value = _currentSeason;
     sel.addEventListener("change", async () => {
@@ -168,9 +168,10 @@
     const list = document.getElementById("team-list");
     if (!filtered.length) { list.innerHTML = '<p class="empty-state">No teams match.</p>'; return; }
     list.innerHTML = filtered.map(t => {
-      const rating = t.avg_rating ? Math.round(t.avg_rating) : "—";
-      const color  = t.avg_rating ? ratingColor(t.avg_rating) : "#666";
-      const txtCol = t.avg_rating ? ratingTextColor(t.avg_rating) : "#fff";
+      const ovr    = t.overall_rating || t.avg_rating;
+      const rating = ovr ? Math.round(ovr) : "—";
+      const color  = ovr ? ratingColor(ovr) : "#666";
+      const txtCol = ovr ? ratingTextColor(ovr) : "#fff";
       return `
         <div class="team-list-item" data-id="${t.id}">
           ${t.logo_url ? `<img src="${t.logo_url}" class="team-list-logo" alt="" onerror="this.style.display='none'">` : `<span class="team-list-logo-placeholder"></span>`}
@@ -338,8 +339,8 @@
 
     const ovr   = tr.overall_rating != null ? Math.round(tr.overall_rating) : "—";
     const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "#666";
-    const spStr = tr.sp_plus != null ? `SP+ ${tr.sp_plus > 0 ? "+" : ""}${parseFloat(tr.sp_plus).toFixed(1)}` : "";
-    const rcStr = tr.recruit_score != null ? `Recruit ${Math.round(tr.recruit_score)}` : "";
+    const spStr = tr.sp_overall != null ? `SP+ ${tr.sp_overall > 0 ? "+" : ""}${parseFloat(tr.sp_overall).toFixed(1)}` : "";
+    const rcStr = tr.recruiting_score != null ? `Recruit ${Math.round(tr.recruiting_score)}` : "";
 
     return `
       <div class="team-ratings-card">
@@ -371,8 +372,11 @@
     const players = await fetchTeamRoster(team.id, _currentSeason);
     if (!players.length) return '<p class="empty-state">No roster data for this season.</p>';
 
-    // Store for re-filter without re-fetching
     team._rosterCache = players;
+
+    // Update hero player count with actual roster size
+    const heroStat = document.querySelector(".hero-stat-sm");
+    if (heroStat) heroStat.textContent = `${players.length} players · ${_currentSeason} season`;
 
     return renderRosterCards(players);
   }
@@ -396,33 +400,48 @@
         <div class="d-roster-filter-row">${DEF_FILTERS.map(makeChip).join("")}</div>
       </div>`;
 
-    const cards = filtered.map(p => {
-      const ovr = p.overall_rating ? Math.round(p.overall_rating) : null;
-      const ovrColor = ovr ? ratingColor(ovr) : "#666";
-      const rowTint  = ovr ? `${ovrColor}12` : "transparent";  // ~7% opacity tint
-      const [pgBg, pgColor] = posGroupColor(p.position_group || p.position);
-      const yr  = yearLabels[p.year] || "—";
-      const pos = p.position || p.position_group || "—";
-      const stars = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "";
+    const header = `<div class="draft-board-header">
+      <span>#</span><span>POS</span><span>Player</span>
+      <span>Yr</span><span>Stars</span>
+      <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
+      <span style="text-align:center">Hometown</span>
+      <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
+    </div>`;
+
+    const cards = filtered.map((p, i) => {
+      const ovr      = p.overall_rating ? Math.round(p.overall_rating) : null;
+      const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
+      const rowTint  = ovr ? `${ovrColor}10` : "transparent";
+      const pg       = p.position_group || p.position || "—";
+      const posClr   = posColor(pg);
+      const yr       = yearLabels[p.year] || "—";
+      const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
+      const oap      = p.edge_score != null ? parseFloat(p.edge_score).toFixed(2) : "—";
+      const ht       = p.height_in ? `${Math.floor(p.height_in/12)}'${p.height_in%12}"` : "—";
+      const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
+      const hometown = p.hometown_state || "—";
       return `
-        <div class="d-depth-card" data-player-id="${p.id}" style="cursor:pointer;background:${rowTint};border-left:3px solid ${ovrColor}">
-          <div class="d-depth-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor}">
-            ${(p.name || "?").split(" ").map(n => n[0]).slice(0,2).join("")}
+        <div class="draft-row" data-player-id="${p.id}" style="background:${rowTint};border-left-color:${ovrColor}">
+          <div class="draft-rank">${i + 1}</div>
+          <div class="draft-pos">
+            <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
           </div>
-          <div class="d-depth-info">
-            <div class="d-depth-name">${p.name || "—"}</div>
-            <div class="d-depth-pos-tag" style="color:${pgColor}">${pos} · ${yr}</div>
-            ${stars ? `<span class="stars" style="font-size:10px;color:#f5a623">${stars}</span>` : ""}
-          </div>
-          <div class="d-depth-ovr-plain">
-            <span class="d-depth-ovr-num" style="color:${ovrColor}">${ovr || "—"}</span>
-            <span class="d-depth-ovr-label">OVR</span>
-          </div>
+          <div class="draft-name"><span class="player-name-text">${p.name || "—"}</span></div>
+          <div class="draft-yr-conf">${yr}</div>
+          <div class="draft-stars">${starsStr}</div>
+          <div class="draft-ht">${ht}</div>
+          <div class="draft-wt">${wt}</div>
+          <div class="draft-team" style="font-size:10px">${hometown}</div>
+          <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor}">${ovr || "—"}</span></div>
+          <div class="draft-traj">${trajHtml(p.trajectory)}</div>
+          <div class="draft-edge">${oap}</div>
         </div>`;
     }).join("");
 
     return `${filterBar}
-      <div class="d-unit-rows" id="roster-cards">${cards || '<p class="empty-state">No players for this filter.</p>'}</div>
+      <div class="roster-table" id="roster-cards">
+        ${header}${cards || '<p class="empty-state">No players for this filter.</p>'}
+      </div>
       <div class="roster-footer">${filtered.length} shown · ${players.length} total</div>`;
   }
 
@@ -443,7 +462,7 @@
       // Make roster available to openPlayerModal (defined in playerSearch.js)
       window._allPlayers = team._rosterCache;
     }
-    document.querySelectorAll(".d-depth-card[data-player-id]").forEach(card => {
+    document.querySelectorAll("#roster-cards .draft-row[data-player-id]").forEach(card => {
       card.addEventListener("click", () => {
         openPlayerModal(parseInt(card.dataset.playerId), _currentSeason);
       });

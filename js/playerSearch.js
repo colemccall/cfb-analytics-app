@@ -46,6 +46,12 @@ async function initPlayerSearch() {
   await fetchAndRender();
 }
 
+// Per-position fetch limits — top N per position chip click
+const POS_LIMITS = {
+  QB: 100, RB: 100, WR: 100, TE: 100, OL: 100,
+  EDGE: 100, DL: 100, LB: 100, CB: 100, S: 100, DB: 100, K: 60, P: 60,
+};
+
 async function fetchAndRender() {
   if (_fetchPending) return;
   _fetchPending = true;
@@ -54,11 +60,24 @@ async function fetchAndRender() {
   grid.innerHTML = '<p class="empty-state">Loading…</p>';
   try {
     if (position && position !== "ALL") {
-      // Position selected: fetch top 200 at that specific position
-      _allPlayers = await fetchPlayers({ season, position, conference, limit: 200 });
+      const limit = POS_LIMITS[position] || 150;
+      _allPlayers = await fetchPlayers({ season, position, conference, limit });
     } else {
-      // No position filter: fetch top 1000 overall, filter client-side
-      _allPlayers = await fetchPlayers({ season, conference, limit: 1000 });
+      // Fetch each position separately so no position gets crowded out
+      const positions = Object.keys(POS_LIMITS);
+      const batches = await Promise.all(
+        positions.map(pos => fetchPlayers({ season, position: pos, conference, limit: POS_LIMITS[pos] }).catch(() => []))
+      );
+      // Merge and dedupe by player_season_id
+      const seen = new Set();
+      _allPlayers = [];
+      for (const batch of batches) {
+        for (const p of batch) {
+          const key = p.player_season_id || p.id;
+          if (!seen.has(key)) { seen.add(key); _allPlayers.push(p); }
+        }
+      }
+      _allPlayers.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
     }
   } catch (e) {
     grid.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
@@ -161,8 +180,10 @@ function renderGrid() {
     return;
   }
   grid.innerHTML = `<div class="draft-board-header animate-pop">
-    <span>#</span><span>Player</span>
-    <span>OVR</span><span>Traj</span><span>OAP</span>
+    <span>#</span><span>POS</span><span>Player</span>
+    <span>Team</span><span>Yr / Conf</span><span>Stars</span>
+    <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
+    <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
   </div><div class="stagger-children">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Attach click handlers
@@ -172,28 +193,35 @@ function renderGrid() {
 }
 
 function playerRowHtml(p, rank) {
-  const ovr    = p.overall_rating ? Math.round(p.overall_rating) : null;
-  const tier   = getRatingTier(ovr || 0);
-  const pg     = p.position_group || p.position || "ATH";
-  const color  = posColor(pg);
-  const rankCls = rank < 3 ? "top3" : rank < 10 ? "top10" : "";
-  const oap    = p.edge_score != null ? p.edge_score.toFixed(2) : "—";
-  const breakout = p.breakout_prob >= 0.35 ? ' <span title="Breakout candidate" style="font-size:10px">🔥</span>' : "";
-  const teamColor = p.team_color ? `#${p.team_color.replace("#","")}` : color;
+  const ovr     = p.overall_rating ? Math.round(p.overall_rating) : null;
+  const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
+  const rowTint  = ovr ? `${ovrColor}10` : "transparent";
+  const pg       = p.position_group || p.position || "ATH";
+  const posClr   = posColor(pg);
+  const rankCls  = rank < 3 ? "top3" : rank < 10 ? "top10" : "";
+  const oap      = p.edge_score != null ? p.edge_score.toFixed(2) : "—";
+  const breakout = p.breakout_prob >= 0.35 ? ' 🔥' : "";
+  const yr       = yearLabel(p.year);
+  const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
+  const ht       = p.height_in ? `${Math.floor(p.height_in/12)}'${p.height_in%12}"` : "—";
+  const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
 
   return `
-    <div class="draft-row animate-up ${tier.cls}" data-id="${p.id}" data-rating="${p.overall_rating || 0}"
-         style="--tier-color:${tier.color || "transparent"};border-left-color:${tier.color || "var(--border)"}">
-      <div class="draft-rank ${rankCls}">#${rank + 1}</div>
-      <div class="draft-info">
-        <div class="draft-name">
-          <span class="pos-badge-color" style="background:${color}">${pg}</span>
-          ${tier.label ? `<span class="tier-label" style="background:${tier.color}">${tier.label}</span>` : ""}
-          <span class="player-name-text">${p.name}${breakout}</span>
-        </div>
-        <div class="draft-meta">${p.team || "—"} · ${yearLabel(p.year)} · ${p.conference || "—"} · ${starsHtml(p.stars)}</div>
+    <div class="draft-row animate-up" data-id="${p.id}" data-rating="${p.overall_rating || 0}"
+         style="background:${rowTint};border-left-color:${ovrColor}">
+      <div class="draft-rank ${rankCls}">${rank + 1}</div>
+      <div class="draft-pos">
+        <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
       </div>
-      <div class="draft-ovr" style="background:${tier.color || "transparent"};color:${tier.color ? "#111" : "var(--text-muted)"}">${ovr || "—"}</div>
+      <div class="draft-name" title="${p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name}">
+        <span class="player-name-text">${p.name}${breakout}</span>
+      </div>
+      <div class="draft-team">${p.team || "—"}</div>
+      <div class="draft-yr-conf">${yr} · ${p.conference || "—"}</div>
+      <div class="draft-stars">${starsStr}</div>
+      <div class="draft-ht">${ht}</div>
+      <div class="draft-wt">${wt}</div>
+      <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor}">${ovr || "—"}</span></div>
       <div class="draft-traj">${trajHtml(p.trajectory)}</div>
       <div class="draft-edge">${oap}</div>
     </div>`;
