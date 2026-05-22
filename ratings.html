@@ -39,7 +39,7 @@
 </div>
 
 <div class="page-content">
-  <div class="filter-bar" style="margin-bottom:1rem">
+  <div class="filter-bar" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
     <select id="ratings-season-select" title="Season">
       <option value="2025">2025</option>
       <option value="2024">2024</option>
@@ -60,15 +60,19 @@
       <option value="2009">2009</option>
       <option value="2008">2008</option>
     </select>
+    <select id="team-filter-select" title="Team" style="min-width:160px">
+      <option value="ALL">All Teams</option>
+    </select>
+    <span id="scatter-count" style="color:var(--text-muted);font-size:0.85rem;margin-left:auto"></span>
   </div>
-  <div class="position-tabs" id="position-tabs"></div>
-  <div id="leaderboard"></div>
+
+  <div id="pos-filter-bar" class="position-tabs" style="margin-bottom:1rem"></div>
 
   <div class="scatter-section">
     <h2>Rating vs Recruiting Stars</h2>
     <p class="section-sub">
-      Players above the dashed trend line outperform their recruiting ranking — the "hidden gems" our model identifies.
-      Green dots = 8+ points above trend.
+      Players above the dashed trend line outperform their recruiting ranking — the "hidden gems" the model identifies.
+      Green dots = 8+ OVR above trend. Click any dot to open the player profile.
     </p>
     <div id="scatter-chart"></div>
   </div>
@@ -106,9 +110,9 @@
   });
 
   document.getElementById("ratings-season-select").addEventListener("change", async e => {
-    const season = parseInt(e.target.value);
-    document.getElementById("leaderboard").innerHTML = '<p class="empty-state">Loading…</p>';
-    await initRatings(season);
+    _filterPos  = "ALL";
+    _filterTeam = "ALL";
+    await initRatings(parseInt(e.target.value));
   });
 
   initRatings();
