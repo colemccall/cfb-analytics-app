@@ -1,10 +1,6 @@
 // Central configuration — imported by all other JS files.
-// Update SUPABASE_URL and SUPABASE_ANON_KEY before deploying.
 
 const CONFIG = {
-  SUPABASE_URL:      "https://rdtdgfejqfxtorzrfdbe.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkdGRnZmVqcWZ4dG9yenJmZGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTg2ODcsImV4cCI6MjA5MjQ3NDY4N30.sKf6SCGmpPFZ6U_eeNVmdqk_MXiZGGDRuVzy-fV1rXY",
-
   DATA_BASE:      "./data/",
   CURRENT_SEASON: 2025,
 

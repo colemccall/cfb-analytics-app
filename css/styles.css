@@ -1171,3 +1171,25 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   background: var(--accent); border-radius: 2px;
 }
 
+
+
+/* ── Team History tab ── */
+.team-history-wrap { overflow-x: auto; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.history-table th, .history-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.history-table thead th { color: var(--text-muted); font-weight: 600; }
+.history-table tbody tr:hover { background: var(--surface-hover); }
+.hist-season { font-weight: 700; color: var(--accent); }
+.hist-record, .hist-sp { font-variant-numeric: tabular-nums; }
+.ovr-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}

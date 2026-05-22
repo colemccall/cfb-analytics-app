@@ -252,7 +252,7 @@
         </div>
       </div>
       <nav class="team-subnav" id="team-subnav">
-        ${["roster","ratings","schedule","transfers"].map(tab =>
+        ${["roster","ratings","schedule","transfers","history"].map(tab =>
           `<button class="team-subnav-btn${_activeTab === tab ? " active" : ""}" data-tab="${tab}">${tab.charAt(0).toUpperCase()+tab.slice(1)}</button>`
         ).join("")}
       </nav>
@@ -281,6 +281,7 @@
       else if (tab === "ratings")   content.innerHTML = await buildTeamRatingsHTML(team);
       else if (tab === "schedule")  content.innerHTML = await buildScheduleHTML(team);
       else if (tab === "transfers") content.innerHTML = await buildTransfersHTML(team);
+      else if (tab === "history")   content.innerHTML = await buildTeamHistoryHTML(team);
     } catch (e) {
       content.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
     }
@@ -551,6 +552,37 @@
     };
 
     return section("Transfers In", incoming, "in") + section("Transfers Out", outgoing, "out");
+  }
+
+  // ── Team History ───────────────────────────────────────────────────────────
+  async function buildTeamHistoryHTML(team) {
+    const history = await _load("team_history.json");
+    const rows = history?.[String(team.id)] ?? [];
+    if (!rows.length) return `<p class="empty-state">No historical data yet. Run scripts 10 → 07.</p>`;
+
+    const tableRows = rows.map(r => {
+      const tier  = getRatingTier(r.overall_rating);
+      const color = ratingColor(r.overall_rating);
+      const rec   = (r.wins != null) ? `${r.wins}–${r.losses}` : "—";
+      return `<tr>
+        <td class="hist-season">${r.season}</td>
+        <td class="hist-record">${rec}</td>
+        <td>${r.conference ?? "—"}</td>
+        <td class="hist-sp">${r.sp_overall != null ? parseFloat(r.sp_overall).toFixed(1) : "—"}</td>
+        <td>${r.overall_rating != null
+          ? `<span class="ovr-badge" style="background:${color};color:#111">${Math.round(r.overall_rating)} ${tier}</span>`
+          : "—"}</td>
+      </tr>`;
+    }).join("");
+
+    return `<div class="team-history-wrap">
+      <table class="history-table">
+        <thead><tr>
+          <th>Season</th><th>Record</th><th>Conference</th><th>SP+</th><th>OVR</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
   }
 
   initTeams();
