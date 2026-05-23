@@ -24,9 +24,8 @@ async function _load(file) {
 // ---------------------------------------------------------------------------
 
 async function fetchAllPlayers(season = CONFIG.CURRENT_SEASON) {
-  const players = await _load("players.json");
-  if (!players) return [];
-  return players.filter(p => !season || p.season == season);
+  const players = await _load(`players_${season}.json`);
+  return players || [];
 }
 
 // options: { season, position, conference, minRating, limit }
@@ -35,11 +34,10 @@ async function fetchPlayers(options = {}) {
   const limit     = options.limit     || 100;
   const minRating = options.minRating || 1;
 
-  const players = await _load("players.json");
+  const players = await _load(`players_${season}.json`);
   if (!players) return [];
 
   let filtered = players.filter(p => {
-    if (p.season != season) return false;
     if ((p.overall_rating || 0) < minRating) return false;
     if (options.position && options.position !== "ALL" && p.position_group !== options.position) return false;
     if (options.conference && p.conference !== options.conference) return false;
@@ -91,45 +89,36 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
 // Team roster
 // ---------------------------------------------------------------------------
 async function fetchTeamRoster(teamId, season = CONFIG.CURRENT_SEASON) {
-  const rosters = await _load("rosters.json");
+  const rosters = await _load(`rosters_${season}.json`);
   if (!rosters) return [];
-  const byTeam = rosters[String(teamId)];
-  if (!byTeam) return [];
-  return byTeam[String(season)] || [];
+  return rosters[String(teamId)] || [];
 }
 
 // ---------------------------------------------------------------------------
 // Team schedule
 // ---------------------------------------------------------------------------
 async function fetchTeamSchedule(teamId, season = CONFIG.CURRENT_SEASON) {
-  const schedules = await _load("schedules.json");
+  const schedules = await _load(`schedules_${season}.json`);
   if (!schedules) return [];
-  const byTeam = schedules[String(teamId)];
-  if (!byTeam) return [];
-  return byTeam[String(season)] || [];
+  return schedules[String(teamId)] || [];
 }
 
 // ---------------------------------------------------------------------------
 // Team transfers (in + out)
 // ---------------------------------------------------------------------------
-async function fetchTeamTransfers(teamId, season = null) {
-  const transfers = await _load("transfers.json");
+async function fetchTeamTransfers(teamId, season = CONFIG.CURRENT_SEASON) {
+  const transfers = await _load(`transfers_${season}.json`);
   if (!transfers) return [];
-  let rows = transfers[String(teamId)] || [];
-  if (season) rows = rows.filter(t => t.transfer_year == season);
-  return rows.sort((a, b) => (b.transfer_year || 0) - (a.transfer_year || 0));
+  return transfers[String(teamId)] || [];
 }
 
 // ---------------------------------------------------------------------------
 // Single player full profile — used by the modal on any page.
 // ---------------------------------------------------------------------------
 async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
-  const players = await _load("players.json");
+  const players = await _load(`players_${season}.json`);
   if (!players) return null;
-  // Prefer exact season match; fall back to most recent season for this player
-  const matches = players.filter(p => p.id == playerId);
-  if (!matches.length) return null;
-  return matches.find(p => p.season == season) || matches[matches.length - 1];
+  return players.find(p => p.id == playerId) || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,9 +126,9 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
 // Returns array shaped like old stats rows: [{season, stat_type, data, team}]
 // ---------------------------------------------------------------------------
 async function fetchPlayerStats(playerId, season = CONFIG.CURRENT_SEASON) {
-  const players = await _load("players.json");
+  const players = await _load(`players_${season}.json`);
   if (!players) return [];
-  const p = players.find(pl => pl.id == playerId && pl.season == season);
+  const p = players.find(pl => pl.id == playerId);
   if (!p) return [];
   const out = [];
   if (p.stats_season)     out.push({ season, stat_type: "season_aggregate",     data: p.stats_season,     team: p.team });
@@ -150,30 +139,35 @@ async function fetchPlayerStats(playerId, season = CONFIG.CURRENT_SEASON) {
 // ---------------------------------------------------------------------------
 // Player rating history — all seasons (year-over-year chart)
 // ---------------------------------------------------------------------------
+// Load a player's data across all available seasons (for rating history / career stats)
+async function _loadPlayerAllSeasons(playerId) {
+  const seasons = [];
+  for (let y = 2008; y <= CONFIG.CURRENT_SEASON; y++) seasons.push(y);
+  const results = await Promise.all(
+    seasons.map(y => _load(`players_${y}.json`).then(arr => (arr || []).find(p => p.id == playerId)).catch(() => null))
+  );
+  return results.filter(Boolean).sort((a, b) => a.season - b.season);
+}
+
 async function fetchPlayerRatingHistory(playerId) {
-  const players = await _load("players.json");
-  if (!players) return [];
-  return players
-    .filter(p => p.id == playerId)
-    .sort((a, b) => a.season - b.season)
-    .map(p => ({
-      season:               p.season,
-      overall_rating:       p.overall_rating,
-      position_rating:      p.position_rating,
-      trajectory_score:     p.trajectory,
-      breakout_probability: p.breakout_prob,
-      shap_values:          p.shap,
-    }));
+  const history = await _loadPlayerAllSeasons(playerId);
+  return history.map(p => ({
+    season:               p.season,
+    overall_rating:       p.overall_rating,
+    position_rating:      p.position_rating,
+    trajectory_score:     p.trajectory,
+    breakout_probability: p.breakout_prob,
+    shap_values:          p.shap,
+  }));
 }
 
 // ---------------------------------------------------------------------------
 // Player career stats — all seasons (modal career tab)
 // ---------------------------------------------------------------------------
 async function fetchPlayerCareerStats(playerId) {
-  const players = await _load("players.json");
-  if (!players) return [];
+  const history = await _loadPlayerAllSeasons(playerId);
   const rows = [];
-  for (const p of players.filter(pl => pl.id == playerId).sort((a, b) => a.season - b.season)) {
+  for (const p of history) {
     if (p.stats_season)     rows.push({ player_season_id: p.player_season_id, season: p.season, stat_type: "season_aggregate",     data: p.stats_season,     team: p.team });
     if (p.stats_postseason) rows.push({ player_season_id: p.player_season_id, season: p.season, stat_type: "postseason_aggregate", data: p.stats_postseason, team: p.team });
   }
