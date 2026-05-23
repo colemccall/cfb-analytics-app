@@ -116,9 +116,20 @@ async function fetchTeamTransfers(teamId, season = CONFIG.CURRENT_SEASON) {
 // Single player full profile — used by the modal on any page.
 // ---------------------------------------------------------------------------
 async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
-  const players = await _load(`players_${season}.json`);
-  if (!players) return null;
-  return players.find(p => p.id == playerId) || null;
+  // Try the requested season first, then scan all seasons
+  const preferred = await _load(`players_${season}.json`);
+  if (preferred) {
+    const found = preferred.find(p => p.id == playerId);
+    if (found) return found;
+  }
+  // Fall back: check all seasons in reverse order (most recent first)
+  for (let y = CONFIG.CURRENT_SEASON; y >= 2008; y--) {
+    if (y === season) continue;
+    const arr = await _load(`players_${y}.json`);
+    const found = arr?.find(p => p.id == playerId);
+    if (found) return found;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

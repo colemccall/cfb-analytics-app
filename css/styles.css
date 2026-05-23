@@ -1041,7 +1041,6 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   font-size: 13px;
   font-weight: 900;
   font-family: var(--num-font);
-  color: #111;
   min-width: 34px;
   text-align: center;
   letter-spacing: 0.5px;

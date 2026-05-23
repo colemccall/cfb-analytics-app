@@ -56,21 +56,32 @@ function getRatingTier(rating) {
 function ratingColor(v) {
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   if (isLight) {
-    // Blue-based palette for light mode (gold washes out on white)
-    if (v >= 90) return "#1565C0";  // deep blue
-    if (v >= 80) return "#1976D2";  // blue
-    if (v >= 70) return "#0288D1";  // light blue
-    if (v >= 55) return "#455A64";  // slate
-    if (v >= 40) return "#8D6E63";  // warm gray
+    if (v >= 90) return "#1565C0";
+    if (v >= 80) return "#1976D2";
+    if (v >= 70) return "#0288D1";
+    if (v >= 55) return "#455A64";
+    if (v >= 40) return "#8D6E63";
     return "#c62828";
   }
   // Dark / mid theme — gold/amber palette
   if (v >= 90) return "#FFD700";
   if (v >= 80) return "#FFA000";
-  if (v >= 70) return "#78909C";
-  if (v >= 55) return "#8D6E63";
+  if (v >= 70) return "#90A4AE";  // lighter slate — readable with dark text
+  if (v >= 55) return "#A1887F";  // lighter brown — readable with dark text
   if (v >= 40) return "#ff9800";
   return "#f44336";
+}
+
+// Returns #111 or #fff depending on whether the hex background is light enough
+function ratingTextColor(hexOrRating) {
+  let hex = typeof hexOrRating === "number" ? ratingColor(hexOrRating) : hexOrRating;
+  if (!hex || !hex.startsWith("#")) return "#111";
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  // Perceived luminance
+  const lum = 0.299*r + 0.587*g + 0.114*b;
+  return lum > 140 ? "#111" : "#fff";
 }
 
 // Position color helper

@@ -92,7 +92,7 @@
 
   // posGroupColor and ratingTextColor delegate to config.js / playerSearch.js globals
   function posGroupColor(g) { const c = posColor(g); return [c + "22", c]; }
-  function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
+  // ratingTextColor is defined in config.js via luminance check
 
   // ── Init ───────────────────────────────────────────────────────────────────
   async function initTeams() {
@@ -433,7 +433,7 @@
           <div class="draft-ht">${ht}</div>
           <div class="draft-wt">${wt}</div>
           <div class="draft-team" style="font-size:10px">${hometown}</div>
-          <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor}">${ovr || "—"}</span></div>
+          <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor};color:${ratingTextColor(ovrColor)}">${ovr || "—"}</span></div>
           <div class="draft-traj">${trajHtml(p.trajectory)}</div>
           <div class="draft-edge">${oap}</div>
         </div>`;
@@ -570,7 +570,7 @@
         <td>${r.conference ?? "—"}</td>
         <td class="hist-sp">${r.sp_overall != null ? parseFloat(r.sp_overall).toFixed(1) : "—"}</td>
         <td>${r.overall_rating != null
-          ? `<span class="ovr-badge" style="background:${color};color:#111">${Math.round(r.overall_rating)} ${tier}</span>`
+          ? `<span class="ovr-badge" style="background:${color};color:${ratingTextColor(color)}">${Math.round(r.overall_rating)} ${tier}</span>`
           : "—"}</td>
       </tr>`;
     }).join("");
