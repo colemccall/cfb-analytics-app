@@ -504,9 +504,9 @@
 
     const header = `<div class="draft-board-header">
       <span>#</span><span>POS</span><span>Player</span>
-      <span>Yr</span><span>Stars</span>
+      <span style="text-align:center">Yr</span><span style="text-align:center">Stars</span>
       <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
-      <span style="text-align:center">Hometown</span>
+      <span>Hometown</span>
       <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
     </div>`;
 
@@ -529,11 +529,11 @@
             <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
           </div>
           <div class="draft-name"><span class="player-name-text">${p.name || "—"}</span></div>
-          <div class="draft-yr-conf">${yr}</div>
+          <div class="draft-yr-conf" style="text-align:center">${yr}</div>
           <div class="draft-stars">${starsStr}</div>
           <div class="draft-ht">${ht}</div>
           <div class="draft-wt">${wt}</div>
-          <div class="draft-team" style="font-size:10px">${hometown}</div>
+          <div class="draft-team" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${hometown}</div>
           <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor};color:${ratingTextColor(ovrColor)}">${ovr || "—"}</span></div>
           <div class="draft-traj">${trajHtml(p.trajectory)}</div>
           <div class="draft-edge">${oap}</div>

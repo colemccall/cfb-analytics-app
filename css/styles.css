@@ -1085,6 +1085,12 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .draft-traj { font-size: var(--fs-xs); text-align: center; }
 .draft-edge { font-size: var(--fs-xs); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
 
+/* Roster grid (teams.html) — different column set to Yr/Ht/Wt/Hometown */
+.roster-table .draft-row,
+.roster-table .draft-board-header {
+  grid-template-columns: 32px 46px minmax(110px,1fr) 44px 56px 44px 44px 90px 54px 44px 52px;
+}
+
 .draft-board-header {
   padding: 6px 12px;
   background: var(--surface-deep);
