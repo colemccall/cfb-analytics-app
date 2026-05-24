@@ -422,7 +422,7 @@
       const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
       const hometown = p.hometown_state || "—";
       return `
-        <div class="draft-row" data-player-id="${p.id}" style="background:${rowTint};border-left-color:${ovrColor}">
+        <div class="draft-row" data-player-id="${p.player_id ?? p.id}" style="background:${rowTint};border-left-color:${ovrColor}">
           <div class="draft-rank">${i + 1}</div>
           <div class="draft-pos">
             <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
@@ -477,15 +477,13 @@
     });
 
     const rows = games.map(g => {
-      const isHome = g.home_team_id === team.id;
-      const opp    = isHome ? g.away_team : g.home_team;
-      const site   = isHome ? "vs" : "@";
-      const teamScore = isHome ? g.home_score : g.away_score;
-      const oppScore  = isHome ? g.away_score : g.home_score;
+      const site      = g.is_home ? "vs" : "@";
+      const teamScore = g.team_score;
+      const oppScore  = g.opp_score;
       let result = `<span style="color:var(--text-muted)">—</span>`;
-      if (teamScore !== null && teamScore !== undefined) {
-        const won = teamScore > oppScore;
-        result = `<span class="status-pill ${won ? "in" : "out"}">${won ? "W" : "L"} ${teamScore}–${oppScore}</span>`;
+      if (g.result) {
+        const won = g.result === "W";
+        result = `<span class="status-pill ${won ? "in" : "out"}">${g.result} ${teamScore}–${oppScore}</span>`;
       }
       const wkLabel = g.week ? `Wk ${g.week}` : "Bowl";
       const dateStr = g.game_date ? g.game_date.slice(0, 10) : "—";
@@ -493,21 +491,13 @@
         <tr>
           <td style="color:var(--text-muted)">${wkLabel}</td>
           <td style="color:var(--text-muted)">${dateStr}</td>
-          <td>${site} <strong>${opp || "TBD"}</strong>${g.neutral_site ? " <small>(N)</small>" : ""}</td>
+          <td>${site} <strong>${g.opponent || "TBD"}</strong>${g.neutral_site ? " <small>(N)</small>" : ""}</td>
           <td>${result}</td>
         </tr>`;
     }).join("");
 
-    const wins   = games.filter(g => {
-      const ts = (g.home_team_id === team.id ? g.home_score : g.away_score);
-      const os = (g.home_team_id === team.id ? g.away_score : g.home_score);
-      return ts !== null && ts > os;
-    }).length;
-    const losses = games.filter(g => {
-      const ts = (g.home_team_id === team.id ? g.home_score : g.away_score);
-      const os = (g.home_team_id === team.id ? g.away_score : g.home_score);
-      return ts !== null && ts < os;
-    }).length;
+    const wins   = games.filter(g => g.result === "W").length;
+    const losses = games.filter(g => g.result === "L").length;
     const played = wins + losses;
 
     return `
@@ -526,13 +516,17 @@
     const incoming = transfers.filter(t => t.direction === "in");
     const outgoing = transfers.filter(t => t.direction === "out");
 
-    const makeRows = (arr) => arr.map(t => `
+    const makeRows = (arr) => arr.map(t => {
+      // "in" transfers came FROM their old school; "out" went TO their new school
+      const otherSchool = t.direction === "in" ? t.from_school : t.to_school;
+      return `
       <tr>
-        <td class="name-col">${t.player_name || "—"}</td>
-        <td>${t.position || "—"}</td>
-        <td>${t.other_school || "—"}</td>
+        <td class="name-col">${t.name || "—"}</td>
+        <td>${t.position_group || "—"}</td>
+        <td>${otherSchool || "—"}</td>
         <td>${t.portal_date || "—"}</td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
 
     const section = (title, arr, pillClass) => {
       if (!arr.length) return "";
@@ -565,7 +559,7 @@
         <td>${r.conference ?? "—"}</td>
         <td class="hist-sp">${r.sp_overall != null ? parseFloat(r.sp_overall).toFixed(1) : "—"}</td>
         <td>${r.overall_rating != null
-          ? `<span class="ovr-badge" style="background:${color};color:${ratingTextColor(color)}">${Math.round(r.overall_rating)} ${tier}</span>`
+          ? `<span class="ovr-badge" style="background:${color};color:${ratingTextColor(color)}">${Math.round(r.overall_rating)}${tier.label ? " " + tier.label : ""}</span>`
           : "—"}</td>
       </tr>`;
     }).join("");
