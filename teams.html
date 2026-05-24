@@ -244,7 +244,7 @@
         <div class="d-hero-right">
           <div class="d-hero-ovr-box">
             <span class="d-hero-ovr-num" style="color:${rCol}">${avgR}</span>
-            <span class="d-hero-ovr-label">AVG OVR</span>
+            <span class="d-hero-ovr-label">TEAM OVR</span>
           </div>
           <div class="hero-stat-row">
             <span class="hero-stat-sm">${team.player_count || "—"} players · ${_currentSeason} season</span>
@@ -286,6 +286,11 @@
       content.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
     }
     bindRosterEvents(team);
+    // Top-performer rows (Ratings tab) open the player modal
+    content.querySelectorAll(".tperf-row[data-player-id]").forEach(row => {
+      row.addEventListener("click", () =>
+        openPlayerModal(parseInt(row.dataset.playerId), _currentSeason));
+    });
   }
 
   // ── Team Ratings ──────────────────────────────────────────────────────────
@@ -340,8 +345,20 @@
 
     const ovr   = tr.overall_rating != null ? Math.round(tr.overall_rating) : "—";
     const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "#666";
-    const spStr = tr.sp_overall != null ? `SP+ ${tr.sp_overall > 0 ? "+" : ""}${parseFloat(tr.sp_overall).toFixed(1)}` : "";
-    const rcStr = tr.recruiting_score != null ? `Recruit ${Math.round(tr.recruiting_score)}` : "";
+    const off   = tr.offense_rating != null ? Math.round(tr.offense_rating) : "—";
+    const def   = tr.defense_rating != null ? Math.round(tr.defense_rating) : "—";
+    const offCol = tr.offense_rating ? ratingColor(tr.offense_rating) : "#666";
+    const defCol = tr.defense_rating ? ratingColor(tr.defense_rating) : "#666";
+    // POWER index = raw SP+ margin — the cross-season "team EDGE" (absolute, year-agnostic)
+    const powStr = tr.sp_overall != null ? `${tr.sp_overall > 0 ? "+" : ""}${parseFloat(tr.sp_overall).toFixed(1)}` : "—";
+    const rcStr = tr.recruiting_score != null ? `Recruiting ${Math.round(tr.recruiting_score)}` : "";
+
+    // Ensure roster is loaded so Top Performers renders even if Ratings is opened first
+    if (!team._rosterCache) {
+      try { team._rosterCache = await fetchTeamRoster(team.id, _currentSeason); } catch (_) {}
+    }
+    const statsPanel = await buildTeamStatsPanel(team);
+    const performers = buildTopPerformers(team);
 
     return `
       <div class="team-ratings-card">
@@ -352,16 +369,100 @@
           </div>
           <div class="tr-hero-meta">
             <div class="tr-hero-name">${team.school} ${tr.season || _currentSeason}</div>
-            ${spStr || rcStr ? `<div class="tr-hero-sub">${[spStr, rcStr].filter(Boolean).join(" · ")}</div>` : ""}
+            <div class="tr-od-row">
+              <span class="tr-od-chip" style="color:${offCol}">OFF <b>${off}</b></span>
+              <span class="tr-od-chip" style="color:${defCol}">DEF <b>${def}</b></span>
+              <span class="tr-od-chip tr-power" title="Schedule-adjusted SP+ margin — compare across any season">POWER <b>${powStr}</b></span>
+            </div>
+            ${rcStr ? `<div class="tr-hero-sub">${rcStr}</div>` : ""}
           </div>
         </div>
         <div class="tr-sub-section">
           <div class="tr-sub-heading">Rating Breakdown</div>
           ${subBars}
         </div>
+        ${statsPanel}
+        ${performers}
         <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:1rem">
-          Formula: SP+ (45%) + Top-5 Starter EDGE avg (35%) + 5-yr Recruiting (15%) + stability pull (5%).
+          OVR is anchored to SP+ (schedule-adjusted scoring margin) blended with roster talent,
+          so a 2019 LSU compares directly to any other season. POWER is the raw SP+ margin.
         </p>
+      </div>`;
+  }
+
+  // ── Team stats panel (per-game metrics from team_stats_{season}.json) ───────
+  const _teamStatsCache = {};
+  async function loadTeamStats(season) {
+    if (_teamStatsCache[season] === undefined) {
+      try {
+        const res = await fetch(`data/team_stats_${season}.json`);
+        _teamStatsCache[season] = res.ok ? await res.json() : null;
+      } catch (_) { _teamStatsCache[season] = null; }
+    }
+    return _teamStatsCache[season];
+  }
+
+  async function buildTeamStatsPanel(team) {
+    const all = await loadTeamStats(_currentSeason);
+    const s = all?.[String(team.id)];
+    if (!s) return "";
+
+    const fmt = (v, suffix = "") => (v == null ? "—" : `${v}${suffix}`);
+    const top = (label, val) => `
+      <div class="tstat"><span class="tstat-val">${val}</span><span class="tstat-lbl">${label}</span></div>`;
+
+    // Compute record from schedule cache if available
+    const offGrid = [
+      top("Yards/G", fmt(s.yards_pg)),
+      top("Pass/G", fmt(s.pass_yards_pg)),
+      top("Rush/G", fmt(s.rush_yards_pg)),
+      top("3rd Down", fmt(s.third_down_pct, "%")),
+    ].join("");
+    const defGrid = [
+      top("Yds Allowed/G", fmt(s.yards_allowed_pg)),
+      top("Pass All/G", fmt(s.pass_allowed_pg)),
+      top("Rush All/G", fmt(s.rush_allowed_pg)),
+      top("3rd Down Def", fmt(s.third_down_def_pct, "%")),
+    ].join("");
+    const advGrid = [
+      top("Sacks/G", fmt(s.sacks_pg)),
+      top("TFL/G", fmt(s.tfl_pg)),
+      top("Takeaways", fmt(s.takeaways)),
+      top("TO Margin", s.turnover_margin == null ? "—" : (s.turnover_margin > 0 ? "+" : "") + s.turnover_margin),
+    ].join("");
+
+    return `
+      <div class="tr-stats-section">
+        <div class="tr-sub-heading">Team Stats <span class="tr-stat-era">${_currentSeason}</span></div>
+        <div class="tstat-block"><div class="tstat-block-lbl">Offense</div><div class="tstat-grid">${offGrid}</div></div>
+        <div class="tstat-block"><div class="tstat-block-lbl">Defense</div><div class="tstat-grid">${defGrid}</div></div>
+        <div class="tstat-block"><div class="tstat-block-lbl">Disruption & Ball Security</div><div class="tstat-grid">${advGrid}</div></div>
+      </div>`;
+  }
+
+  function buildTopPerformers(team) {
+    const roster = team._rosterCache;
+    if (!roster || !roster.length) return "";
+    const top = [...roster]
+      .filter(p => p.overall_rating != null)
+      .sort((a, b) => b.overall_rating - a.overall_rating)
+      .slice(0, 5);
+    if (!top.length) return "";
+    const rows = top.map(p => {
+      const ovr = Math.round(p.overall_rating);
+      const c = ratingColor(ovr);
+      const pg = p.position_group || p.position || "—";
+      return `
+        <div class="tperf-row" data-player-id="${p.player_id ?? p.id}">
+          <span class="pos-badge-color" style="background:${posColor(pg)}">${pg}</span>
+          <span class="tperf-name">${p.name || "—"}</span>
+          <span class="tperf-ovr" style="background:${c};color:${ratingTextColor(c)}">${ovr}</span>
+        </div>`;
+    }).join("");
+    return `
+      <div class="tr-perf-section">
+        <div class="tr-sub-heading">Top Performers</div>
+        <div class="tperf-list">${rows}</div>
       </div>`;
   }
 
@@ -516,27 +617,49 @@
     const incoming = transfers.filter(t => t.direction === "in");
     const outgoing = transfers.filter(t => t.direction === "out");
 
-    const makeRows = (arr) => arr.map(t => {
-      // "in" transfers came FROM their old school; "out" went TO their new school
-      const otherSchool = t.direction === "in" ? t.from_school : t.to_school;
-      return `
-      <tr>
+    const makeRows = (arr, direction) => arr.map(t => {
+      const otherSchool = direction === "in" ? t.from_school : t.to_school;
+      // OVR: "in" shows prev (at old school) → current (at this school)
+      //       "out" shows current (last at this school) → nothing (they left)
+      const prevOvr = t.ovr_previous;
+      const currOvr = t.ovr_current;
+
+      let ovrCell = "—";
+      if (direction === "in" && (prevOvr || currOvr)) {
+        // Show old → new
+        const prevBadge = prevOvr
+          ? `<span class="ovr-badge" style="background:${ratingColor(prevOvr)};color:${ratingTextColor(ratingColor(prevOvr))}">${Math.round(prevOvr)}</span>`
+          : "<span style='color:var(--text-muted)'>—</span>";
+        const currBadge = currOvr
+          ? `<span class="ovr-badge" style="background:${ratingColor(currOvr)};color:${ratingTextColor(ratingColor(currOvr))}">${Math.round(currOvr)}</span>`
+          : "<span style='color:var(--text-muted)'>—</span>";
+        const arrow = (prevOvr && currOvr)
+          ? (currOvr > prevOvr + 2 ? " ▲" : currOvr < prevOvr - 2 ? " ▼" : " →")
+          : "";
+        ovrCell = `${prevBadge}${arrow} ${currBadge}`;
+      } else if (direction === "out" && currOvr) {
+        ovrCell = `<span class="ovr-badge" style="background:${ratingColor(currOvr)};color:${ratingTextColor(ratingColor(currOvr))}">${Math.round(currOvr)}</span>`;
+      }
+
+      return `<tr>
         <td class="name-col">${t.name || "—"}</td>
         <td>${t.position_group || "—"}</td>
         <td>${otherSchool || "—"}</td>
-        <td>${t.portal_date || "—"}</td>
+        <td>${ovrCell}</td>
+        <td style="color:var(--text-muted);font-size:0.8rem">${t.portal_date || "—"}</td>
       </tr>`;
     }).join("");
 
     const section = (title, arr, pillClass) => {
       if (!arr.length) return "";
+      const ovrHeader = pillClass === "in" ? "Prev → New OVR" : "OVR";
       return `
         <h3 style="font-family:var(--font-display);font-size:var(--fs-lg);color:var(--accent);margin:1.5rem 0 0.5rem;padding-left:4px;border-left:3px solid var(--accent)">
           <span class="status-pill ${pillClass}">${pillClass === "in" ? "IN" : "OUT"}</span> ${title} (${arr.length})
         </h3>
         <table class="leaderboard-table">
-          <thead><tr><th>Player</th><th>Pos</th><th>${pillClass === "in" ? "From" : "To"}</th><th>Portal Date</th></tr></thead>
-          <tbody>${makeRows(arr)}</tbody>
+          <thead><tr><th>Player</th><th>Pos</th><th>${pillClass === "in" ? "From" : "To"}</th><th>${ovrHeader}</th><th>Portal Date</th></tr></thead>
+          <tbody>${makeRows(arr, pillClass)}</tbody>
         </table>`;
     };
 
