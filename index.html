@@ -8,129 +8,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
-  <style>
-    /* ── Home-page-specific layout ── */
-    .home-wrap {
-      max-width: 1240px; margin: 0 auto;
-      padding: 2rem 1.75rem 4rem;
-    }
-    .home-headline {
-      padding: 2.5rem 0 1.75rem;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 2rem;
-      position: relative;
-    }
-    .home-headline h1 {
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 900;
-      color: var(--accent); text-transform: uppercase;
-      letter-spacing: 1.5px; line-height: 1.05;
-      margin: 0 0 0.5rem;
-    }
-    .home-headline p {
-      color: var(--text-muted); font-size: var(--fs-md);
-      max-width: 640px; margin: 0; line-height: 1.7;
-    }
-    .home-headline-actions {
-      display: flex; gap: 0.75rem; flex-wrap: wrap;
-      margin-top: 1.375rem;
-    }
-
-    /* ── Summary stats bar ── */
-    .home-stats-bar {
-      display: flex; gap: 1rem; flex-wrap: wrap;
-      margin-bottom: 2rem;
-    }
-    .home-stat {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1rem 1.5rem;
-      flex: 1; min-width: 130px;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .home-stat:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
-    .home-stat-val {
-      font-family: var(--font-display); font-size: 2rem;
-      font-weight: 900; color: var(--accent); display: block; line-height: 1;
-    }
-    .home-stat-lbl {
-      font-size: var(--fs-xs); color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px; display: block;
-    }
-
-    /* ── Two-column layout ── */
-    .home-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    @media (max-width: 760px) { .home-columns { grid-template-columns: 1fr; } }
-
-    .home-panel {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
-      box-shadow: var(--shadow);
-      transition: border-color 0.15s;
-    }
-    .home-panel:hover { border-color: var(--border-mid); }
-    .home-panel-header {
-      padding: 0.875rem 1.125rem;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      background: var(--surface-deep);
-    }
-    .home-panel-title {
-      font-family: var(--font-display); font-size: var(--fs-lg);
-      font-weight: 800; color: var(--text); text-transform: uppercase;
-      letter-spacing: 0.5px; margin: 0;
-    }
-    .home-panel-link {
-      font-size: var(--fs-xs); color: var(--accent);
-      font-weight: 700; letter-spacing: 0.3px;
-    }
-    .home-panel-link:hover { opacity: 0.8; }
-
-    /* ── Top teams/players rows ── */
-    .home-team-row, .home-player-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px; border-bottom: 1px solid var(--border);
-      cursor: pointer; transition: background 0.12s;
-      text-decoration: none; color: inherit;
-    }
-    .home-team-row:last-child, .home-player-row:last-child { border-bottom: none; }
-    .home-team-row:hover, .home-player-row:hover { background: var(--surface-lift); }
-    .home-team-rank, .home-player-rank {
-      font-family: var(--font-display); font-size: var(--fs-sm);
-      color: var(--text-muted); width: 22px; flex-shrink: 0; text-align: right;
-    }
-    .home-team-logo { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
-    .home-team-info, .home-player-info { flex: 1; min-width: 0; }
-    .home-team-name, .home-player-name {
-      font-size: var(--fs-sm); font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .home-team-conf, .home-player-meta { font-size: var(--fs-xs); color: var(--text-muted); }
-    .home-team-ovr, .home-player-rating {
-      font-family: var(--font-display); font-size: var(--fs-md);
-      font-weight: 800; flex-shrink: 0;
-    }
-
-    /* ── EDGE explainer strip ── */
-    .home-edge-strip {
-      margin-top: 1.75rem;
-      background: var(--surface);
-      border: 1px solid var(--border-accent);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius); padding: 1.125rem 1.375rem;
-      display: flex; align-items: flex-start; gap: 1.125rem;
-      box-shadow: var(--shadow-glow);
-    }
-    .home-edge-icon { font-size: 1.5rem; flex-shrink: 0; line-height: 1; margin-top: 2px; }
-    .home-edge-text h3 {
-      font-family: var(--font-display); font-size: var(--fs-md);
-      color: var(--accent); margin: 0 0 0.3rem; text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .home-edge-text p { font-size: var(--fs-sm); color: var(--text-muted); margin: 0; line-height: 1.65; }
-  </style>
 </head>
 <body>
 
+<!-- ==================== SIDEBAR ==================== -->
 <aside class="sidebar">
   <nav class="sidebar-nav">
     <a href="index.html"    class="snav-item active"><span class="snav-icon">⬡</span> Home</a>
@@ -159,8 +40,10 @@
         <button class="theme-swatch" data-theme="light" title="Light"></button>
       </div>
     </div>
+    <div class="sidebar-version">v2.0.0</div>
   </div>
 </aside>
+<!-- ==================== MAIN CONTENT ==================== -->
 <div class="main-content">
 
 <!-- Hero -->
@@ -233,8 +116,9 @@
   <div class="modal-inner"></div>
 </div>
 
+<!-- ==================== SCRIPTS ==================== -->
 <script src="js/config.js"></script>
-<script src="js/supabaseClient.js"></script>
+<script src="js/dataLoader.js"></script>
 <script src="js/playerSearch.js"></script>
 <script>
   // Theme persistence
@@ -355,7 +239,7 @@
 </script>
 </div><!-- /.main-content -->
 
-<!-- Mobile bottom tab bar -->
+<!-- ==================== MOBILE NAV ==================== -->
 <nav class="mobile-tab-bar" aria-label="Mobile navigation">
   <div class="mobile-tab-bar-inner">
     <a href="index.html"    class="mobile-tab-btn active"><span class="tab-icon">⬡</span>Home</a>

@@ -1,5 +1,5 @@
 // Player search and card rendering for players.html
-// Data source: Supabase for both grid and detail modal.
+// Data source: dataLoader.js (static JSON from data/)
 
 function posGroupColor(g) {
   const c = posColor(g);  // from config.js
@@ -26,8 +26,24 @@ async function loadSimilarPlayers() {
   return _similarPlayersCache;
 }
 
-const OFF_POS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
-const DEF_POS = ["EDGE", "DL", "LB", "CB", "S", "DB", "K", "P"];
+const OFF_POS  = ["ALL", "QB", "RB", "WR", "TE", "OL"];
+const DEF_POS  = ["EDGE", "DL", "LB", "CB", "S", "DB", "K", "P"];
+const EDGE_POS = ["QB","RB","WR","TE","EDGE","DL","LB","CB","S","DB"];
+
+const CAREER_FIELDS = {
+  QB:   [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
+  RB:   [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
+  WR:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
+  TE:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"]],
+  EDGE: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"],["defensivePD","PDs"]],
+  DL:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"]],
+  LB:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
+  CB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"],["defensiveSACKS","Sacks"]],
+  S:    [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
+  DB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
+  K:    [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"]],
+  P:    [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"]],
+};
 
 // All known conferences — populated on first load
 const _CONFERENCES = [
@@ -183,7 +199,7 @@ function renderGrid() {
     <span>#</span><span>POS</span><span>Player</span>
     <span>Team</span><span>Yr / Conf</span><span>Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
-    <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
+    <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">EDGE</span>
   </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Sortable column headers
@@ -217,7 +233,7 @@ function playerRowHtml(p, rank) {
          style="background:${rowTint};border-left-color:${ovrColor}">
       <div class="draft-rank ${rankCls}">${rank + 1}</div>
       <div class="draft-pos">
-        <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
+        <span class="pos-group-badge" style="background:${posClr}">${pg}</span>
       </div>
       <div class="draft-name" title="${p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name}">
         <span class="player-name-text">${p.name}${breakout}</span>
@@ -310,7 +326,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   // ── Rating header ──
   const headerHtml = `
     <div class="modal-header">
-      <div class="d-depth-avatar modal-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor};width:52px;height:52px;font-size:18px;flex-shrink:0">${initials}</div>
+      <div class="player-initials-avatar modal-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor};width:52px;height:52px;font-size:18px;flex-shrink:0">${initials}</div>
       <div class="modal-title">
         <h2>${player.name || "Unknown"}</h2>
         <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
@@ -339,9 +355,9 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     </div>`;
 
   // ── Season stats ──
-  const psData  = postseasonData || null;
-  const hasPost = psData && Object.keys(psData).length > 0;
-  const totalData = hasPost ? mergeStatTotals(stats, psData, pg) : null;
+  const postData  = postseasonData || null;
+  const hasPost = postData && Object.keys(postData).length > 0;
+  const totalData = hasPost ? mergeStatTotals(stats, postData, pg) : null;
   const statSectionHtml = `
     <div class="modal-section">
       <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON})</div>
@@ -349,14 +365,13 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
       ${hasPost ? `
         <div class="stats-sub-label" style="margin-top:10px">Postseason</div>
-        <div class="stats-grid">${renderStatBlocks(psData, pg)}</div>
+        <div class="stats-grid">${renderStatBlocks(postData, pg)}</div>
         <div class="stats-sub-label" style="margin-top:10px">Total</div>
         <div class="stats-grid">${renderStatBlocks(totalData, pg)}</div>
       ` : ""}
     </div>`;
 
   // ── EDGE score panel (EDGE-rated positions only) ──
-  const EDGE_POS = ["QB","RB","WR","TE","EDGE","DL","LB","CB","S","DB"];
   let edgeHtml = "";
   if (EDGE_POS.includes(pg) && player.edge_score != null) {
     const edgeVal = player.edge_score.toFixed(2);
@@ -396,7 +411,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     const labels = seasons.map((s, i) =>
       `<text x="${xS(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${s}</text>`
     ).join("");
-    const ratings_labels = vals.map((v, i) =>
+    const ratingsLabels = vals.map((v, i) =>
       `<text x="${(xS(i) + 4).toFixed(1)}" y="${(yS(v) - 5).toFixed(1)}" font-size="10" fill="var(--text-muted)">${Math.round(v)}</text>`
     ).join("");
     yoyHtml = `
@@ -404,7 +419,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <div class="modal-section-title">Rating History (Year-over-Year)</div>
         <svg width="${W}" height="${H}" style="display:block;overflow:visible;width:100%;max-width:${W}px">
           <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
-          ${dots}${labels}${ratings_labels}
+          ${dots}${labels}${ratingsLabels}
         </svg>
       </div>`;
   }
@@ -412,22 +427,8 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   // ── Career stats table ──
   let careerHtml = "";
   if (careerStats.length >= 1) {
-    const CAREER_FIELDS = {
-      QB:   [["passingYDS","Pass Yds"],["passingTD","TDs"],["passingINT","INTs"],["passingATT","Att"],["passingCOMPLETIONS","Comp"],["passingYPA","YPA"]],
-      RB:   [["rushingYDS","Rush Yds"],["rushingTD","TDs"],["rushingCAR","Car"],["rushingYPC","YPC"],["receivingREC","Rec"],["receivingYDS","Rec Yds"]],
-      WR:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"],["receivingYPR","YPR"]],
-      TE:   [["receivingYDS","Rec Yds"],["receivingTD","TDs"],["receivingREC","Rec"]],
-      EDGE: [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"],["defensivePD","PDs"]],
-      DL:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["defensiveQB HUR","Hurries"]],
-      LB:   [["defensiveTOT","Tackles"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"],["interceptionsINT","INTs"],["defensivePD","PDs"]],
-      CB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"],["defensiveSACKS","Sacks"]],
-      S:    [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveSACKS","Sacks"],["defensiveTFL","TFL"]],
-      DB:   [["defensiveTOT","Tackles"],["interceptionsINT","INTs"],["defensivePD","PDs"],["defensiveTFL","TFL"]],
-      K:    [["kickingFGM","FGM"],["kickingFGA","FGA"],["kickingLNG","Long"]],
-      P:    [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"]],
-    };
-    const fields = CAREER_FIELDS[pg] || [];
-    if (fields.length) {
+    const careerFields = CAREER_FIELDS[pg] || [];
+    if (careerFields.length) {
       // Merge regular + postseason rows by season into one row each
       const seasonMap = {};
       for (const cs of careerStats) {
@@ -437,15 +438,15 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       }
       const mergedSeasons = Object.values(seasonMap).sort((a, b) => a.season - b.season);
 
-      const def = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : null; };
+      const getStatVal = (d, k) => { const v = d?.[k]; return v !== null && v !== undefined ? v : null; };
       const rows = mergedSeasons.map(({ season: yr, reg, post, team: rowTeam }) => {
         const combined = (reg && post) ? mergeStatTotals(reg, post, pg) : (reg || post || {});
         return `
           <tr>
             <td><strong>${yr}</strong></td>
             <td style="color:var(--text-muted);font-size:var(--fs-xs)">${rowTeam || "—"}</td>
-            ${fields.map(([k]) => {
-              const v = def(combined, k);
+            ${careerFields.map(([k]) => {
+              const v = getStatVal(combined, k);
               const disp = v !== null ? (typeof v === "number" ? (Number.isInteger(v) ? v : parseFloat(v).toFixed(1)) : v) : "—";
               return `<td>${disp}</td>`;
             }).join("")}
@@ -456,7 +457,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
           <div class="modal-section-title">Career Stats</div>
           <div style="overflow-x:auto">
             <table class="leaderboard-table">
-              <thead><tr><th>Yr</th><th>Team</th>${fields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
+              <thead><tr><th>Yr</th><th>Team</th>${careerFields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
