@@ -375,10 +375,28 @@
 
   <!-- ── Known limitations ── -->
   <h2>Known Limitations</h2>
+
+  <h3>OL — Stat Deficit Across the Board</h3>
+  <p>
+    No individual offensive lineman statistics exist in any publicly available college football data source. There are no personal blocking grades, pressure rates allowed, or run-block efficiency numbers tracked at the player level. As a result, <strong>every OL rating is a team-level proxy</strong> — rush yards per attempt and sack rate allowed are averaged across the entire offensive line and distributed evenly. An elite LT and a mediocre RT at the same school will receive identical ratings. This is a structural limitation of the data ecosystem, not a modeling choice.
+  </p>
+
+  <h3>Pre-2016 Defense — Severely Stat-Limited</h3>
+  <p>
+    The CFB Data API does not include individual defensive stats — tackles, sacks, TFLs, QB hurries, or PBUs — for seasons prior to 2016. This is a hard API limitation, not a data gap we can fill from our pipeline. The impact varies significantly by position group:
+  </p>
+  <ul>
+    <li><strong>CB / S / DB (moderate impact)</strong>: Interceptions are available for all seasons and carry meaningful signal — a 4-INT corner is correctly identified as an above-average player. The pre-2016 CLASSIC system blends INTs with recruiting composite using adaptive weighting (more INTs = more weight on production, fewer INTs = more recruiting anchor). Ratings are directionally correct but lack the PBU and tackle context that would sharpen precision.</li>
+    <li><strong>LB (significant impact)</strong>: Interceptions are available but are rare for linebackers — the position's most valuable stats (tackle-for-loss, sacks, pressures) are missing entirely. Pre-2016 LB ratings lean heavily on recruiting composite as a proxy for player quality, which systematically underrates productive lower-recruited players and overrates high-recruited players who underperformed.</li>
+    <li><strong>DL / EDGE (severe impact)</strong>: These positions have essentially no useful pre-2016 individual stats — DL players almost never record interceptions, and their core stats (sacks, hurries, TFLs) are entirely absent from the API. Pre-2016 DL and EDGE ratings are capped based on recruiting composite (max ~88 for EDGE, ~85 for DL), regardless of actual production. A dominant defensive end like Myles Garrett in 2015 cannot be fully rated — his rating reflects recruiting ceiling, not what he did on the field.</li>
+  </ul>
+  <div class="callout">
+    <p><strong>What this means when reading pre-2016 defensive ratings:</strong> DB and LB ratings are usable but imprecise. DL and EDGE ratings prior to 2016 should be treated as <em>recruiting-caliber estimates</em>, not production ratings — they tell you the player's ceiling as projected by scouts, not what they actually did. A planned scraper for Sports Reference historical data would resolve this for seasons 2008–2015.</p>
+  </div>
+
   <div class="limitations-box">
-    <h3>What this model does not yet account for</h3>
+    <h3>Additional model limitations</h3>
     <ul>
-      <li><strong>OL — individual contribution</strong>: No individual OL stats exist in college football data. OL ratings are team-level proxies (run efficiency + pass protection efficiency) distributed evenly across the unit.</li>
       <li><strong>Coverage snaps for CB/S</strong>: We count INTs and PBUs, not targets allowed or coverage yards. A lockdown corner who is never thrown at will show low counting stats and rate below their true impact.</li>
       <li><strong>Tackle quality beyond TFLs</strong>: We minimize raw tackle weight for this reason, but can't distinguish a broken-tackle stop from a gang-tackle pile-on with existing data.</li>
       <li><strong>Receiver targets for WR/TE</strong>: EDGE reflects production per game, but can't distinguish a receiver who ran perfect routes but was ignored by the QB from one who was targeted and dropped passes.</li>
@@ -414,7 +432,7 @@
   </p>
 
   <div class="callout">
-    <p>Team ratings are available for 2025. Historical seasons (2021–2024) are on the roadmap — they require re-running scripts 06 and 10 for each year after the full historical player data backfill is complete.</p>
+    <p>Team ratings are currently available for <strong>2025 only</strong>. Historical team ratings (2008–2024) require per-season runs of the team rating pipeline and are on the roadmap.</p>
   </div>
 
   <!-- ── Roadmap ── -->
@@ -424,8 +442,8 @@
   <table class="weight-table">
     <thead><tr><th>Engine / Feature</th><th>Status</th><th>Description</th></tr></thead>
     <tbody>
-      <tr><td>EDGE (Engine A)</td><td style="color:var(--positive)">✓ Live</td><td>Per-game opponent-adjusted stat composites → 30–99 OVR, all positions, 2008–2025</td></tr>
-      <tr><td>Team Ratings</td><td style="color:var(--positive)">✓ Live</td><td>SP+ + roster quality + recruiting pipeline composite, 2025</td></tr>
+      <tr><td>EDGE (Engine A)</td><td style="color:var(--positive)">✓ Live</td><td>Per-game opponent-adjusted stat composites → 30–99 OVR, all positions, 2008–2025. Pre-2016 defense uses CLASSIC system (INTs + recruiting).</td></tr>
+      <tr><td>Team Ratings</td><td style="color:var(--positive)">✓ Live</td><td>SP+ + roster quality + recruiting pipeline composite, 2025. Historical team ratings planned.</td></tr>
       <tr><td>Similar Players</td><td style="color:var(--positive)">✓ Live</td><td>Cosine similarity across EDGE vectors — top 5 comp players per season</td></tr>
       <tr><td>Engine B (NIL)</td><td style="color:var(--warning)">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite for market value vs production gap</td></tr>
       <tr><td>Engine C (EA CFB26)</td><td style="color:var(--warning)">In progress</td><td>EA Sports ratings scraped and mapped to our player IDs for direct comparison</td></tr>
@@ -437,7 +455,7 @@
   </table>
 
   <p class="version-note">
-    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite.
+    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.1</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite (2025). Note: individual defensive stats unavailable from API prior to 2016; pre-2016 DL/EDGE ratings are recruiting-caliber estimates.
   </p>
 
 </div>

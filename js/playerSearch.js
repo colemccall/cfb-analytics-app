@@ -5,7 +5,7 @@ function posGroupColor(g) {
   const c = posColor(g);  // from config.js
   return [c + "22", c];
 }
-function ratingTextColor(v) { return (v >= 95 || (v >= 60 && v < 70)) ? "#111" : "#fff"; }
+// ratingTextColor is defined in config.js via luminance check
 
 let _allPlayers = [];        // current page of results (from server)
 let _filteredPlayers = [];   // client-side text/minRating filter applied to _allPlayers
@@ -184,11 +184,17 @@ function renderGrid() {
     <span>Team</span><span>Yr / Conf</span><span>Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
     <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
-  </div><div class="stagger-children">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
+  </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
+
+  // Sortable column headers
+  makeGridSortable(
+    grid.querySelector(".draft-board-header"),
+    grid.querySelector("#player-grid-rows")
+  );
 
   // Attach click handlers
   grid.querySelectorAll(".draft-row").forEach(row => {
-    row.addEventListener("click", () => openPlayerModal(parseInt(row.dataset.id)));
+    row.addEventListener("click", () => openPlayerModal(parseInt(row.dataset.id), parseInt(row.dataset.season)));
   });
 }
 
@@ -207,7 +213,7 @@ function playerRowHtml(p, rank) {
   const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
 
   return `
-    <div class="draft-row animate-up" data-id="${p.id}" data-rating="${p.overall_rating || 0}"
+    <div class="draft-row animate-up" data-id="${p.id}" data-season="${p.season || ''}" data-rating="${p.overall_rating || 0}"
          style="background:${rowTint};border-left-color:${ovrColor}">
       <div class="draft-rank ${rankCls}">${rank + 1}</div>
       <div class="draft-pos">
@@ -221,7 +227,7 @@ function playerRowHtml(p, rank) {
       <div class="draft-stars">${starsStr}</div>
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
-      <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor}">${ovr || "—"}</span></div>
+      <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor};color:${ratingTextColor(ovrColor)}">${ovr || "—"}</span></div>
       <div class="draft-traj">${trajHtml(p.trajectory)}</div>
       <div class="draft-edge">${oap}</div>
     </div>`;

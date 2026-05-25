@@ -1,10 +1,6 @@
 // Central configuration — imported by all other JS files.
-// Update SUPABASE_URL and SUPABASE_ANON_KEY before deploying.
 
 const CONFIG = {
-  SUPABASE_URL:      "https://rdtdgfejqfxtorzrfdbe.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkdGRnZmVqcWZ4dG9yenJmZGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTg2ODcsImV4cCI6MjA5MjQ3NDY4N30.sKf6SCGmpPFZ6U_eeNVmdqk_MXiZGGDRuVzy-fV1rXY",
-
   DATA_BASE:      "./data/",
   CURRENT_SEASON: 2025,
 
@@ -60,21 +56,32 @@ function getRatingTier(rating) {
 function ratingColor(v) {
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   if (isLight) {
-    // Blue-based palette for light mode (gold washes out on white)
-    if (v >= 90) return "#1565C0";  // deep blue
-    if (v >= 80) return "#1976D2";  // blue
-    if (v >= 70) return "#0288D1";  // light blue
-    if (v >= 55) return "#455A64";  // slate
-    if (v >= 40) return "#8D6E63";  // warm gray
+    if (v >= 90) return "#1565C0";
+    if (v >= 80) return "#1976D2";
+    if (v >= 70) return "#0288D1";
+    if (v >= 55) return "#455A64";
+    if (v >= 40) return "#8D6E63";
     return "#c62828";
   }
   // Dark / mid theme — gold/amber palette
   if (v >= 90) return "#FFD700";
   if (v >= 80) return "#FFA000";
-  if (v >= 70) return "#78909C";
-  if (v >= 55) return "#8D6E63";
+  if (v >= 70) return "#90A4AE";  // lighter slate — readable with dark text
+  if (v >= 55) return "#A1887F";  // lighter brown — readable with dark text
   if (v >= 40) return "#ff9800";
   return "#f44336";
+}
+
+// Returns #111 or #fff depending on whether the hex background is light enough
+function ratingTextColor(hexOrRating) {
+  let hex = typeof hexOrRating === "number" ? ratingColor(hexOrRating) : hexOrRating;
+  if (!hex || !hex.startsWith("#")) return "#111";
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  // Perceived luminance
+  const lum = 0.299*r + 0.587*g + 0.114*b;
+  return lum > 140 ? "#111" : "#fff";
 }
 
 // Position color helper
@@ -97,5 +104,66 @@ function starsHtml(n) {
   const filled = "★".repeat(Math.max(0, Math.min(5, n || 0)));
   const empty  = "☆".repeat(Math.max(0, 5 - (n || 0)));
   return `<span class="stars">${filled}${empty}</span>`;
+}
+
+// ── Sortable helpers (shared by teams.html and playerSearch.js) ───────────
+
+function _sortVal(text) {
+  const t = (text || "").trim();
+  if (!t || t === "—") return null;
+  const htMatch = t.match(/^(\d+)'(\d+)"?$/);
+  if (htMatch) return parseInt(htMatch[1]) * 12 + parseInt(htMatch[2]);
+  const stars = (t.match(/★/g) || []).length;
+  if (stars > 0) return stars;
+  const num = parseFloat(t.replace(/[^0-9.\-]/g, ""));
+  return isNaN(num) ? t.toLowerCase() : num;
+}
+
+function _sortRows(items, getValFn, asc) {
+  items.sort((a, b) => {
+    const av = getValFn(a), bv = getValFn(b);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    if (av < bv) return asc ? -1 : 1;
+    if (av > bv) return asc ?  1 : -1;
+    return 0;
+  });
+}
+
+function makeSortable(table) {
+  if (!table) return;
+  const ths = table.querySelectorAll("thead th");
+  ths.forEach((th, colIdx) => {
+    th.style.cursor = "pointer";
+    th.style.userSelect = "none";
+    let asc = null;
+    th.addEventListener("click", () => {
+      asc = asc === true ? false : true;
+      ths.forEach(h => { h.textContent = h.textContent.replace(/ [▲▼]$/, ""); });
+      th.textContent = th.textContent + (asc ? " ▲" : " ▼");
+      const tbody = table.querySelector("tbody");
+      const rows  = Array.from(tbody.querySelectorAll("tr"));
+      _sortRows(rows, r => _sortVal(r.cells[colIdx]?.innerText), asc);
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+}
+
+function makeGridSortable(headerEl, containerEl) {
+  if (!headerEl || !containerEl) return;
+  const spans = Array.from(headerEl.querySelectorAll("span"));
+  spans.forEach((sp, colIdx) => {
+    sp.style.cursor = "pointer";
+    let asc = null;
+    sp.addEventListener("click", () => {
+      asc = asc === true ? false : true;
+      spans.forEach(s => { s.textContent = s.textContent.replace(/ [▲▼]$/, ""); });
+      sp.textContent = sp.textContent + (asc ? " ▲" : " ▼");
+      const rows = Array.from(containerEl.querySelectorAll(".draft-row"));
+      _sortRows(rows, r => _sortVal(r.children[colIdx]?.innerText), asc);
+      rows.forEach(r => containerEl.appendChild(r));
+    });
+  });
 }
 

@@ -854,6 +854,43 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .tr-bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 .tr-sub-val { font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700; width: 32px; text-align: right; flex-shrink: 0; }
 
+/* ── Team ratings: OFF/DEF/POWER chips ── */
+.tr-od-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.tr-od-chip {
+  font-size: var(--fs-xs); letter-spacing: 0.5px; color: var(--text-muted);
+  background: var(--surface-deep); padding: 3px 9px; border-radius: var(--radius-sm);
+}
+.tr-od-chip b { font-family: var(--font-display); font-size: var(--fs-sm); margin-left: 3px; }
+.tr-od-chip.tr-power { color: var(--accent); cursor: help; }
+
+/* ── Team stats grid ── */
+.tr-stats-section, .tr-perf-section { margin-top: 1.5rem; }
+.tr-stat-era { color: var(--accent); font-weight: 700; margin-left: 4px; }
+.tstat-block { margin-bottom: 0.9rem; }
+.tstat-block-lbl { font-size: var(--fs-xs); color: var(--text); font-weight: 600; margin-bottom: 0.4rem; }
+.tstat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tstat {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background: var(--surface-deep); border-radius: var(--radius-sm); padding: 8px 4px;
+}
+.tstat-val { font-family: var(--font-display); font-size: var(--fs-md); font-weight: 700; color: var(--text); }
+.tstat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+@media (max-width: 600px) { .tstat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ── Top performers ── */
+.tperf-list { display: flex; flex-direction: column; gap: 4px; }
+.tperf-row {
+  display: flex; align-items: center; gap: 10px; padding: 7px 8px;
+  background: var(--surface-deep); border-radius: var(--radius-sm); cursor: pointer;
+  transition: background 0.15s ease;
+}
+.tperf-row:hover { background: var(--surface-hover); }
+.tperf-name { flex: 1; font-size: var(--fs-sm); color: var(--text); }
+.tperf-ovr {
+  font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700;
+  padding: 2px 8px; border-radius: var(--radius-sm); min-width: 32px; text-align: center;
+}
+
 /* ── Sidebar year select ── */
 .sidebar-search select {
   width: 100%; background: var(--input-bg); border: 1px solid var(--border);
@@ -1041,13 +1078,18 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   font-size: 13px;
   font-weight: 900;
   font-family: var(--num-font);
-  color: #111;
   min-width: 34px;
   text-align: center;
   letter-spacing: 0.5px;
 }
 .draft-traj { font-size: var(--fs-xs); text-align: center; }
 .draft-edge { font-size: var(--fs-xs); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
+
+/* Roster grid (teams.html) — different column set to Yr/Ht/Wt/Hometown */
+.roster-table .draft-row,
+.roster-table .draft-board-header {
+  grid-template-columns: 32px 46px minmax(110px,1fr) 44px 56px 44px 44px 90px 54px 44px 52px;
+}
 
 .draft-board-header {
   padding: 6px 12px;
@@ -1171,3 +1213,25 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   background: var(--accent); border-radius: 2px;
 }
 
+
+
+/* ── Team History tab ── */
+.team-history-wrap { overflow-x: auto; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.history-table th, .history-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.history-table thead th { color: var(--text-muted); font-weight: 600; }
+.history-table tbody tr:hover { background: var(--surface-hover); }
+.hist-season { font-weight: 700; color: var(--accent); }
+.hist-record, .hist-sp { font-variant-numeric: tabular-nums; }
+.ovr-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
