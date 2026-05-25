@@ -273,6 +273,7 @@
     loadTab(team, _activeTab);
   }
 
+
   async function loadTab(team, tab) {
     const content = document.getElementById("team-tab-content");
     content.innerHTML = '<p class="empty-state">Loading…</p>';
@@ -285,6 +286,8 @@
     } catch (e) {
       content.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
     }
+    // Make all tables in the tab content sortable by clicking column headers
+    content.querySelectorAll("table").forEach(makeSortable);
     bindRosterEvents(team);
     // Top-performer rows (Ratings tab) open the player modal
     content.querySelectorAll(".tperf-row[data-player-id]").forEach(row => {
@@ -548,6 +551,13 @@
   }
 
   function bindRosterEvents(team) {
+    // Sortable column headers for the div-based roster grid
+    const rosterContainer = document.getElementById("roster-cards");
+    if (rosterContainer) {
+      const headerEl = rosterContainer.querySelector(".draft-board-header");
+      makeGridSortable(headerEl, rosterContainer);
+    }
+
     document.querySelectorAll("[data-posfilter]").forEach(btn => {
       btn.addEventListener("click", () => {
         _rosterPosFilter = btn.dataset.posfilter;
@@ -584,7 +594,7 @@
       let result = `<span style="color:var(--text-muted)">—</span>`;
       if (g.result) {
         const won = g.result === "W";
-        result = `<span class="status-pill ${won ? "in" : "out"}">${g.result} ${teamScore}–${oppScore}</span>`;
+        result = `<span class="status-pill ${won ? "in" : "out"}">${g.result} ${teamScore}–${oppScore ?? 0}</span>`;
       }
       const wkLabel = g.week ? `Wk ${g.week}` : "Bowl";
       const dateStr = g.game_date ? g.game_date.slice(0, 10) : "—";
@@ -625,8 +635,8 @@
       const currOvr = t.ovr_current;
 
       let ovrCell = "—";
-      if (direction === "in" && (prevOvr || currOvr)) {
-        // Show old → new
+      if (prevOvr || currOvr) {
+        // Show old → new for both directions
         const prevBadge = prevOvr
           ? `<span class="ovr-badge" style="background:${ratingColor(prevOvr)};color:${ratingTextColor(ratingColor(prevOvr))}">${Math.round(prevOvr)}</span>`
           : "<span style='color:var(--text-muted)'>—</span>";
@@ -637,8 +647,6 @@
           ? (currOvr > prevOvr + 2 ? " ▲" : currOvr < prevOvr - 2 ? " ▼" : " →")
           : "";
         ovrCell = `${prevBadge}${arrow} ${currBadge}`;
-      } else if (direction === "out" && currOvr) {
-        ovrCell = `<span class="ovr-badge" style="background:${ratingColor(currOvr)};color:${ratingTextColor(ratingColor(currOvr))}">${Math.round(currOvr)}</span>`;
       }
 
       return `<tr>
@@ -652,7 +660,7 @@
 
     const section = (title, arr, pillClass) => {
       if (!arr.length) return "";
-      const ovrHeader = pillClass === "in" ? "Prev → New OVR" : "OVR";
+      const ovrHeader = "Prev → New OVR";
       return `
         <h3 style="font-family:var(--font-display);font-size:var(--fs-lg);color:var(--accent);margin:1.5rem 0 0.5rem;padding-left:4px;border-left:3px solid var(--accent)">
           <span class="status-pill ${pillClass}">${pillClass === "in" ? "IN" : "OUT"}</span> ${title} (${arr.length})
@@ -675,7 +683,7 @@
     const tableRows = rows.map(r => {
       const tier  = getRatingTier(r.overall_rating);
       const color = ratingColor(r.overall_rating);
-      const rec   = (r.wins != null) ? `${r.wins}–${r.losses}` : "—";
+      const rec   = (r.wins != null) ? `${r.wins}–${r.losses ?? 0}` : "—";
       return `<tr>
         <td class="hist-season">${r.season}</td>
         <td class="hist-record">${rec}</td>

@@ -184,7 +184,13 @@ function renderGrid() {
     <span>Team</span><span>Yr / Conf</span><span>Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
     <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">OAP</span>
-  </div><div class="stagger-children">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
+  </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
+
+  // Sortable column headers
+  makeGridSortable(
+    grid.querySelector(".draft-board-header"),
+    grid.querySelector("#player-grid-rows")
+  );
 
   // Attach click handlers
   grid.querySelectorAll(".draft-row").forEach(row => {

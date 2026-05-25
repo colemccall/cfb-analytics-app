@@ -106,3 +106,64 @@ function starsHtml(n) {
   return `<span class="stars">${filled}${empty}</span>`;
 }
 
+// ── Sortable helpers (shared by teams.html and playerSearch.js) ───────────
+
+function _sortVal(text) {
+  const t = (text || "").trim();
+  if (!t || t === "—") return null;
+  const htMatch = t.match(/^(\d+)'(\d+)"?$/);
+  if (htMatch) return parseInt(htMatch[1]) * 12 + parseInt(htMatch[2]);
+  const stars = (t.match(/★/g) || []).length;
+  if (stars > 0) return stars;
+  const num = parseFloat(t.replace(/[^0-9.\-]/g, ""));
+  return isNaN(num) ? t.toLowerCase() : num;
+}
+
+function _sortRows(items, getValFn, asc) {
+  items.sort((a, b) => {
+    const av = getValFn(a), bv = getValFn(b);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    if (av < bv) return asc ? -1 : 1;
+    if (av > bv) return asc ?  1 : -1;
+    return 0;
+  });
+}
+
+function makeSortable(table) {
+  if (!table) return;
+  const ths = table.querySelectorAll("thead th");
+  ths.forEach((th, colIdx) => {
+    th.style.cursor = "pointer";
+    th.style.userSelect = "none";
+    let asc = null;
+    th.addEventListener("click", () => {
+      asc = asc === true ? false : true;
+      ths.forEach(h => { h.textContent = h.textContent.replace(/ [▲▼]$/, ""); });
+      th.textContent = th.textContent + (asc ? " ▲" : " ▼");
+      const tbody = table.querySelector("tbody");
+      const rows  = Array.from(tbody.querySelectorAll("tr"));
+      _sortRows(rows, r => _sortVal(r.cells[colIdx]?.innerText), asc);
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+}
+
+function makeGridSortable(headerEl, containerEl) {
+  if (!headerEl || !containerEl) return;
+  const spans = Array.from(headerEl.querySelectorAll("span"));
+  spans.forEach((sp, colIdx) => {
+    sp.style.cursor = "pointer";
+    let asc = null;
+    sp.addEventListener("click", () => {
+      asc = asc === true ? false : true;
+      spans.forEach(s => { s.textContent = s.textContent.replace(/ [▲▼]$/, ""); });
+      sp.textContent = sp.textContent + (asc ? " ▲" : " ▼");
+      const rows = Array.from(containerEl.querySelectorAll(".draft-row"));
+      _sortRows(rows, r => _sortVal(r.children[colIdx]?.innerText), asc);
+      rows.forEach(r => containerEl.appendChild(r));
+    });
+  });
+}
+
