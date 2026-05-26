@@ -30,7 +30,7 @@
         <button class="theme-swatch" data-theme="light" title="Light"></button>
       </div>
     </div>
-    <div class="sidebar-version">v2.0.0</div>
+    <div class="sidebar-version">v2.0.1</div>
   </div>
 </aside>
 <!-- ==================== MAIN CONTENT ==================== -->
@@ -44,53 +44,59 @@
 <div class="page-content">
   <div id="published-findings"></div>
 
-  <h2 style="font-family:var(--font-display);color:var(--accent);margin:2rem 0 1rem;font-size:var(--fs-xl)">In Progress</h2>
+  <h2 class="section-heading">In Progress</h2>
   <div class="research-grid">
-    <div class="research-card" style="border-color:var(--warning);opacity:0.85">
-      <span class="research-tag" style="background:rgba(240,168,48,0.15);color:var(--warning)">ML Prediction</span>
+    <div class="research-card research-card--active">
+      <span class="research-tag research-tag--warning">ML Prediction</span>
       <h3>Breakout Predictor (Engine D)</h3>
-      <p>XGBoost regressor trained on 2008–2024 lagged EDGE trajectory, recruiting composite, snap share delta, and scheme continuity to predict next-season OVR. Requires 2008–2025 backfill to complete.</p>
-      <div class="finding-stat" style="font-size:var(--fs-lg);color:var(--warning)">Training data ready</div>
+      <p>XGBoost regressor trained on 2008–2025 lagged EDGE trajectory, recruiting composite, snap share delta, and scheme continuity to predict next-season OVR. Full historical backfill complete — model training next.</p>
+      <div class="finding-stat finding-stat--warning">Backfill complete</div>
     </div>
-    <div class="research-card" style="border-color:var(--warning);opacity:0.85">
-      <span class="research-tag" style="background:rgba(240,168,48,0.15);color:var(--warning)">Historical</span>
+    <div class="research-card research-card--active">
+      <span class="research-tag research-tag--warning">Historical</span>
       <h3>Cross-Era Leaderboards</h3>
-      <p>Season-by-season and era-bucketed top players across 2008–2025. Who were the best RBs of the 2010s? Which QBs were generational for their era? Era-adjusted anchors are already built — display coming next.</p>
-      <div class="finding-stat" style="font-size:var(--fs-lg);color:var(--warning)">Data backfilled ✓</div>
+      <p>Season-by-season and era-bucketed top players across 2008–2025. Era-adjusted OVR anchors (classic / transition / modern) are live in the ratings engine — leaderboard display coming next.</p>
+      <div class="finding-stat finding-stat--warning">Era anchors live ✓</div>
+    </div>
+    <div class="research-card research-card--active">
+      <span class="research-tag research-tag--warning">Team Analysis</span>
+      <h3>Team Performance Evaluator</h3>
+      <p>Measures how teams performed relative to pre-season talent composite. Residual (actual finish − expected) surfaces over- and underachievers. Coaching change overlay planned.</p>
+      <div class="finding-stat finding-stat--warning">Team ratings live ✓</div>
     </div>
   </div>
 
-  <h2 style="font-family:var(--font-display);color:var(--accent);margin:2rem 0 1rem;font-size:var(--fs-xl)">Upcoming Research</h2>
+  <h2 class="section-heading">Upcoming Research</h2>
   <div class="research-grid">
     <div class="research-card coming-soon">
       <span class="research-tag">Transfer Portal</span>
-      <h3>G5→P4 Transfer Success Predictor</h3>
-      <p>Which production profiles and competition contexts predict P4 success better than raw stats? Do edge_score and trajectory matter more than raw yardage totals?</p>
+      <h3>G5 → P4 Transfer Success</h3>
+      <p>Which production profiles and competition contexts predict P4 success? Does EDGE trajectory matter more than raw yardage totals?</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">Transfer Portal</span>
       <h3>Year 1 vs Year 2 Transfer Performance</h3>
-      <p>Do transfers underperform in Year 1 (adjustment) but peak in Year 2 if retained? How does the EDGE drop in Year 1 vary by position, conference jump size, and roster depth?</p>
+      <p>Do transfers underperform in Year 1 but peak in Year 2 if retained? How does the EDGE dip vary by position and conference jump?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Recruiting</span>
+      <h3>Recruiting Class ROI</h3>
+      <p>For each class by school and year, what % of blue-chip recruits became high-OVR contributors (OVR ≥ 75)? Hit rate heat map by program and era.</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">NIL</span>
-      <h3>NIL Efficiency: Production per Dollar</h3>
-      <p>Which positions and program types deliver the best EDGE per NIL dollar spent? Does NIL valuation predict production — or just recruiting hype?</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Game Strategy</span>
-      <h3>Bye Week Effect</h3>
-      <p>Do bye weeks help struggling teams more than good teams? Pre/post-bye EDGE and game outcome analysis across 2015–2025.</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Environment</span>
-      <h3>Altitude Advantage</h3>
-      <p>Do Boise State, Air Force, and Wyoming have quantifiable late-game EDGE advantages at altitude vs sea-level opponents?</p>
+      <h3>NIL Efficiency</h3>
+      <p>Which positions and program types deliver the best EDGE per NIL dollar? Does valuation predict production, or just recruiting hype?</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">Scheme</span>
       <h3>Portable OC Schemes</h3>
-      <p>Do some offensive coordinators produce top EDGE players everywhere they go, or are they talent-dependent? Tracking OC moves and next-season player trajectory.</p>
+      <p>Do some coordinators produce elite EDGE players everywhere they go, or are they talent-dependent? Tracking OC moves and next-season player trajectory.</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Conference</span>
+      <h3>Realignment Impact</h3>
+      <p>How did 2024–2025 Big 12 / Pac-12 / SEC expansions affect recruiting footprint, talent composite, and ratings for affected programs?</p>
     </div>
   </div>
 </div>
@@ -117,7 +123,7 @@
       const findings = await index.json();
       if (!findings.length) throw new Error("No findings");
       container.innerHTML = `
-        <h2 style="font-family:var(--font-display);color:var(--accent);margin-bottom:1rem;font-size:var(--fs-xl)">Published Findings</h2>
+        <h2 class="section-heading">Published Findings</h2>
         <div class="research-grid">${findings.map(f => `
           <div class="research-card">
             <span class="research-tag">${f.category}</span>
