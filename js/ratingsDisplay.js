@@ -168,9 +168,9 @@ function renderScatterPlot(players) {
   container.innerHTML = `
     <div id="scatter-tooltip" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);
       border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;pointer-events:none;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.4)">
-      <div class="tt-name" style="font-weight:700;margin-bottom:2px"></div>
-      <div class="tt-meta" style="color:var(--text-muted)"></div>
-      <div class="tt-ovr" style="color:var(--accent);margin-top:2px;font-weight:600"></div>
+      <div class="tooltip-name" style="font-weight:700;margin-bottom:2px"></div>
+      <div class="tooltip-meta" style="color:var(--text-muted)"></div>
+      <div class="tooltip-ovr" style="color:var(--accent);margin-top:2px;font-weight:600"></div>
     </div>
     <svg id="scatter-svg" width="${W}" height="${H}" style="display:block;overflow:visible">
       ${yAxis}${regLine}${points}${annotations}${xAxis}
@@ -188,9 +188,9 @@ function renderScatterPlot(players) {
     dot.style.cursor = "pointer";
     dot.addEventListener("mouseenter", e => {
       const d = e.target.dataset;
-      tt.querySelector(".tt-name").textContent = d.name;
-      tt.querySelector(".tt-meta").textContent = `${d.pg} · ${d.team} · ${d.stars}★`;
-      tt.querySelector(".tt-ovr").textContent  =
+      tt.querySelector(".tooltip-name").textContent = d.name;
+      tt.querySelector(".tooltip-meta").textContent = `${d.pg} · ${d.team} · ${d.stars}★`;
+      tt.querySelector(".tooltip-ovr").textContent  =
         `OVR ${d.ovr}  ${+d.traj > 0 ? "↑" : +d.traj < 0 ? "↓" : "→"} ${Math.abs(+d.traj).toFixed(1)}`;
       tt.style.display = "block";
     });

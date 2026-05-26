@@ -1,4 +1,5 @@
-// DEPRECATED: Renamed to dataLoader.js. This file kept for reference only — do not use.
+// Static JSON data loader — all data served from pre-built JSON files in data/.
+// GitHub Pages serves these files directly; no backend or Supabase client required.
 
 const _cache = {};
 async function _load(file) {

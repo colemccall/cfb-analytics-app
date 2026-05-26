@@ -185,6 +185,11 @@ a:hover { opacity: 0.82; }
   display: flex; flex-direction: column; gap: 10px;
   flex-shrink: 0;
 }
+.sidebar-version {
+  font-size: var(--fs-xs); color: var(--text-muted);
+  text-align: center; padding-top: 4px;
+  letter-spacing: 0.4px;
+}
 .sidebar-season-wrap label {
   font-size: var(--fs-xs); color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.6px;
@@ -202,25 +207,6 @@ a:hover { opacity: 0.82; }
   min-width: 0;
   display: flex; flex-direction: column;
 }
-
-/* keep nav-brand/nav-links/nav-spacer as fallback for any remnant uses */
-.nav-brand {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 900;
-  color: var(--accent); letter-spacing: 3px;
-  white-space: nowrap; text-transform: uppercase;
-  display: flex; align-items: center; gap: 8px;
-}
-.nav-links { display: flex; gap: 2px; }
-.nav-links a {
-  padding: 6px 13px; border-radius: var(--radius-pill);
-  font-size: 11.5px; font-weight: 600; letter-spacing: 0.6px;
-  text-transform: uppercase; color: var(--text-muted);
-  transition: color 0.15s, background 0.15s; white-space: nowrap;
-}
-.nav-links a:hover { color: var(--text); background: var(--border); opacity: 1; }
-.nav-links a.active { color: var(--accent); background: var(--accent-dim); border: 1px solid var(--border-accent); }
-.nav-spacer { flex: 1; }
 
 /* ── Theme switcher ── */
 .theme-switcher { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
@@ -541,7 +527,6 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 }
 .modal-close:hover { color: var(--text); background: var(--border); }
 .modal-body { padding: 1rem 1.375rem 1.75rem; display: flex; flex-direction: column; gap: 1.375rem; }
-.modal-section { }
 .modal-section-title {
   font-family: var(--font-display); font-size: var(--fs-md);
   text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent);
@@ -788,7 +773,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   transition: filter 0.12s;
 }
 .d-depth-card:hover { filter: brightness(1.08); }
-.d-depth-avatar {
+.player-initials-avatar {
   width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-size: 13px; font-weight: 700;
@@ -842,7 +827,6 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .tr-hero-meta { flex: 1; }
 .tr-hero-name { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; }
 .tr-hero-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 3px; }
-.tr-sub-section {}
 .tr-sub-heading { font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.75rem; }
 .tr-sub-row {
   display: flex; align-items: center; gap: 10px;
@@ -953,7 +937,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   --tier-bronze: #8D6E63;
 }
 
-/* Elite card shimmer */
+/* ── Elite card shimmer ── */
 @keyframes elite-shimmer {
   0%   { background-position: 200% center; }
   100% { background-position: -200% center; }
@@ -972,7 +956,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .tier-bronze .player-card,
 .player-card.tier-bronze { border-left-color: var(--tier-bronze) !important; }
 
-/* OVR hero number */
+/* ── OVR hero number ── */
 .ovr-hero {
   font-family: var(--font-display);
   font-size: clamp(36px, 4vw, 52px);
@@ -983,7 +967,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   color: var(--tier-color, var(--accent));
 }
 
-/* Tier label pill */
+/* ── Tier label pill ── */
 .tier-label {
   font-family: var(--font-display);
   font-size: 9px; font-weight: 800;
@@ -993,8 +977,8 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   background: var(--tier-color, var(--border));
 }
 
-/* Position badge with color identity */
-.pos-badge-color {
+/* ── Position badge with color identity ── */
+.pos-group-badge {
   display: inline-block;
   padding: 2px 8px; border-radius: var(--radius-pill);
   font-size: var(--fs-xs); font-weight: 700;
@@ -1002,7 +986,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   color: #111; background: var(--pos-color, var(--text-muted));
 }
 
-/* Trajectory arrows */
+/* ── Trajectory arrows ── */
 .traj-up2   { color: var(--positive); font-weight: 700; font-size: var(--fs-xs); }
 .traj-up1   { color: var(--positive); font-weight: 600; font-size: var(--fs-xs); }
 .traj-flat  { color: var(--text-muted); font-size: var(--fs-xs); }
@@ -1012,7 +996,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 /* ── Draft-board rows — Madden-style spread table layout ── */
 .draft-board { width: 100%; border-collapse: collapse; }
 
-/* columns: # | POS | Name | Team | Yr/Conf | Stars | Ht | Wt | OVR | Traj | OAP */
+/* columns: # | POS | Name | Team | Yr/Conf | Stars | Ht | Wt | OVR | Traj | EDGE */
 .draft-row, .draft-board-header {
   display: grid;
   grid-template-columns: 32px 46px minmax(110px,1fr) 110px 80px 56px 44px 44px 54px 44px 52px;
@@ -1038,7 +1022,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .draft-rank.top3  { color: var(--tier-elite); font-size: 15px; }
 .draft-rank.top10 { color: #a78bfa; }
 
-/* POS badge cell */
+/* POS badge / name / team cells */
 .draft-pos {
   display: flex; align-items: center;
 }
@@ -1102,10 +1086,6 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 }
 .draft-board-header span { user-select: none; }
 
-/* Legacy — no longer used but keep so old references don't break */
-.draft-info { min-width: 0; }
-.draft-meta { font-size: var(--fs-xs); color: var(--text-muted); }
-
 /* ── Animated stat bars ── */
 @keyframes bar-grow {
   from { width: 0; }
@@ -1155,9 +1135,9 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   font-size: var(--fs-xs); box-shadow: var(--shadow-lg);
   z-index: 200; display: none; min-width: 140px;
 }
-#scatter-tooltip .tt-name { font-weight: 600; margin-bottom: 2px; }
-#scatter-tooltip .tt-meta { color: var(--text-muted); }
-#scatter-tooltip .tt-ovr  { font-family: var(--num-font); font-weight: 700; font-size: 15px; }
+#scatter-tooltip .tooltip-name { font-weight: 600; margin-bottom: 2px; }
+#scatter-tooltip .tooltip-meta { color: var(--text-muted); }
+#scatter-tooltip .tooltip-ovr  { font-family: var(--num-font); font-weight: 700; font-size: 15px; }
 
 /* ── Mobile bottom tab bar ── */
 .mobile-tab-bar {

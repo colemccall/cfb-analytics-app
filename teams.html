@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teams — CFB Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
+<!-- ==================== SIDEBAR ==================== -->
 <aside class="sidebar">
   <nav class="sidebar-nav">
     <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
@@ -29,8 +30,10 @@
         <button class="theme-swatch" data-theme="light" title="Light"></button>
       </div>
     </div>
+    <div class="sidebar-version">v2.0.1</div>
   </div>
 </aside>
+<!-- ==================== MAIN CONTENT ==================== -->
 <div class="main-content">
 <div class="teams-layout">
   <!-- Sidebar: team list -->
@@ -68,8 +71,9 @@
   </div>
 </nav>
 
+<!-- ==================== SCRIPTS ==================== -->
 <script src="js/config.js"></script>
-<script src="js/supabaseClient.js"></script>
+<script src="js/dataLoader.js"></script>
 <script src="js/playerSearch.js"></script>
 <script>
   const _savedTheme = localStorage.getItem("cfb-theme");
@@ -457,7 +461,7 @@
       const pg = p.position_group || p.position || "—";
       return `
         <div class="tperf-row" data-player-id="${p.player_id ?? p.id}">
-          <span class="pos-badge-color" style="background:${posColor(pg)}">${pg}</span>
+          <span class="pos-group-badge" style="background:${posColor(pg)}">${pg}</span>
           <span class="tperf-name">${p.name || "—"}</span>
           <span class="tperf-ovr" style="background:${c};color:${ratingTextColor(c)}">${ovr}</span>
         </div>`;
@@ -529,7 +533,7 @@
         <div class="draft-row" data-player-id="${p.player_id ?? p.id}" style="background:${rowTint};border-left-color:${ovrColor}">
           <div class="draft-rank">${i + 1}</div>
           <div class="draft-pos">
-            <span class="pos-badge-color" style="background:${posClr}">${pg}</span>
+            <span class="pos-group-badge" style="background:${posClr}">${pg}</span>
           </div>
           <div class="draft-name"><span class="player-name-text">${p.name || "—"}</span></div>
           <div class="draft-yr-conf" style="text-align:center">${yr}</div>
@@ -709,6 +713,7 @@
 </script>
 </div><!-- /.main-content -->
 
+<!-- ==================== MOBILE NAV ==================== -->
 <nav class="mobile-tab-bar" aria-label="Mobile navigation">
   <div class="mobile-tab-bar-inner">
     <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>

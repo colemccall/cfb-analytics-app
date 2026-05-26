@@ -53,22 +53,22 @@ function getRatingTier(rating) {
 }
 
 // Rating color gradient — adapts to light vs dark theme
-function ratingColor(v) {
+function ratingColor(rating) {
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   if (isLight) {
-    if (v >= 90) return "#1565C0";
-    if (v >= 80) return "#1976D2";
-    if (v >= 70) return "#0288D1";
-    if (v >= 55) return "#455A64";
-    if (v >= 40) return "#8D6E63";
+    if (rating >= 90) return "#1565C0";
+    if (rating >= 80) return "#1976D2";
+    if (rating >= 70) return "#0288D1";
+    if (rating >= 55) return "#455A64";
+    if (rating >= 40) return "#8D6E63";
     return "#c62828";
   }
   // Dark / mid theme — gold/amber palette
-  if (v >= 90) return "#FFD700";
-  if (v >= 80) return "#FFA000";
-  if (v >= 70) return "#90A4AE";  // lighter slate — readable with dark text
-  if (v >= 55) return "#A1887F";  // lighter brown — readable with dark text
-  if (v >= 40) return "#ff9800";
+  if (rating >= 90) return "#FFD700";
+  if (rating >= 80) return "#FFA000";
+  if (rating >= 70) return "#90A4AE";  // lighter slate — readable with dark text
+  if (rating >= 55) return "#A1887F";  // lighter brown — readable with dark text
+  if (rating >= 40) return "#ff9800";
   return "#f44336";
 }
 

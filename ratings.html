@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ratings — CFB Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
+<!-- ==================== SIDEBAR ==================== -->
 <aside class="sidebar">
   <nav class="sidebar-nav">
     <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
@@ -29,8 +30,10 @@
         <button class="theme-swatch" data-theme="light" title="Light"></button>
       </div>
     </div>
+    <div class="sidebar-version">v2.0.1</div>
   </div>
 </aside>
+<!-- ==================== MAIN CONTENT ==================== -->
 <div class="main-content">
 
 <div class="page-hero animate-pop">
@@ -84,6 +87,7 @@
 
 </div><!-- /.main-content -->
 
+<!-- ==================== MOBILE NAV ==================== -->
 <nav class="mobile-tab-bar" aria-label="Mobile navigation">
   <div class="mobile-tab-bar-inner">
     <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>
@@ -94,8 +98,9 @@
   </div>
 </nav>
 
+<!-- ==================== SCRIPTS ==================== -->
 <script src="js/config.js"></script>
-<script src="js/supabaseClient.js"></script>
+<script src="js/dataLoader.js"></script>
 <script src="js/playerSearch.js"></script>
 <script src="js/ratingsDisplay.js"></script>
 <script>
