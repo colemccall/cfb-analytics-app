@@ -565,6 +565,19 @@
 .row-over  td { border-left: 3px solid #2ecc71; }
 .row-under td { border-left: 3px solid #e74c3c; }
 
+.badge-imputed {
+  display: inline-block; padding: 0 4px; border-radius: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2px;
+  background: var(--surface-lift); color: var(--text-muted);
+  vertical-align: middle; margin-left: 3px;
+}
+.badge-maturing {
+  display: inline-block; padding: 0 5px; border-radius: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2px;
+  background: rgba(241, 196, 15, 0.18); color: #f1c40f;
+  vertical-align: middle; margin-left: 3px;
+}
+
 .section-heading {
   font-family: var(--font-display); color: var(--accent);
   margin: 2rem 0 1rem; font-size: var(--fs-xl);

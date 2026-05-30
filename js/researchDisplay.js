@@ -69,19 +69,19 @@ function _renderTeamPerfTable(section) {
   if (!tableContainer) return;
 
   const cols = [
-    { key: "school",                 label: "School",     fmt: v => v },
-    { key: "season",                 label: "Season",     fmt: v => v },
-    { key: "conference",             label: "Conf",       fmt: v => v || "—" },
-    { key: "talent_normalized",      label: "Talent",     fmt: v => v != null ? v.toFixed(1) : "—" },
-    { key: "sp_overall",             label: "SP+",        fmt: v => v != null ? v.toFixed(1) : "—" },
-    { key: "sp_predicted",           label: "Expected",   fmt: v => v != null ? v.toFixed(1) : "—" },
-    { key: "performance_residual",   label: "Residual",   fmt: v => v != null ? (v > 0 ? "+" : "") + v.toFixed(1) : "—" },
-    { key: "performance_percentile", label: "Pctile",     fmt: v => v != null ? v.toFixed(0) + "%" : "—" },
-    { key: "coaching_change_flag",   label: "New HC",     fmt: v => v ? "✓" : "" },
+    { key: "school",                 label: "School",    fmt: (v, r) => r.talent_imputed ? `${v} <span class="badge-imputed" title="Talent estimated from conference median">est</span>` : v },
+    { key: "season",                 label: "Season",    fmt: v => v },
+    { key: "conference",             label: "Conf",      fmt: v => v || "—" },
+    { key: "talent_normalized",      label: "Talent",    fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "sp_overall",             label: "SP+",       fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "sp_predicted",           label: "Expected",  fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "performance_residual",   label: "Residual",  fmt: v => v != null ? (v > 0 ? "+" : "") + v.toFixed(1) : "—" },
+    { key: "performance_percentile", label: "Pctile",    fmt: v => v != null ? v.toFixed(0) + "%" : "—" },
+    { key: "coaching_change_flag",   label: "New HC",    fmt: v => v ? "&#10003;" : "" },
   ];
 
   const thHtml = cols.map(c => {
-    const arrow = col === c.key ? (asc ? " ▲" : " ▼") : "";
+    const arrow = col === c.key ? (asc ? " &#9650;" : " &#9660;") : "";
     return `<th data-col="${c.key}" style="cursor:pointer">${c.label}${arrow}</th>`;
   }).join("");
 
@@ -90,7 +90,7 @@ function _renderTeamPerfTable(section) {
     const rowClass = res != null && res > 8 ? "row-over" : res != null && res < -8 ? "row-under" : "";
     const cells = cols.map(c => {
       const v = r[c.key];
-      let display = c.fmt(v);
+      let display = c.fmt(v, r);
       if (c.key === "performance_residual" && v != null) {
         const color = v > 5 ? "#2ecc71" : v < -5 ? "#e74c3c" : "var(--text-muted)";
         display = `<span style="color:${color};font-weight:600">${display}</span>`;
@@ -100,6 +100,12 @@ function _renderTeamPerfTable(section) {
     return `<tr class="${rowClass}">${cells}</tr>`;
   }).join("");
 
+  // R² from first row that has it (same for all rows from same regression run)
+  const r2 = rows.find(r => r.regression_r2 != null)?.regression_r2;
+  const r2text = r2 != null ? ` Model R&#178; = ${r2.toFixed(3)} (talent + conference tier).` : "";
+  const impText = rows.some(r => r.talent_imputed)
+    ? ' <span class="badge-imputed" title="Talent estimated from conference median">est</span> = talent estimated from conference median.' : "";
+
   tableContainer.innerHTML = `
     <table class="research-table">
       <thead><tr>${thHtml}</tr></thead>
@@ -107,7 +113,7 @@ function _renderTeamPerfTable(section) {
     </table>
     <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:0.5rem">
       Showing ${Math.min(rows.length, 200)} of ${rows.length} team-seasons.
-      Residual = actual SP+ minus expected SP+ from talent composite regression.
+      Residual = actual SP+ minus expected SP+ from 3-year recruiting composite.${r2text}${impText}
     </p>`;
 
   tableContainer.querySelectorAll("th[data-col]").forEach(th => {
@@ -119,6 +125,131 @@ function _renderTeamPerfTable(section) {
         _teamPerfSort = { col: c, asc: false };
       }
       _renderTeamPerfTable(section);
+    });
+  });
+}
+
+
+// ── Engine D Breakout Candidates ──────────────────────────────────────────
+
+let _breakoutData = null;
+let _breakoutSort = { col: "delta", asc: false };
+let _breakoutPosFilter   = "ALL";
+let _breakoutLabelFilter = "ALL";
+
+async function initBreakoutCandidates() {
+  const section = document.getElementById("breakout-section");
+  if (!section) return;
+
+  try {
+    const res = await fetch("data/trajectory.json");
+    if (!res.ok) throw new Error("not found");
+    _breakoutData = await res.json();
+  } catch {
+    section.innerHTML = '<p class="empty-state">Trajectory data not available yet — run script 15 first.</p>';
+    return;
+  }
+
+  _buildBreakoutFilters(section);
+  _renderBreakoutTable(section);
+}
+
+function _buildBreakoutFilters(section) {
+  const positions = [...new Set(_breakoutData.map(r => r.position_group).filter(Boolean))].sort();
+  const bar = section.querySelector(".research-filter-bar");
+  if (!bar) return;
+
+  bar.innerHTML = `
+    <select id="bo-pos-select">
+      <option value="ALL">All Positions</option>
+      ${positions.map(p => `<option value="${p}">${p}</option>`).join("")}
+    </select>
+    <select id="bo-label-select">
+      <option value="ALL">All Labels</option>
+      <option value="breakout">Breakout</option>
+      <option value="steady">Steady</option>
+      <option value="decline">Decline</option>
+    </select>`;
+
+  bar.querySelector("#bo-pos-select").addEventListener("change", e => {
+    _breakoutPosFilter = e.target.value;
+    _renderBreakoutTable(section);
+  });
+  bar.querySelector("#bo-label-select").addEventListener("change", e => {
+    _breakoutLabelFilter = e.target.value;
+    _renderBreakoutTable(section);
+  });
+}
+
+function _renderBreakoutTable(section) {
+  let rows = _breakoutData.filter(r =>
+    (_breakoutPosFilter   === "ALL" || r.position_group === _breakoutPosFilter) &&
+    (_breakoutLabelFilter === "ALL" || r.trajectory_label === _breakoutLabelFilter)
+  );
+
+  const { col, asc } = _breakoutSort;
+  rows = rows.slice().sort((a, b) => {
+    const av = a[col] ?? (typeof b[col] === "string" ? "zzz" : -Infinity);
+    const bv = b[col] ?? (typeof a[col] === "string" ? "zzz" : -Infinity);
+    if (typeof av === "string") return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return asc ? av - bv : bv - av;
+  });
+
+  const tableContainer = section.querySelector(".research-table-wrap");
+  if (!tableContainer) return;
+
+  const labelColors = { breakout: "#2ecc71", decline: "#e74c3c", steady: "var(--text-muted)" };
+
+  const cols = [
+    { key: "name",              label: "Player",      fmt: v => v || "—" },
+    { key: "position_group",    label: "Pos",         fmt: v => v || "—" },
+    { key: "current_ovr",       label: "Curr OVR",    fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "predicted_ovr",     label: "Pred OVR",    fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "delta",             label: "Delta",       fmt: v => v != null ? (v > 0 ? "+" : "") + v.toFixed(1) : "—" },
+    { key: "trajectory_label",  label: "Label",       fmt: v => v || "—" },
+    { key: "shap_top_feature",  label: "Key Factor",  fmt: v => v || "—" },
+  ];
+
+  const thHtml = cols.map(c => {
+    const arrow = col === c.key ? (asc ? " &#9650;" : " &#9660;") : "";
+    return `<th data-col="${c.key}" style="cursor:pointer">${c.label}${arrow}</th>`;
+  }).join("");
+
+  const trHtml = rows.slice(0, 200).map(r => {
+    const color = labelColors[r.trajectory_label] || "var(--text-primary)";
+    const cells = cols.map(c => {
+      const v = r[c.key];
+      let display = c.fmt(v);
+      if (c.key === "delta" && v != null) {
+        display = `<span style="color:${color};font-weight:700">${display}</span>`;
+      }
+      if (c.key === "trajectory_label") {
+        display = `<span style="color:${color};font-weight:600;text-transform:capitalize">${display}</span>`;
+      }
+      return `<td>${display}</td>`;
+    }).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+
+  tableContainer.innerHTML = `
+    <table class="research-table">
+      <thead><tr>${thHtml}</tr></thead>
+      <tbody>${trHtml}</tbody>
+    </table>
+    <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:0.5rem">
+      Showing ${Math.min(rows.length, 200)} of ${rows.length} players (2025 season, skill positions only).
+      Key Factor = SHAP feature with largest influence on this prediction.
+    </p>`;
+
+  tableContainer.querySelectorAll("th[data-col]").forEach(th => {
+    th.addEventListener("click", () => {
+      const c = th.dataset.col;
+      if (_breakoutSort.col === c) {
+        _breakoutSort.asc = !_breakoutSort.asc;
+      } else {
+        _breakoutSort = { col: c, asc: false };
+      }
+      _renderBreakoutTable(section);
     });
   });
 }
@@ -192,29 +323,36 @@ function _renderRecRoiTable(section) {
   if (!tableContainer) return;
 
   const cols = [
-    { key: "school",          label: "School",      fmt: v => v },
-    { key: "recruit_year",    label: "Class",       fmt: v => v },
-    { key: "conference",      label: "Conf",        fmt: v => v || "—" },
-    { key: "n_recruits",      label: "Recruits",    fmt: v => v ?? "—" },
-    { key: "n_rated",         label: "Rated",       fmt: v => v ?? "—" },
-    { key: "hit_rate_pct",    label: "Hit %",       fmt: v => v != null ? v.toFixed(1) + "%" : "—" },
-    { key: "n_bluechip",      label: "Blue Chips",  fmt: v => v ?? "—" },
-    { key: "bc_hit_rate_pct", label: "BC Hit %",    fmt: v => v != null ? v.toFixed(1) + "%" : "—" },
-    { key: "avg_stars",       label: "Avg ★",       fmt: v => v != null ? v.toFixed(2) : "—" },
+    { key: "school",              label: "School",       fmt: (v, r) => v },
+    { key: "recruit_year",        label: "Class",        fmt: (v, r) => r.maturing
+        ? `${v} <span class="badge-maturing" title="Class still developing (< 3 seasons)">dev</span>`
+        : String(v) },
+    { key: "conference",          label: "Conf",         fmt: v => v || "—" },
+    { key: "n_recruits",          label: "Recruits",     fmt: v => v ?? "—" },
+    { key: "hit_rate_pct",        label: "Hit%/Rated",   fmt: v => v != null ? v.toFixed(1) + "%" : "—" },
+    { key: "hit_rate_class_pct",  label: "Hit%/Class",   fmt: v => v != null ? v.toFixed(1) + "%" : "—" },
+    { key: "avg_peak_ovr",        label: "Avg OVR",      fmt: v => v != null ? v.toFixed(1) : "—" },
+    { key: "n_bluechip",          label: "BC",           fmt: v => v ?? "—" },
+    { key: "bc_hit_rate_pct",     label: "BC Hit%",      fmt: v => v != null ? v.toFixed(1) + "%" : "—" },
+    { key: "avg_stars",           label: "Avg &#9733;",  fmt: v => v != null ? v.toFixed(2) : "—" },
   ];
 
   const thHtml = cols.map(c => {
-    const arrow = col === c.key ? (asc ? " ▲" : " ▼") : "";
+    const arrow = col === c.key ? (asc ? " &#9650;" : " &#9660;") : "";
     return `<th data-col="${c.key}" style="cursor:pointer">${c.label}${arrow}</th>`;
   }).join("");
 
   const trHtml = rows.slice(0, 200).map(r => {
     const cells = cols.map(c => {
       const v = r[c.key];
-      let display = c.fmt(v);
-      if (c.key === "hit_rate_pct" && v != null) {
+      let display = c.fmt(v, r);
+      if ((c.key === "hit_rate_pct" || c.key === "hit_rate_class_pct") && v != null) {
         const color = v >= 50 ? "#2ecc71" : v <= 20 ? "#e74c3c" : "var(--text-primary)";
         display = `<span style="color:${color};font-weight:600">${display}</span>`;
+      }
+      if (c.key === "avg_peak_ovr" && v != null) {
+        const color = v >= 80 ? "#2ecc71" : v <= 65 ? "#e74c3c" : "var(--text-primary)";
+        display = `<span style="color:${color}">${display}</span>`;
       }
       return `<td>${display}</td>`;
     }).join("");
@@ -228,8 +366,9 @@ function _renderRecRoiTable(section) {
     </table>
     <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:0.5rem">
       Showing ${Math.min(rows.length, 200)} of ${rows.length} classes.
-      Hit % = recruits who reached peak OVR ≥ 75 as a fraction of rated players.
-      Recent classes (2023–2025) will show lower rates as careers develop.
+      Hit%/Rated = contributors (peak OVR &#8805; 75) as a fraction of players with any rating.
+      Hit%/Class = contributors as a fraction of all recruits (includes unrated players).
+      <span class="badge-maturing">dev</span> = class has fewer than 3 development seasons.
     </p>`;
 
   tableContainer.querySelectorAll("th[data-col]").forEach(th => {

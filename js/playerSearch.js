@@ -29,6 +29,29 @@ async function loadPlayerTransfers() {
   return _playerTransfersCache;
 }
 
+// Engine D trajectory predictions — loaded lazily from data/trajectory.json
+// Indexed by player_season_id (string) for O(1) modal lookup
+let _trajectoryCache = null;
+
+async function loadTrajectory() {
+  if (_trajectoryCache) return _trajectoryCache;
+  try {
+    const res = await fetch("data/trajectory.json");
+    if (res.ok) {
+      const arr = await res.json();
+      _trajectoryCache = {};
+      for (const item of arr) {
+        _trajectoryCache[String(item.player_season_id)] = item;
+      }
+    } else {
+      _trajectoryCache = {};
+    }
+  } catch (e) {
+    _trajectoryCache = {};
+  }
+  return _trajectoryCache;
+}
+
 async function loadSimilarPlayers(season) {
   if (_similarPlayersCache[season]) return _similarPlayersCache[season];
   try {
@@ -291,14 +314,15 @@ async function openPlayerModal(playerId, seasonOverride) {
   document.body.style.overflow = "hidden";
   bindModalClose(modal);
 
-  // Fetch profile + stats + history + similar + transfers in parallel
-  const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap] = await Promise.all([
+  // Fetch profile + stats + history + similar + transfers + trajectory in parallel
+  const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap, trajectoryMap] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
     fetchPlayerCareerStats(playerId).catch(() => []),
     loadSimilarPlayers(season).catch(() => ({})),
     loadPlayerTransfers().catch(() => ({})),
+    loadTrajectory().catch(() => ({})),
   ]);
 
   if (!player) {
@@ -319,7 +343,9 @@ async function openPlayerModal(playerId, seasonOverride) {
   // Look up transfer history by player id (field is "id" in players JSON)
   const transferHistory = player.id && transfersMap
     ? (transfersMap[String(player.id)] || []) : [];
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory);
+  // Look up Engine D trajectory prediction by player_season_id
+  const trajectory = psId && trajectoryMap ? (trajectoryMap[String(psId)] || null) : null;
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory, trajectory);
   bindModalClose(modal);
 }
 
@@ -332,7 +358,7 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = []) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = [], trajectory = null) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "#555";
@@ -504,6 +530,36 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       </div>`;
   }
 
+  // ── Engine D trajectory projection ──
+  let trajectoryHtml = "";
+  if (trajectory) {
+    const delta = trajectory.delta;
+    const pred  = trajectory.predicted_ovr;
+    const label = trajectory.trajectory_label;
+    const feat  = trajectory.shap_top_feature || "";
+    const labelColors = { breakout: "#2ecc71", decline: "#e74c3c", steady: "var(--text-muted)" };
+    const labelIcons  = { breakout: "&#9650;", decline: "&#9660;", steady: "&mdash;" };
+    const color = labelColors[label] || "var(--text-muted)";
+    const icon  = labelIcons[label] || "&mdash;";
+    const deltaStr = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+    trajectoryHtml = `
+      <div class="modal-section">
+        <div class="modal-section-title">Next Season Projection (Engine D)</div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:2rem;font-weight:900;color:${color}">${icon} ${Math.round(pred)}</div>
+            <div style="font-size:var(--fs-xs);color:var(--text-muted)">Predicted OVR</div>
+          </div>
+          <div>
+            <div style="font-size:1.1rem;font-weight:700;color:${color};text-transform:capitalize">${label}</div>
+            <div style="font-size:var(--fs-sm);color:var(--text-muted)">${deltaStr} from current</div>
+            ${feat ? `<div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px">Key factor: <em>${feat}</em></div>` : ""}
+          </div>
+        </div>
+        <p class="breakdown-note" style="margin-top:8px">XGBoost model trained on 2008–2022 player seasons. MAE ~9 OVR points.</p>
+      </div>`;
+  }
+
   // Similar players section
   let similarHtml = "";
   if (similarPlayers && similarPlayers.length) {
@@ -540,6 +596,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${careerHtml}
       ${yoyHtml}
       ${shapHtml}
+      ${trajectoryHtml}
       ${careerPathHtml}
       ${similarHtml}
     </div>`;

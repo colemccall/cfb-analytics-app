@@ -81,8 +81,19 @@
   <div id="rec-roi-section" class="research-live-section">
     <h2 class="section-heading">Recruiting Class ROI</h2>
     <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:0.75rem">
-      Hit % = share of rated recruits who reached peak OVR ≥ 75 in any season.
-      Blue Chip Hit % applies the same filter to 4+ star recruits only.
+      Hit%/Rated = share of <em>rated</em> recruits who reached peak OVR &ge; 75.
+      Hit%/Class = same metric vs all recruits (exposes unrated player coverage gaps).
+    </p>
+    <div class="research-filter-bar"></div>
+    <div class="research-table-wrap"></div>
+  </div>
+
+  <!-- ── Engine D Breakout Candidates live table ── -->
+  <div id="breakout-section" class="research-live-section">
+    <h2 class="section-heading">Breakout Candidates (Engine D)</h2>
+    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:0.75rem">
+      XGBoost regressor trained on 2008&ndash;2022 player seasons predicts next-season OVR.
+      Breakout = predicted &ge; +5 OVR. Decline = predicted &le; &minus;5 OVR. Test MAE &asymp; 9 OVR points.
     </p>
     <div class="research-filter-bar"></div>
     <div class="research-table-wrap"></div>
@@ -158,6 +169,7 @@
   loadPublishedFindings();
   initTeamPerformance();
   initRecruitingRoi();
+  initBreakoutCandidates();
 </script>
 </div><!-- /.main-content -->
 
