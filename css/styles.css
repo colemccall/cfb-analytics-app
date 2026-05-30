@@ -566,6 +566,11 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .similar-pct { font-size: var(--fs-xs); color: var(--text-muted); width: 32px; text-align: right; flex-shrink: 0; }
 .similar-ovr { font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
 
+/* ── Career Path (transfer history) ── */
+.career-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.path-stop   { font-size: var(--fs-sm); font-weight: 600; }
+.path-arrow  { color: var(--text-muted); padding: 0 2px; }
+
 /* ── Rating breakdown plain-English ── */
 .breakdown-summary { font-size: var(--fs-sm); margin-bottom: 0.6rem; }
 .breakdown-lines { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; }

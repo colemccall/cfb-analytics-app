@@ -12,18 +12,32 @@ let _filteredPlayers = [];   // client-side text/minRating filter applied to _al
 let _activeFilters = { position: "ALL", conference: "", minRating: 0, query: "", season: CONFIG.CURRENT_SEASON };
 let _fetchPending = false;
 
-// Similar players — loaded lazily from data/similar_players.json
-let _similarPlayersCache = null;
+// Similar players — loaded lazily from data/similar_players_{season}.json
+let _similarPlayersCache = {};
 
-async function loadSimilarPlayers() {
-  if (_similarPlayersCache) return _similarPlayersCache;
+// Player transfer history — loaded lazily from data/player_transfers.json
+let _playerTransfersCache = null;
+
+async function loadPlayerTransfers() {
+  if (_playerTransfersCache) return _playerTransfersCache;
   try {
-    const res = await fetch("data/similar_players.json");
-    _similarPlayersCache = await res.json();
+    const res = await fetch("data/player_transfers.json");
+    _playerTransfersCache = res.ok ? await res.json() : {};
   } catch (e) {
-    _similarPlayersCache = {};
+    _playerTransfersCache = {};
   }
-  return _similarPlayersCache;
+  return _playerTransfersCache;
+}
+
+async function loadSimilarPlayers(season) {
+  if (_similarPlayersCache[season]) return _similarPlayersCache[season];
+  try {
+    const res = await fetch(`data/similar_players_${season}.json`);
+    _similarPlayersCache[season] = res.ok ? await res.json() : {};
+  } catch (e) {
+    _similarPlayersCache[season] = {};
+  }
+  return _similarPlayersCache[season];
 }
 
 const OFF_POS  = ["ALL", "QB", "RB", "WR", "TE", "OL"];
@@ -277,13 +291,14 @@ async function openPlayerModal(playerId, seasonOverride) {
   document.body.style.overflow = "hidden";
   bindModalClose(modal);
 
-  // Fetch profile + stats + history + similar in parallel
-  const [player, statsRows, ratingHistory, careerStats, similarMap] = await Promise.all([
+  // Fetch profile + stats + history + similar + transfers in parallel
+  const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
     fetchPlayerCareerStats(playerId).catch(() => []),
-    loadSimilarPlayers().catch(() => ({})),
+    loadSimilarPlayers(season).catch(() => ({})),
+    loadPlayerTransfers().catch(() => ({})),
   ]);
 
   if (!player) {
@@ -298,10 +313,13 @@ async function openPlayerModal(playerId, seasonOverride) {
   const postseasonRow = statsRows.find(r => r.stat_type === "postseason_aggregate");
   const statsData     = regularRow ? regularRow.data : null;
   const postseasonData = postseasonRow ? postseasonRow.data : null;
-  // Look up similar players by player_season_id (the key in similar_players.json)
+  // Look up similar players by player_season_id (the key in similar_players_{season}.json)
   const psId = player.player_season_id;
-  const similarPlayers = psId && similarMap ? (similarMap[psId] || []) : [];
-  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers);
+  const similarPlayers = psId && similarMap ? (similarMap[String(psId)] || []) : [];
+  // Look up transfer history by player id (field is "id" in players JSON)
+  const transferHistory = player.id && transfersMap
+    ? (transfersMap[String(player.id)] || []) : [];
+  modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory);
   bindModalClose(modal);
 }
 
@@ -314,7 +332,7 @@ function modalLoadingHtml(player) {
     <div class="modal-loading">Loading stats…</div>`;
 }
 
-function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = []) {
+function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = []) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "#555";
@@ -465,6 +483,27 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     }
   }
 
+  // Career Path (transfer history) section — only show entries with known schools
+  let careerPathHtml = "";
+  const knownTransfers = (transferHistory || []).filter(
+    t => t.from_school && t.from_school !== "Unknown school" &&
+         t.to_school   && t.to_school   !== "Unknown school"
+  );
+  if (knownTransfers.length >= 1) {
+    const stops = [
+      `<span class="path-stop">${knownTransfers[0].from_school} '${String(knownTransfers[0].transfer_year).slice(2)}</span>`
+    ];
+    for (const t of knownTransfers) {
+      stops.push(`<span class="path-arrow">&#8594;</span>`);
+      stops.push(`<span class="path-stop">${t.to_school} '${String(t.transfer_year).slice(2)}</span>`);
+    }
+    careerPathHtml = `
+      <div class="modal-section">
+        <div class="modal-section-title">Career Path</div>
+        <div class="career-path">${stops.join("")}</div>
+      </div>`;
+  }
+
   // Similar players section
   let similarHtml = "";
   if (similarPlayers && similarPlayers.length) {
@@ -501,6 +540,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${careerHtml}
       ${yoyHtml}
       ${shapHtml}
+      ${careerPathHtml}
       ${similarHtml}
     </div>`;
 }

@@ -533,6 +533,38 @@
 .research-card--active { border-color: var(--warning); opacity: 0.9; }
 .research-tag--warning { background: rgba(240,168,48,0.15); color: var(--warning); }
 .finding-stat--warning { font-size: var(--fs-lg); color: var(--warning); }
+
+/* ── Research live data sections ── */
+.research-live-section { margin: 2rem 0; }
+.research-filter-bar {
+  display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;
+  margin-bottom: 0.75rem;
+}
+.research-filter-bar select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-primary); border-radius: 6px;
+  padding: 0.3rem 0.6rem; font-size: var(--fs-sm);
+}
+.research-table-wrap { overflow-x: auto; }
+.research-table {
+  width: 100%; border-collapse: collapse; font-size: var(--fs-sm);
+}
+.research-table th {
+  background: var(--surface-lift); color: var(--text-muted);
+  font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 6px 10px;
+  border-bottom: 1px solid var(--border); text-align: left;
+  white-space: nowrap; user-select: none;
+}
+.research-table th:hover { color: var(--accent); }
+.research-table td {
+  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.research-table tr:hover td { background: var(--surface-lift); }
+.row-over  td { border-left: 3px solid #2ecc71; }
+.row-under td { border-left: 3px solid #e74c3c; }
+
 .section-heading {
   font-family: var(--font-display); color: var(--accent);
   margin: 2rem 0 1rem; font-size: var(--fs-xl);
