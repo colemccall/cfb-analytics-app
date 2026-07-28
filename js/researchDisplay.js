@@ -189,8 +189,8 @@ function _renderBreakoutTable(section) {
 
   const { col, asc } = _breakoutSort;
   rows = rows.slice().sort((a, b) => {
-    const av = a[col] ?? (typeof b[col] === "string" ? "zzz" : -Infinity);
-    const bv = b[col] ?? (typeof a[col] === "string" ? "zzz" : -Infinity);
+    const av = a[col] ?? (typeof a[col] === "string" ? "zzz" : -Infinity);
+    const bv = b[col] ?? (typeof b[col] === "string" ? "zzz" : -Infinity);
     if (typeof av === "string") return asc ? av.localeCompare(bv) : bv.localeCompare(av);
     return asc ? av - bv : bv - av;
   });
