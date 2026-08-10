@@ -133,7 +133,7 @@ function confStandingHTML(team) {
     return `<div class="d-conf-standing-row${ct.id === team.id ? " active" : ""}">
       <span class="d-conf-rank">${i + 1}</span>
       <span class="d-conf-team-name">${_esc(ct.school)}</span>
-      <span class="d-conf-ovr" style="color:${ct.avg_rating ? ratingColor(ct.avg_rating) : "#666"}">${v}</span>
+      <span class="d-conf-ovr" style="color:${ct.avg_rating ? ratingColor(ct.avg_rating) : "var(--text-muted)"}">${v}</span>
     </div>`;
   }).join("");
   return `<div class="d-conf-standing-chip" onclick="this.classList.toggle('expanded')">
@@ -151,7 +151,7 @@ async function showTeam(team) {
   main.dataset.teamId = team.id;
   const teamColor = team.color || "var(--accent)";
   const avgR = team.avg_rating ? Math.round(team.avg_rating) : "—";
-  const rCol = team.avg_rating ? ratingColor(team.avg_rating) : "#666";
+  const rCol = team.avg_rating ? ratingColor(team.avg_rating) : "var(--text-muted)";
 
   main.innerHTML = `
     <div class="d-team-hero" style="--d-team-color:${_esc(teamColor)};border-top-color:${_esc(teamColor)}">
@@ -239,7 +239,7 @@ async function buildTeamRatingsHTML(team) {
   const subBars = sub.map(s => {
     const v = tr[s.key] != null ? Math.round(tr[s.key]) : null;
     const pct = v != null ? Math.round((v - 30) / 69 * 100) : 0;
-    const color = v != null ? ratingColor(v) : "#444";
+    const color = v != null ? ratingColor(v) : "var(--text-muted)";
     return `
       <div class="tr-sub-row">
         <span class="tr-sub-label">${s.icon} ${s.label}</span>
@@ -251,11 +251,11 @@ async function buildTeamRatingsHTML(team) {
   }).join("");
 
   const ovr = tr.overall_rating != null ? Math.round(tr.overall_rating) : "—";
-  const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "#666";
+  const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "var(--text-muted)";
   const off = tr.offense_rating != null ? Math.round(tr.offense_rating) : "—";
   const def = tr.defense_rating != null ? Math.round(tr.defense_rating) : "—";
-  const offCol = tr.offense_rating ? ratingColor(tr.offense_rating) : "#666";
-  const defCol = tr.defense_rating ? ratingColor(tr.defense_rating) : "#666";
+  const offCol = tr.offense_rating ? ratingColor(tr.offense_rating) : "var(--text-muted)";
+  const defCol = tr.defense_rating ? ratingColor(tr.defense_rating) : "var(--text-muted)";
   // POWER index = raw SP+ margin — the cross-season "team EDGE" (absolute, year-agnostic)
   const powStr = tr.sp_overall != null ? `${tr.sp_overall > 0 ? "+" : ""}${parseFloat(tr.sp_overall).toFixed(1)}` : "—";
   const rcStr = tr.recruiting_score != null ? `Recruiting ${Math.round(tr.recruiting_score)}` : "";
@@ -408,7 +408,6 @@ function renderRosterCards(players) {
   const cards = filtered.map((p, i) => {
     const ovr      = p.overall_rating ? Math.round(p.overall_rating) : null;
     const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
-    const rowTint  = ovr ? `${ovrColor}10` : "transparent";
     const yr       = yearLabels[p.year] || "—";
     const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
     const edgePct  = pctMap[p.player_season_id];
@@ -419,7 +418,7 @@ function renderRosterCards(players) {
     const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
     const hometown = p.hometown_state || "—";
     return `
-      <div class="draft-row" data-player-id="${p.player_id ?? p.id}" style="background:${rowTint};border-left-color:${ovrColor}">
+      <div class="draft-row" data-player-id="${p.player_id ?? p.id}" style="border-left-color:${ovrColor}">
         <div class="draft-rank">${i + 1}</div>
         <div class="draft-pos">${posBadge(p.position_group || p.position)}</div>
         <div class="draft-name"><span class="player-name-text">${_esc(p.name || "—")}</span></div>
@@ -539,7 +538,7 @@ async function buildTransfersHTML(team) {
   const section = (title, arr, pillClass) => {
     if (!arr.length) return "";
     return `
-      <h3 style="font-family:var(--font-display);font-size:var(--fs-lg);color:var(--accent);margin:1.5rem 0 0.5rem;padding-left:4px;border-left:3px solid var(--accent)">
+      <h3 class="section-heading" style="font-size:var(--fs-lg);margin:1.5rem 0 0.5rem">
         <span class="status-pill ${pillClass}">${pillClass === "in" ? "IN" : "OUT"}</span> ${title} (${arr.length})
       </h3>
       <table class="data-table">

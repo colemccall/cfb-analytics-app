@@ -281,7 +281,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .card-pos-tag { font-size: var(--fs-sm); font-weight: 600; margin: 1px 0; }
 
 /* ── Stars ── */
-.stars { color: var(--accent); font-size: var(--fs-sm); letter-spacing: 1px; }
+.stars { color: var(--stars); font-size: var(--fs-sm); letter-spacing: 1px; }
 
 /* ── Status pills ── */
 .status-pill {
@@ -474,11 +474,12 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .sidebar-search input { width: 100%; }
 .team-list { flex: 1; overflow-y: auto; }
 .team-list-item {
-  padding: 9px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);
+  padding: 9px 14px; cursor: pointer; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 9px; transition: background 0.1s;
 }
-.team-list-item:hover, .team-list-item.active { background: var(--accent-dim); }
-.team-list-item.active .team-list-name { color: var(--accent); font-weight: 600; }
+.team-list-item:hover { background: var(--surface-lift); }
+.team-list-item.active { background: var(--surface-lift); box-shadow: inset 3px 0 0 var(--text); }
+.team-list-item.active .team-list-name { color: var(--text); font-weight: 700; }
 .team-list-logo { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
 .team-list-info { flex: 1; min-width: 0; }
 .team-list-name { font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -489,7 +490,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 /* ── v1-style team hero (dynasty mode) ── */
 .d-team-hero {
   display: flex; align-items: flex-start; gap: 18px; padding: 18px 22px;
-  border-top: 3px solid var(--accent); border-bottom: 1px solid var(--border);
+  border-top: 3px solid var(--border-strong); border-bottom: 1px solid var(--border);
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--d-team-color, var(--accent)) 8%, var(--surface)) 0%,
     var(--surface) 60%
@@ -499,11 +500,12 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .d-hero-logo { width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; }
 .d-hero-info { flex: 1; min-width: 180px; }
 .d-hero-name { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 800; line-height: 1.1; }
+/* Neutral outline chip — team color and data colors carry the hero */
 .d-hero-conf-badge {
-  display: inline-block; background: var(--accent-dim); color: var(--accent);
+  display: inline-block; background: transparent; color: var(--text-muted);
   font-size: var(--fs-label); font-weight: 700; padding: 2px 9px; border-radius: var(--radius-pill);
   text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px;
-  border: 1px solid var(--border-accent);
+  border: 1px solid var(--border-strong);
 }
 .d-hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .d-hero-ovr-box { text-align: center; }
@@ -564,7 +566,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 
 /* ── Schedule record badge ── */
 .schedule-record { padding: 8px 0; font-family: var(--font-display); }
-.record-val { font-size: var(--fs-2xl); font-weight: 800; color: var(--accent); }
+.record-val { font-size: var(--fs-2xl); font-weight: 800; color: var(--text); }
 .record-lbl { font-size: var(--fs-sm); color: var(--text-muted); margin-left: 4px; }
 
 /* ── Team tab content ── */
@@ -581,7 +583,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 }
 .tr-ovr-circle {
   width: 80px; height: 80px; border-radius: 50%;
-  border: 3px solid var(--accent); display: flex; flex-direction: column;
+  border: 3px solid var(--border-strong); display: flex; flex-direction: column;
   align-items: center; justify-content: center; flex-shrink: 0;
 }
 .tr-ovr-num { font-family: var(--font-display); font-size: 2rem; font-weight: 900; line-height: 1; }
@@ -607,11 +609,11 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   background: var(--surface-deep); padding: 3px 9px; border-radius: var(--radius-sm);
 }
 .tr-od-chip b { font-family: var(--font-display); font-size: var(--fs-sm); margin-left: 3px; }
-.tr-od-chip.tr-power { color: var(--accent); cursor: help; }
+.tr-od-chip.tr-power { color: var(--text); cursor: help; }
 
 /* ── Team stats grid ── */
 .tr-stats-section, .tr-perf-section { margin-top: 1.5rem; }
-.tr-stat-era { color: var(--accent); font-weight: 700; margin-left: 4px; }
+.tr-stat-era { color: var(--text-muted); font-weight: 700; margin-left: 4px; }
 .tstat-block { margin-bottom: 0.9rem; }
 .tstat-block-lbl { font-size: var(--fs-sm); color: var(--text); font-weight: 600; margin-bottom: 0.4rem; }
 .tstat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }

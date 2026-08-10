@@ -305,8 +305,9 @@ function renderGrid() {
 
 function playerRowHtml(p, rank) {
   const ovr     = p.overall_rating ? Math.round(p.overall_rating) : null;
+  // Rows are flat surface — the tier-colored left border + OVR pill carry the
+  // rating identity. (Full-row color washes were the old "murk".)
   const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
-  const rowTint  = ovr ? `${ovrColor}10` : "transparent";
   const pg       = p.position_group || p.position || "ATH";
   const posClr   = posColor(pg);
   const rankCls  = rank < 3 ? "top3" : rank < 10 ? "top10" : "";
@@ -322,7 +323,7 @@ function playerRowHtml(p, rank) {
 
   return `
     <div class="draft-row animate-up" data-id="${p.id}" data-season="${p.season || ''}" data-rating="${p.overall_rating || 0}"
-         style="background:${rowTint};border-left-color:${ovrColor}">
+         style="border-left-color:${ovrColor}">
       <div class="draft-rank rank-num ${rankCls}">${rank + 1}</div>
       <div class="draft-pos">${posBadge(pg)}</div>
       <div class="draft-name" title="${_esc(p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name)}">
