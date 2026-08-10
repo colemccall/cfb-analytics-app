@@ -122,7 +122,7 @@ async function buildTeamScheduleLookup() {
       </tr>`).join("");
 
     out.innerHTML = `
-      <table class="leaderboard-table">
+      <table class="data-table">
         <thead><tr><th>Wk</th><th>Date</th><th>${_esc(team?.school || "")} — ${SEASON} opponents</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;

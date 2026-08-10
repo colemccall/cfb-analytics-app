@@ -136,17 +136,18 @@ function _sortRows(items, getValFn, asc) {
   });
 }
 
+// Sortable <table class="data-table">: sets aria-sort attributes; the arrows
+// are rendered by the .data-table th[aria-sort] CSS, never as header text.
 function makeSortable(table) {
   if (!table) return;
   const ths = table.querySelectorAll("thead th");
   ths.forEach((th, colIdx) => {
-    th.style.cursor = "pointer";
+    th.setAttribute("aria-sort", "none");
     th.style.userSelect = "none";
-    let asc = null;
     th.addEventListener("click", () => {
-      asc = asc === true ? false : true;
-      ths.forEach(h => { h.textContent = h.textContent.replace(/ [▲▼]$/, ""); });
-      th.textContent = th.textContent + (asc ? " ▲" : " ▼");
+      const asc = th.getAttribute("aria-sort") !== "ascending";
+      ths.forEach(h => h.setAttribute("aria-sort", "none"));
+      th.setAttribute("aria-sort", asc ? "ascending" : "descending");
       const tbody = table.querySelector("tbody");
       const rows  = Array.from(tbody.querySelectorAll("tr"));
       _sortRows(rows, r => _sortVal(r.cells[colIdx]?.innerText), asc);

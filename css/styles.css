@@ -289,40 +289,9 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   padding: 1px 7px; border-radius: var(--radius-pill); margin-left: 4px;
   vertical-align: middle; letter-spacing: 0.3px; text-transform: uppercase;
 }
-.status-pill.out   { background: rgba(216,72,72,0.15);  color: #e06060; border: 1px solid rgba(216,72,72,0.3); }
-.status-pill.in    { background: rgba(48,168,87,0.15);  color: #4caf7d; border: 1px solid rgba(48,168,87,0.3); }
-.status-pill.draft { background: rgba(255,215,0,0.12);  color: #ffd700; border: 1px solid rgba(255,215,0,0.3); }
-
-/* ── Tables ── */
-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-th {
-  text-align: left; padding: 9px 12px;
-  background: var(--surface-deep); color: var(--text-muted);
-  font-size: var(--fs-label); font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.6px; position: sticky; top: 0; z-index: 1;
-  cursor: pointer; user-select: none;
-  border-bottom: 1px solid var(--border-strong);
-}
-th:hover { color: var(--text); }
-th.sorted-asc::after  { content: ' ▲'; }
-th.sorted-desc::after { content: ' ▼'; }
-td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); line-height: 1.5; }
-tr:hover td { background: var(--accent-dim); }
-tr.clickable { cursor: pointer; }
-td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-numeric: tabular-nums; }
-
-/* ── Leaderboard table ── */
-.leaderboard-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.leaderboard-table th {
-  text-align: left; padding: 9px 12px;
-  border-bottom: 2px solid var(--border-strong);
-  font-size: var(--fs-label); color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.5px; background: var(--surface-deep);
-}
-.leaderboard-table td {
-  padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle;
-}
-.leaderboard-table tr:hover td { background: var(--accent-dim); cursor: pointer; }
+.status-pill.out   { background: color-mix(in srgb, var(--negative) 14%, transparent); color: var(--negative); border: 1px solid var(--negative); }
+.status-pill.in    { background: color-mix(in srgb, var(--positive) 14%, transparent); color: var(--positive); border: 1px solid var(--positive); }
+.status-pill.draft { background: var(--voice-dim); color: var(--voice); border: 1px solid var(--voice); }
 .name-col { font-weight: 600; }
 .team-hero-info { flex: 1; min-width: 0; }
 
@@ -416,8 +385,8 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .similar-info { flex: 1; min-width: 0; }
 .similar-name { display: block; font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .similar-meta { font-size: var(--fs-sm); color: var(--text-muted); }
-.similar-match-bar { width: 80px; height: 6px; background: var(--surface-deep); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-.similar-match-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.similar-match-bar { width: 80px; height: 6px; background: var(--surface-deep); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
+.similar-match-fill { height: 100%; background: var(--accent); border-radius: var(--radius-sm); }
 .similar-pct { font-size: var(--fs-sm); color: var(--text-muted); width: 32px; text-align: right; flex-shrink: 0; }
 .similar-ovr { font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
 
@@ -454,9 +423,10 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 
 /* ── Scatter plot section ── */
 .scatter-section { margin-top: 2.5rem; }
+/* Chart titles are claims — ink, not accent */
 .scatter-section h2 {
   font-family: var(--font-display); font-size: var(--fs-xl);
-  color: var(--accent); margin-bottom: 0.25rem;
+  color: var(--text); margin-bottom: 0.25rem;
 }
 .scatter-section .section-sub { color: var(--text-muted); font-size: var(--fs-sm); margin-bottom: 1rem; }
 #scatter-chart {
@@ -478,7 +448,7 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   background: var(--accent); color: #000; font-weight: 700;
   box-shadow: 0 2px 12px rgba(200,146,42,0.25);
 }
-.btn-primary:hover { box-shadow: 0 4px 20px rgba(200,146,42,0.35); }
+.btn-primary:hover { box-shadow: var(--shadow); }
 .btn-secondary {
   background: transparent; color: var(--accent);
   border: 1px solid var(--border-accent);
@@ -723,9 +693,6 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .traj-down1 { color: var(--negative); font-weight: 600; font-size: var(--fs-sm); }
 .traj-down2 { color: var(--negative); font-weight: 700; font-size: var(--fs-sm); }
 
-/* ── Draft-board rows — Madden-style spread table layout ── */
-.draft-board { width: 100%; border-collapse: collapse; }
-
 /* columns: # | POS | Name | Team | Yr/Conf | Stars | Ht | Wt | OVR | Traj | EDGE
    (widened for the 14px data floor) */
 .draft-row, .draft-board-header {
@@ -849,35 +816,9 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
   body { padding-bottom: 54px; }
 }
 
-/* ── Glowing section titles ── */
-.section-heading {
-  font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: 800;
-  text-transform: uppercase; letter-spacing: 1px;
-  color: var(--accent);
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 1rem;
-}
-.section-heading::before {
-  content: "";
-  display: block; width: 3px; height: 1em;
-  background: var(--accent); border-radius: 2px;
-}
-
-
-
 /* ── Team History tab ── */
 .team-history-wrap { overflow-x: auto; }
-.history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.history-table th, .history-table td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  white-space: nowrap;
-}
-.history-table thead th { color: var(--text-muted); font-weight: 600; }
-.history-table tbody tr:hover { background: var(--surface-lift); }
-.hist-season { font-weight: 700; color: var(--accent); }
+.hist-season { font-weight: 700; color: var(--text); }
 .hist-record, .hist-sp { font-variant-numeric: tabular-nums; }
 /* Canonical rating pill — the single way an OVR appears anywhere.
    Fill + text color are set inline via ratingColor()/ratingTextColor()

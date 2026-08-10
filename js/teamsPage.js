@@ -502,7 +502,7 @@ async function buildScheduleHTML(team) {
 
   return `
     ${played ? `<div class="schedule-record"><span class="record-val">${wins}–${losses}</span> <span class="record-lbl">Record (${_currentSeason})</span></div>` : ""}
-    <table class="leaderboard-table">
+    <table class="data-table">
       <thead><tr><th>Wk</th><th>Date</th><th>Opponent</th><th>Result</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -542,7 +542,7 @@ async function buildTransfersHTML(team) {
       <h3 style="font-family:var(--font-display);font-size:var(--fs-lg);color:var(--accent);margin:1.5rem 0 0.5rem;padding-left:4px;border-left:3px solid var(--accent)">
         <span class="status-pill ${pillClass}">${pillClass === "in" ? "IN" : "OUT"}</span> ${title} (${arr.length})
       </h3>
-      <table class="leaderboard-table">
+      <table class="data-table">
         <thead><tr><th>Player</th><th>Pos</th><th>${pillClass === "in" ? "From" : "To"}</th><th>Prev → New OVR</th><th>Portal Date</th></tr></thead>
         <tbody>${makeRows(arr, pillClass)}</tbody>
       </table>`;
@@ -569,7 +569,7 @@ async function buildTeamHistoryHTML(team) {
   }).join("");
 
   return `<div class="team-history-wrap">
-    <table class="history-table">
+    <table class="data-table">
       <thead><tr>
         <th>Season</th><th>Record</th><th>Conference</th><th>SP+</th><th>OVR</th>
       </tr></thead>

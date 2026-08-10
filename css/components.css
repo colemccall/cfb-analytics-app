@@ -47,35 +47,6 @@
 .stagger-children > *:nth-child(8)  { animation-delay: 0.35s; }
 .stagger-children > *:nth-child(9)  { animation-delay: 0.40s; }
 .stagger-children > *:nth-child(10) { animation-delay: 0.45s; }
-
-/* ── Page hero header ── */
-.page-hero {
-  padding: 2rem 2rem 1.5rem;
-  background: linear-gradient(160deg, var(--surface-deep) 0%, var(--surface) 100%);
-  border-bottom: 1px solid var(--border-strong);
-  position: relative; overflow: hidden;
-}
-.page-hero::before {
-  content: "";
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(ellipse at 0% 50%, var(--accent-glow) 0%, transparent 55%);
-  pointer-events: none;
-}
-.page-hero::after {
-  content: "";
-  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 30%, transparent 70%);
-}
-.page-hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(22px, 3vw, 30px); font-weight: 900;
-  color: var(--accent); text-transform: uppercase;
-  letter-spacing: 1.5px; line-height: 1.1; position: relative;
-}
-.page-hero-sub {
-  font-size: var(--fs-sm); color: var(--text-muted);
-  margin-top: 5px; position: relative;
-}
 .sidebar-theme-label {
   font-size: var(--fs-label); color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
@@ -101,6 +72,15 @@
 .standfirst {
   font-size: var(--fs-md); color: var(--text-muted);
   max-width: 640px; line-height: 1.65; margin-bottom: 1.1rem;
+}
+
+/* Compact page-header variant: eyebrow → ink h1 → sub. Replaces the old
+   gradient/glow .page-hero on every non-home page. */
+.masthead--page { padding: 1.6rem 2rem 1.1rem; }
+.masthead--page h1 { font-size: clamp(26px, 3vw, 34px); margin-bottom: 0.25rem; }
+.masthead-sub {
+  font-size: var(--fs-base); color: var(--text-muted);
+  max-width: 680px; line-height: 1.6;
 }
 
 /* Marquee opener card inside the masthead */
@@ -287,7 +267,7 @@
 .research-card h3 { font-family: var(--font-display); color: var(--accent); margin-bottom: 0.5rem; }
 .research-card p  { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 0.75rem; }
 .research-tag {
-  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm);
   font-size: var(--fs-sm); background: var(--accent-dim); color: var(--accent);
   margin-bottom: 0.5rem;
 }
@@ -321,7 +301,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 .research-filter-bar select {
   background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); border-radius: 6px;
+  color: var(--text); border-radius: var(--radius-sm);
   padding: 0.3rem 0.6rem; font-size: var(--fs-sm);
 }
 .research-table-wrap { overflow-x: auto; }
@@ -332,28 +312,37 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .row-under { background: color-mix(in srgb, var(--negative) 5%, transparent); }
 
 .badge-imputed {
-  display: inline-block; padding: 0 4px; border-radius: 3px;
+  display: inline-block; padding: 0 4px; border-radius: var(--radius-sm);
   font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.2px;
   background: var(--surface-lift); color: var(--text-muted);
   vertical-align: middle; margin-left: 3px;
 }
 .badge-maturing {
-  display: inline-block; padding: 0 5px; border-radius: 3px;
+  display: inline-block; padding: 0 5px; border-radius: var(--radius-sm);
   font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.2px;
   background: rgba(241, 196, 15, 0.18); color: #f1c40f;
   vertical-align: middle; margin-left: 3px;
 }
 
+/* Section heading — ink headline with a voice tick (tick resolves to ink
+   inside entity scopes automatically). The ONE section-heading style. */
 .section-heading {
-  font-family: var(--font-display); color: var(--accent);
-  margin: 2rem 0 1rem; font-size: var(--fs-xl);
+  font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800;
+  color: var(--text); text-transform: uppercase; letter-spacing: 0.8px;
+  display: flex; align-items: center; gap: 10px;
+  margin: 2rem 0 1rem;
+}
+.section-heading::before {
+  content: "";
+  display: block; width: 4px; height: 1.05em;
+  background: var(--accent); border-radius: 2px;
 }
 
 /* ── Info (How It Works) page ── */
 .info-page { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-.info-page h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 900; color: var(--accent); margin-bottom: 0.25rem; letter-spacing: 1px; text-transform: uppercase; }
+.info-page h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 900; color: var(--text); margin-bottom: 0.25rem; letter-spacing: 1px; text-transform: uppercase; }
 .info-page .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: var(--fs-sm); }
-.info-page h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 2.25rem 0 0.6rem; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.info-page h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: var(--text); margin: 2.25rem 0 0.6rem; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 .info-page h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.35rem; }
 .info-page p  { color: var(--text-muted); line-height: 1.7; margin-bottom: 0.8rem; }
 .info-page p strong { color: var(--text); }
@@ -391,8 +380,8 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .weight-table td { padding: 7px 10px 7px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: middle; }
 .weight-table td:first-child { color: var(--text); font-weight: 500; }
 .weight-table .w-bar-cell { min-width: 120px; }
-.w-bar-wrap { display: inline-block; width: 90px; height: 6px; background: var(--surface-deep); border-radius: 3px; vertical-align: middle; margin-right: 6px; }
-.w-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+.w-bar-wrap { display: inline-block; width: 90px; height: 6px; background: var(--surface-deep); border-radius: var(--radius-sm); vertical-align: middle; margin-right: 6px; }
+.w-bar { height: 100%; border-radius: var(--radius-sm); background: var(--accent); }
 .step-list { list-style: none; padding: 0; counter-reset: steps; }
 .step-list li { counter-increment: steps; display: flex; gap: 0.875rem; margin-bottom: 1.1rem; }
 .step-list li::before {
@@ -436,8 +425,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 @media (max-width: 640px) {
   .home-panels { padding: 0.75rem; }
   .modal-inner { border-radius: 0; }
-  .page-hero { padding: 1.25rem 1rem 1rem; }
-  .page-hero h1 { font-size: clamp(1.5rem, 6vw, 2.2rem); }
 }
 
 /* ── Entity links ─────────────────────────────────────────────────────────
@@ -497,7 +484,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
   letter-spacing: 1px; text-transform: uppercase;
   color: var(--projected);
   border: 1px solid var(--projected);
-  border-radius: 3px; padding: 0 5px;
+  border-radius: var(--radius-sm); padding: 0 5px;
   vertical-align: 1px;
 }
 /* Hatch fill — provenance is never color-only */

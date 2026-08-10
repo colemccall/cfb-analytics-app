@@ -578,7 +578,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <div class="modal-section">
           <div class="modal-section-title">Career Stats</div>
           <div style="overflow-x:auto">
-            <table class="leaderboard-table">
+            <table class="data-table">
               <thead><tr><th>Yr</th><th>Team</th>${careerFields.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>
               <tbody>${rows}</tbody>
             </table>
