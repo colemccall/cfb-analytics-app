@@ -43,6 +43,15 @@
 .animate-left     { animation: slide-in-left 0.3s ease forwards; }
 .animate-fade     { animation: fade-in      0.25s ease forwards; }
 
+/* Users who ask for less motion get content instantly, fully opaque. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop, .animate-up, .animate-left, .animate-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Staggered children — add to a container; children must also have an animate-* class */
 .stagger-children > *:nth-child(1)  { animation-delay: 0.00s; }
 .stagger-children > *:nth-child(2)  { animation-delay: 0.05s; }
@@ -396,54 +405,146 @@
   border-radius: var(--radius-sm); padding: 12px; overflow: hidden;
 }
 
-/* ── Home hero section ── */
-.home-hero {
-  padding: 2.5rem 2rem 2rem;
-  background: linear-gradient(160deg,
-    color-mix(in srgb, var(--accent) 8%, var(--surface-deep)) 0%,
-    var(--bg) 60%
-  );
-  border-bottom: 1px solid var(--border);
-  position: relative; overflow: hidden;
+/* ── Home: masthead — the editorial front door ── */
+.masthead {
+  padding: 2.25rem 2rem 1.75rem;
+  border-bottom: 2px solid var(--accent);
+  max-width: 1200px;
 }
-.home-hero::after {
-  content: "";
-  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 25%, transparent 60%);
+.masthead-date {
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: 1.2px;
+  color: var(--text-muted); margin-bottom: 0.6rem;
 }
-.home-hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900;
-  color: var(--accent); text-transform: uppercase;
-  letter-spacing: 1.5px; line-height: 1.05; margin-bottom: 0.5rem;
+.masthead h1 {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(2rem, 4vw, 3rem); line-height: 1.02;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text); margin-bottom: 0.5rem;
 }
-.home-hero p {
-  color: var(--text-muted); font-size: var(--fs-md);
-  max-width: 580px; line-height: 1.7; margin-bottom: 1.25rem;
-}
-.home-hero-actions {
-  display: flex; gap: 0.75rem; flex-wrap: wrap;
+.standfirst {
+  font-size: var(--fs-md); color: var(--text-muted);
+  max-width: 640px; line-height: 1.65; margin-bottom: 1.1rem;
 }
 
-/* ── Animated stat counters ── */
-.home-stats-row {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 1px; background: var(--border);
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+/* Marquee opener card inside the masthead */
+.marquee {
+  border: 1px solid var(--border-mid); border-left: 3px solid var(--accent);
+  border-radius: var(--radius); background: var(--surface);
+  padding: 0.9rem 1.1rem; max-width: 640px;
 }
-.home-stat-tile {
-  background: var(--surface); padding: 1.125rem 1.25rem;
-  text-align: center; transition: background 0.15s;
+.marquee-teams {
+  display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
+  margin: 0.5rem 0 0.35rem;
+  font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700;
 }
-.home-stat-tile:hover { background: var(--surface-lift); }
-.home-stat-num {
-  font-family: var(--font-display); font-size: 2rem; font-weight: 900;
-  color: var(--accent); line-height: 1; display: block;
-  transition: color 0.3s;
+.marquee-side { display: inline-flex; align-items: center; gap: 8px; }
+.marquee-side .entity-logo { width: 26px; height: 26px; }
+.marquee-at { font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; }
+.marquee-note { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* ── Editorial primitives: eyebrow + section rule ── */
+.eyebrow {
+  font-family: var(--font-display); font-size: var(--fs-xs);
+  font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--accent);
 }
-.home-stat-lbl {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.7px;
-  color: var(--text-muted); display: block; margin-top: 4px; font-weight: 700;
+.home-section { padding: 1.5rem 2rem 0; max-width: 1200px; }
+.section-rule {
+  display: flex; align-items: baseline; gap: 0.75rem;
+  border-bottom: 1px solid var(--border-mid);
+  padding-bottom: 0.4rem; margin-bottom: 1rem;
+}
+.section-rule-sub { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* ── Storyline cards: claim headline → evidence → destination ── */
+.story-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.story-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius); padding: 0.9rem 1rem 0.75rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  transition: border-color 0.12s, background 0.12s;
+}
+.story-card:hover { border-color: var(--border-mid); background: var(--surface-lift); }
+.story-headline {
+  font-family: var(--font-display); font-size: var(--fs-lg);
+  font-weight: 700; line-height: 1.25; color: var(--text);
+}
+.story-headline .entity-link { font-size: inherit; }
+.story-evidence {
+  font-size: var(--fs-sm);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.evidence-note { color: var(--text-muted); font-size: var(--fs-xs); line-height: 1.5; }
+.evidence-arrow { color: var(--text-muted); }
+.evidence-big {
+  font-family: var(--font-display); font-size: var(--fs-2xl);
+  font-weight: 900; color: var(--positive); line-height: 1;
+}
+.story-links { margin-top: auto; padding-top: 0.35rem; border-top: 1px solid var(--border); }
+.story-links a { font-size: var(--fs-xs); font-weight: 700; color: var(--accent); }
+
+/* Delta chip — movement always ships with its number */
+.delta-chip {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--text-muted);
+}
+.delta-chip.up   { color: var(--positive); }
+.delta-chip.down { color: var(--negative); }
+
+/* ── The opening slate ── */
+.slate-row {
+  display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
+  padding: 8px 4px; border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  transition: background 0.12s;
+}
+.slate-row:hover { background: var(--surface-lift); }
+.slate-date {
+  font-family: var(--font-display); font-weight: 700; color: var(--text-muted);
+  width: 56px; flex-shrink: 0; text-transform: uppercase; font-size: var(--fs-xs);
+}
+.slate-team { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; }
+.slate-at { color: var(--text-dim); font-size: var(--fs-xs); text-transform: uppercase; }
+.slate-footnote { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.6rem; }
+
+/* ── Research desk rail (home panel) ── */
+.mini-finding {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  color: inherit; transition: background 0.12s;
+}
+.mini-finding:last-child { border-bottom: none; }
+.mini-finding:hover { background: var(--surface-lift); }
+.mini-finding-tag {
+  font-family: var(--font-display); font-size: var(--fs-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent);
+  flex-shrink: 0; width: 108px;
+}
+.mini-finding-text { font-size: var(--fs-sm); line-height: 1.5; flex: 1; color: var(--text); }
+.mini-finding-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+/* ── Coverage strip — counted facts + methodology link ── */
+.coverage-strip {
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+  margin: 1.5rem 2rem 0; padding: 0.9rem 0 1.5rem;
+  max-width: 1136px;
+  font-size: var(--fs-xs); color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.coverage-strip a { color: var(--accent); font-weight: 700; }
+
+@media (max-width: 720px) {
+  .masthead { padding: 1.25rem 1rem 1.1rem; }
+  .home-section { padding: 1rem 1rem 0; }
+  .marquee-teams { font-size: var(--fs-lg); }
+  .slate-date { width: 100%; }
+  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
+  .coverage-strip { margin: 1rem 1rem 0; }
 }
 
 /* ── Home panels (top teams/players) ── */
@@ -474,23 +575,6 @@
   font-weight: 600; color: var(--text-muted); letter-spacing: 0;
 }
 .home-panel-link { font-size: var(--fs-xs); color: var(--accent); font-weight: 700; }
-
-/* EDGE explainer strip */
-.home-edge-strip {
-  margin: 0 2rem 2rem;
-  background: var(--surface);
-  border: 1px solid var(--border-accent);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius); padding: 1rem 1.25rem;
-  display: flex; align-items: flex-start; gap: 1rem;
-  box-shadow: var(--shadow-glow);
-}
-.home-edge-icon { font-size: 1.4rem; flex-shrink: 0; line-height: 1; margin-top: 2px; }
-.home-edge-text h3 {
-  font-family: var(--font-display); font-size: var(--fs-md);
-  color: var(--accent); margin: 0 0 0.25rem; text-transform: uppercase; letter-spacing: 0.5px;
-}
-.home-edge-text p { font-size: var(--fs-sm); color: var(--text-muted); margin: 0; line-height: 1.65; }
 
 /* ── Home page team/player rows (rendered by JS) ── */
 .home-team-row, .home-player-row {
@@ -580,8 +664,11 @@ a.research-card--live .finding-stat { color: var(--accent); }
   color: var(--text-primary);
 }
 .research-table tr:hover td { background: var(--surface-lift); }
-.row-over  td { border-left: 3px solid #2ecc71; }
-.row-under td { border-left: 3px solid #e74c3c; }
+/* Strong over/under-achievers: one accent edge + a faint wash, not per-cell borders */
+.row-over  td:first-child { border-left: 3px solid var(--positive); }
+.row-under td:first-child { border-left: 3px solid var(--negative); }
+.row-over  { background: color-mix(in srgb, var(--positive) 5%, transparent); }
+.row-under { background: color-mix(in srgb, var(--negative) 5%, transparent); }
 
 .badge-imputed {
   display: inline-block; padding: 0 4px; border-radius: 3px;
@@ -691,16 +778,11 @@ a.research-card--live .finding-stat { color: var(--accent); }
   .modal-hero-ovr { width: 100%; display: flex; align-items: center; gap: 1rem; padding: 10px 14px; }
   .modal-hero-ovr-num { font-size: 36px; }
   .modal-stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .home-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .home-hero { padding: 1.5rem 1rem 1.25rem; }
   .home-panels { padding: 0.75rem; }
   .modal-inner { border-radius: 0; }
   .modal-tab-btn { font-size: 9px; padding: 9px 2px; }
   .page-hero { padding: 1.25rem 1rem 1rem; }
   .page-hero h1 { font-size: clamp(1.5rem, 6vw, 2.2rem); }
-  .home-hero h1 { font-size: clamp(1.75rem, 7vw, 2.5rem); }
-  .home-hero-actions { flex-direction: column; }
-  .home-hero-actions .btn { text-align: center; }
 }
 
 /* ── Entity links ─────────────────────────────────────────────────────────
@@ -721,4 +803,142 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .entity-logo {
   width: 14px; height: 14px; object-fit: contain;
   vertical-align: -2px; margin-right: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN-SYSTEM PRIMITIVES (v3 "Press Box")
+   Reusable, token-only building blocks. Rendered by js/ui.js helpers — pages
+   should call those helpers instead of hand-writing this markup.
+   Rules enforced here:
+     · no naked numbers  → big numerals require a .stat-context sibling
+     · provenance        → projected values get .is-projected hatch or .badge-proj
+     · movement          → deltas always render arrow + signed number
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Numerals ── */
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* The one sanctioned big numeral. Always pair with .stat-context. */
+.stat-big {
+  font-family: var(--font-display);
+  font-size: var(--fs-num-lg);
+  font-weight: 900;
+  line-height: 1;
+}
+.stat-context { font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5; }
+
+/* ── Rank digits (draft-board style) ── */
+.rank-num {
+  font-family: var(--font-display); font-weight: 900;
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.rank-num.top3  { color: var(--accent); }
+.rank-num.top10 { color: var(--text); }
+
+/* ── Provenance: projected model output vs earned rating ── */
+.badge-proj {
+  display: inline-block;
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--projected);
+  border: 1px solid var(--projected);
+  border-radius: 3px; padding: 0 5px;
+  vertical-align: 1px;
+}
+/* Hatch fill — provenance is never color-only */
+.is-projected {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--projected-dim) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+/* ── Context strip: a value placed on its distribution ── */
+.context-strip { display: inline-flex; align-items: center; gap: 8px; }
+.context-strip-track {
+  position: relative; width: 90px; height: 4px;
+  background: var(--border-mid); border-radius: 2px;
+}
+.context-strip-marker {
+  position: absolute; top: -3px; width: 3px; height: 10px;
+  border-radius: 1px; background: var(--accent);
+}
+.context-strip-label { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+
+/* ── Comparison: prev → new (transfers, projections, week-over-week) ── */
+.compare-pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.compare-pair-arrow { color: var(--text-muted); font-size: var(--fs-xs); }
+
+/* ── Tabs (canonical; team-subnav migrates onto this) ── */
+.tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-mid);
+}
+.tab {
+  font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-muted); background: none; border: none; cursor: pointer;
+  padding: 7px 14px; border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Data table (canonical; leaderboard/research tables migrate onto this) ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.data-table thead th {
+  font-family: var(--font-display); font-size: var(--fs-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text-muted); text-align: left;
+  padding: 6px 10px; border-bottom: 1px solid var(--border-mid);
+  white-space: nowrap;
+}
+.data-table thead th[aria-sort] { cursor: pointer; }
+.data-table thead th[aria-sort="ascending"]::after  { content: " ▲"; color: var(--accent); }
+.data-table thead th[aria-sort="descending"]::after { content: " ▼"; color: var(--accent); }
+.data-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.data-table tbody tr:nth-child(even) { background: var(--table-row-alt); }
+.data-table tbody tr:hover { background: var(--surface-lift); }
+.data-table td.num, .data-table th.num { text-align: right; }
+
+/* ── Loading: skeletons shaped like content (spinners never) ── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+.skeleton {
+  background: var(--surface-lift);
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.skeleton-line { height: 12px; margin: 8px 0; }
+.skeleton-row  { height: 34px; margin: 6px 0; }
+.skeleton-card { height: 120px; }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; opacity: 0.6; }
+}
+
+/* ── Error state (inline, honest, retryable; .empty-state already exists) ── */
+.error-state {
+  font-size: var(--fs-sm); color: var(--text-muted);
+  border: 1px dashed var(--border-mid); border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+}
+.error-state a { color: var(--accent); font-weight: 700; }
+
+/* ── Chart framing: the title is a claim, the subtitle says how to read it ── */
+.chart-claim     { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; }
+.chart-claim-sub { font-size: var(--fs-xs); color: var(--text-muted); margin: 2px 0 10px; }
+
+/* ── DataTable support ── */
+.table-footnote { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.5rem; line-height: 1.55; }
+.filter-inline-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); color: var(--text-muted);
+}
+.filter-inline-label input {
+  padding: 2px 4px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
 }

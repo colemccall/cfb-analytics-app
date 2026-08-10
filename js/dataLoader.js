@@ -125,6 +125,77 @@ async function fetchTeamTransfers(teamId, season = CONFIG.CURRENT_SEASON) {
 }
 
 // ---------------------------------------------------------------------------
+// Shared season-schedule lookups (home page, '26 season hub)
+// ---------------------------------------------------------------------------
+
+// teams.json → { id: team }
+async function fetchTeamsById() {
+  const teams = await _load("teams.json");
+  const map = {};
+  for (const t of teams || []) map[t.id] = t;
+  return map;
+}
+
+// team_ratings.json → { team_id: overall_rating } for one season
+async function fetchTeamOvrMap(season) {
+  const ratings = await _load("team_ratings.json");
+  const map = {};
+  for (const r of ratings || []) {
+    if (r.season === season && r.overall_rating != null) map[r.team_id] = r.overall_rating;
+  }
+  return map;
+}
+
+// Parse "YYYY-MM-DD" as a local date (avoids UTC off-by-one on date-only strings)
+function _localDate(s) {
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// All games of one season, deduped across the per-team file, with team objects
+// and prior-season team OVRs attached. Games missing either team (FCS) keep
+// counting toward firstDate but are excluded from the list.
+// "quality" is the circle-it score: combined OVR, penalized for mismatch —
+// a 92-vs-84 game outranks a 98-vs-85 buy game.
+async function fetchSeasonGames(season, ratingSeason = CONFIG.CURRENT_SEASON) {
+  const [schedules, teams, ovrMap] = await Promise.all([
+    _load(`schedules_${season}.json`),
+    fetchTeamsById(),
+    fetchTeamOvrMap(ratingSeason),
+  ]);
+  if (!schedules) return { games: [], firstDate: null };
+
+  const seen = new Set();
+  const games = [];
+  let firstDate = null;
+  for (const arr of Object.values(schedules)) {
+    for (const g of arr) {
+      if (!g.game_date) continue;
+      const d = _localDate(g.game_date);
+      if (!firstDate || d < firstDate) firstDate = d;
+      if (seen.has(g.game_id)) continue;
+      seen.add(g.game_id);
+      const home = teams[g.home_team_id];
+      const away = teams[g.away_team_id];
+      if (!home || !away) continue;
+      const ho = ovrMap[g.home_team_id] ?? null;
+      const ao = ovrMap[g.away_team_id] ?? null;
+      games.push({
+        game_id: g.game_id,
+        week: g.week,
+        date: d,
+        neutral: !!g.neutral_site,
+        home, away,
+        homeOvr: ho,
+        awayOvr: ao,
+        quality: (ho || 0) + (ao || 0) - 2 * Math.abs((ho || 0) - (ao || 0)),
+      });
+    }
+  }
+  return { games, firstDate };
+}
+
+// ---------------------------------------------------------------------------
 // Single player full profile — used by the modal on any page.
 // ---------------------------------------------------------------------------
 async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {

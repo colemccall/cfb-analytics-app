@@ -92,16 +92,6 @@ function posColor(pg) {
   return CONFIG.POS_COLORS[pg] || CONFIG.POS_COLORS.ATH;
 }
 
-// Trajectory arrow helper
-function trajHtml(score) {
-  if (!score && score !== 0) return '<span class="traj-flat">—</span>';
-  if (score >  5) return `<span class="traj-up2">↑↑ +${score.toFixed(1)}</span>`;
-  if (score >  1) return `<span class="traj-up1">↑ +${score.toFixed(1)}</span>`;
-  if (score < -5) return `<span class="traj-down2">↓↓ ${score.toFixed(1)}</span>`;
-  if (score < -1) return `<span class="traj-down1">↓ ${score.toFixed(1)}</span>`;
-  return '<span class="traj-flat">→</span>';
-}
-
 // Stars display helper
 function starsHtml(n) {
   const filled = "★".repeat(Math.max(0, Math.min(5, n || 0)));

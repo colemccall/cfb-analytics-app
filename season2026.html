@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dynasty-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>'26 Season — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="season26">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
+<!-- ==================== MAIN CONTENT ==================== -->
+<div class="main-content">
+
+<header class="masthead">
+  <div class="masthead-date eyebrow">THE ROAD TO THE PLAYOFF</div>
+  <h1 id="s26-headline">The 2026 season.</h1>
+  <p class="standfirst">
+    The schedule is real; the games aren't played. Everything on this page is either an
+    earned 2025 number or a counted fact — when projections arrive, they will wear the
+    <span class="badge-proj" title="How model projections will be labeled">PROJ</span> badge, never
+    passed off as earned ratings.
+  </p>
+  <div class="coverage-strip" id="s26-facts" style="border-top:none;margin:0;padding:0 0 0.25rem"></div>
+</header>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">25 GAMES TO CIRCLE</span>
+    <span class="section-rule-sub">The whole season, ranked by matchup quality</span>
+  </div>
+  <div id="s26-circle">
+    <div class="skeleton skeleton-row"></div>
+    <div class="skeleton skeleton-row"></div>
+    <div class="skeleton skeleton-row"></div>
+    <div class="skeleton skeleton-row"></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">TEAM SCHEDULES</span>
+    <span class="section-rule-sub">Any team's full 2026 slate</span>
+  </div>
+  <div class="filter-bar" style="margin-bottom:0.75rem">
+    <select id="s26-team-select"></select>
+  </div>
+  <div id="s26-team-schedule"></div>
+</section>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">WHAT'S LIVE, WHAT'S COMING</span>
+    <span class="section-rule-sub">Stated plainly</span>
+  </div>
+  <div class="home-panels" style="padding:0;max-width:none">
+    <div class="home-panel-card">
+      <div class="home-panel-hdr"><span class="home-panel-title">Live now</span></div>
+      <div style="padding:0.9rem 1rem;font-size:var(--fs-sm);line-height:1.7;color:var(--text-muted)">
+        The full 2026 FBS schedule, matchup quality from final-2025 team ratings,
+        every program's 2025 roster, ratings and history — all reachable from the
+        <a href="teams.html" style="color:var(--accent);font-weight:700">team pages</a>.
+      </div>
+    </div>
+    <div class="home-panel-card">
+      <div class="home-panel-hdr"><span class="home-panel-title">Coming — honestly labeled</span></div>
+      <div style="padding:0.9rem 1rem;font-size:var(--fs-sm);line-height:1.7;color:var(--text-muted)">
+        Projected 2026 player and team ratings (always wearing
+        <span class="badge-proj">PROJ</span>), then game-by-game win probabilities and
+        playoff odds — published only alongside their backtest against the 2024 and
+        2025 seasons. A model that can't show its backtest doesn't ship.
+        <a href="info.html" style="color:var(--accent);font-weight:700">How the numbers work →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dataTable.js"></script>
+<script src="js/season2026.js"></script>
+<script>
+  initSeason2026();
+</script>
+</div><!-- /.main-content -->
+</body>
+</html>

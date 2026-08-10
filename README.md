@@ -18,7 +18,7 @@ The app surfaces EDGE ratings — opponent-adjusted per-game production scores �
 
 | Page | URL | What it does |
 |------|-----|-------------|
-| Home | `index.html` | Top-rated teams and players at a glance; animated hero |
+| Home | `index.html` | Editorial front door — computed storylines (risers, breakouts, hidden gems), the opening slate, research headlines. Every number is computed from `data/` at load time |
 | Players | `players.html` | Search + filter 1,000+ players; click for full modal with stats, SHAP breakdown, similar players |
 | Teams | `teams.html` | Team ratings with sub-scores (pass offense, run defense, etc.); roster depth chart; schedule |
 | Ratings | `ratings.html` | Scatter plot — Rating vs. Recruiting Stars with regression line; green dots = overperformers |
@@ -53,9 +53,10 @@ python -m http.server 8000
 Every page loads scripts in this order:
 
 ```text
-1. js/config.js       — CONFIG object, getRatingTier(), ratingColor(), starsHtml() globals
-2. js/dataLoader.js   — fetchAllPlayers(), fetchPlayerStats(), fetchTeams(), fetchAllRatings()
-3. [page-specific]    — playerSearch.js, ratingsDisplay.js, etc.
+1. js/config.js       — CONFIG object, getRatingTier(), ratingColor(), entity links
+2. js/dataLoader.js   — fetchAllPlayers(), fetchPlayerStats(), fetchTeams(), _load() cache
+3. js/ui.js           — design-system render helpers (pills, chips, states) — pages adopt incrementally
+4. [page-specific]    — playerSearch.js, ratingsDisplay.js, home.js, etc.
 ```
 
 `config.js` must load first — all other scripts depend on `CONFIG`.
@@ -124,7 +125,38 @@ CSS variables are defined per-theme in `css/styles.css`. The theme swatch button
 | File | Contents |
 |------|----------|
 | `css/styles.css` | Design tokens (CSS vars), layout (sidebar + main), typography, theme definitions |
-| `css/components.css` | All component classes — cards, modals, tabs, scatter plot, research/info page sections |
+| `css/components.css` | All component classes — cards, modals, tabs, scatter plot, research/info page sections, and the design-system primitives block at the end |
+
+---
+
+## Design System Primitives ("Press Box")
+
+Reusable building blocks live in two places and pages adopt them incrementally
+(home page first — other pages migrate as they're touched):
+
+- **Tokens** — `css/styles.css` `:root`: semantic colors (`--projected`, `--delta-up/down`),
+  motion (`--t-fast/base/slow`), extended type scale (`--fs-3xl`, `--fs-num-lg`).
+  Per-theme overrides live in the `[data-theme]` blocks. No hex values outside tokens
+  and the two domain palettes (rating tiers + position colors in `config.js`).
+- **CSS primitives** — end of `css/components.css`: `.ovr-badge` (canonical rating pill),
+  `.delta-chip`, `.badge-proj` + `.is-projected` hatch, `.context-strip`, `.compare-pair`,
+  `.tabs`/`.tab`, `.data-table`, `.skeleton*`, `.empty-state`/`.error-state`,
+  `.eyebrow`/`.section-rule`, `.story-card`, `.chart-claim`.
+- **Render helpers** — `js/ui.js`: `ovrPill()`, `posBadge()`, `deltaChip()`, `projBadge()`,
+  `contextStrip()`, `comparePair()`, `statBig()`, `storyCard()`, `sparkline()`,
+  `skeletonRows()`, `emptyState()`, `errorState()`. Pages call these instead of
+  hand-writing pill/chip markup.
+
+House rules the primitives enforce:
+
+1. **No naked numbers** — big numerals (`statBig`) require context; ratings render as
+   tier-colored pills with a `title`.
+2. **Movement has a number** — `deltaChip` always shows arrow + signed value.
+3. **Provenance is visible** — projected/model values pass `projected: true` and pick up
+   the hatch + `PROJ` badge; never mixed silently with earned ratings.
+4. **Escape by default** — all data strings route through `_esc()`.
+5. **Loading is skeletons** (shaped like content), **empty states say why**, **errors are
+   inline and honest**. Spinners never.
 
 ---
 

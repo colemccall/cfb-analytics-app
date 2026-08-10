@@ -323,19 +323,17 @@ function playerRowHtml(p, rank) {
   return `
     <div class="draft-row animate-up" data-id="${p.id}" data-season="${p.season || ''}" data-rating="${p.overall_rating || 0}"
          style="background:${rowTint};border-left-color:${ovrColor}">
-      <div class="draft-rank ${rankCls}">${rank + 1}</div>
-      <div class="draft-pos">
-        <span class="pos-group-badge" style="background:${posClr}">${pg}</span>
-      </div>
-      <div class="draft-name" title="${p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name}">
-        <span class="player-name-text">${p.name}${breakout}</span>
+      <div class="draft-rank rank-num ${rankCls}">${rank + 1}</div>
+      <div class="draft-pos">${posBadge(pg)}</div>
+      <div class="draft-name" title="${_esc(p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name)}">
+        <span class="player-name-text">${_esc(p.name)}${breakout}</span>
       </div>
       <div class="draft-team">${teamLink(p.team, { season: p.season })}</div>
-      <div class="draft-yr-conf">${yr} · ${p.conference || "—"}</div>
+      <div class="draft-yr-conf">${yr} · ${_esc(p.conference || "—")}</div>
       <div class="draft-stars">${starsStr}</div>
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
-      <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor};color:${ratingTextColor(ovrColor)}">${ovr || "—"}</span></div>
+      <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${p.season}` })}</div>
       <div class="draft-traj">${projHtml(p.player_season_id)}</div>
       <div class="draft-edge">${oap}</div>
     </div>`;
@@ -385,7 +383,9 @@ async function openPlayerModal(playerId, seasonOverride) {
   document.body.style.overflow = "hidden";
   bindModalClose(modal);
 
-  // Fetch profile + stats + history + similar + transfers + trajectory in parallel
+  // Fetch profile + stats + history + similar + transfers + trajectory in parallel.
+  // buildEdgePercentiles primes the EDGE-context cache so the modal can place
+  // the player's EDGE on its position distribution.
   const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap, trajectoryMap] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
@@ -394,6 +394,7 @@ async function openPlayerModal(playerId, seasonOverride) {
     loadSimilarPlayers(season).catch(() => ({})),
     loadPlayerTransfers().catch(() => ({})),
     loadTrajectory().catch(() => ({})),
+    buildEdgePercentiles(season).catch(() => ({})),
   ]);
 
   if (!player) {
@@ -465,7 +466,6 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       <span title="Weight">${player.weight_lbs ? player.weight_lbs + " lbs" : "—"}</span>
       <span class="bio-sep">·</span>
       <span title="Hometown">${player.hometown_state || "—"}</span>
-      ${player.trajectory ? `<span class="bio-sep">·</span><span class="${player.trajectory > 0 ? 'traj-up' : 'traj-down'}">${player.trajectory > 0 ? "▲" : "▼"} ${Math.abs(player.trajectory).toFixed(1)} traj</span>` : ""}
       ${player.breakout_prob >= 0.35 ? `<span class="bio-sep">·</span><span title="Breakout candidate">🔥 Breakout ${(player.breakout_prob * 100).toFixed(0)}%</span>` : ""}
     </div>`;
 
@@ -492,6 +492,12 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     const edgeVal = player.edge_score.toFixed(2);
     const gp      = player.games_played != null ? player.games_played : "—";
     const sm      = player.stats_measured != null ? player.stats_measured : "—";
+    // Place the raw EDGE on its position distribution — raw EDGE alone is not
+    // comparable across positions, the percentile is.
+    const edgePct = _edgePctBySeason[player.season]?.[player.player_season_id];
+    const stripHtml = edgePct != null
+      ? `<div style="margin-top:8px">${contextStrip(edgePct, `${edgePct}th percentile among ${pg}s in ${player.season}`)}</div>`
+      : "";
     edgeHtml = `
       <div class="modal-section">
         <div class="modal-section-title">EDGE Score</div>
@@ -500,6 +506,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
           <div class="stat-block"><span class="stat-val">${gp}</span><span class="stat-label">Games</span></div>
           <div class="stat-block"><span class="stat-val">${sm}</span><span class="stat-label">Stats Measured</span></div>
         </div>
+        ${stripHtml}
         <p class="breakdown-note" style="margin-top:6px">Opponent-adjusted production per √games. Higher = more impactful vs stronger competition.</p>
       </div>`;
   }
@@ -615,7 +622,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     const deltaStr = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
     trajectoryHtml = `
       <div class="modal-section">
-        <div class="modal-section-title">Next Season Projection (Engine D)</div>
+        <div class="modal-section-title">Next Season Projection (Engine D) ${projBadge()}</div>
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div style="text-align:center">
             <div style="font-size:2rem;font-weight:900;color:${color}">${icon} ${Math.round(pred)}</div>

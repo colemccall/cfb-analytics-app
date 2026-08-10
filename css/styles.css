@@ -46,6 +46,27 @@
   --sidebar-width: 220px;
   --hero-border:  2px solid var(--accent);
   --table-row-alt: rgba(255,255,255,0.02);
+
+  /* ── Semantic extensions (design system v3) ─────────────────────────────
+     projected: model output that is NOT an earned rating — always paired with
+     the .is-projected hatch or a PROJ badge so provenance is never color-only.
+     delta-*: movement colors (aliases of positive/negative today; split later
+     if performance-color and movement-color ever need to diverge). */
+  --projected:      #8f7ce8;
+  --projected-dim:  rgba(143,124,232,0.14);
+  --delta-up:       var(--positive);
+  --delta-down:     var(--negative);
+
+  /* Motion tokens — hover / enter / drawer. Decorative motion is banned;
+     these exist so real motion is consistent. */
+  --t-fast: 120ms;
+  --t-base: 240ms;
+  --t-slow: 360ms;
+
+  /* Type-scale extensions: page heroes and the one sanctioned big numeral
+     (which must always ship with a context device — see components.css). */
+  --fs-3xl:    40px;
+  --fs-num-lg: 34px;
 }
 
 [data-theme="mid"] {
@@ -89,6 +110,8 @@
   --shadow-lg:    0 6px 24px rgba(12,26,48,0.14);
   --shadow-glow:  0 4px 20px rgba(26,74,138,0.08);
   --table-row-alt: rgba(26,74,138,0.025);
+  --projected:     #5b4bc4;
+  --projected-dim: rgba(91,75,196,0.10);
 }
 
 /* ── Reset & base ── */
@@ -333,13 +356,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .card-footer { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; flex-wrap: wrap; }
 .archetype-label { font-size: var(--fs-xs); color: var(--accent); font-weight: 600; opacity: 0.85; }
 
-/* ── OVR badge & pos badge ── */
-.ovr {
-  display: inline-block; width: 32px; text-align: center;
-  padding: 2px 4px; border-radius: var(--radius-sm);
-  font-weight: 700; font-size: 11px; font-family: var(--num-font);
-  color: #000;
-}
+/* ── Pos badge ── */
 .pos-badge {
   display: inline-block; background: var(--surface-deep); padding: 2px 7px;
   border-radius: var(--radius-sm); font-size: var(--fs-xs); font-weight: 700;
@@ -444,22 +461,9 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 }
 .team-hero-meta { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 5px; }
 
-/* ── Team subnav ── */
-.team-subnav {
-  display: flex; gap: 2px; margin-bottom: 18px;
-  padding: 4px 0; border-bottom: 1px solid var(--border);
-}
-.team-subnav-btn {
-  padding: 6px 16px; font-size: var(--fs-sm); font-weight: 500;
-  cursor: pointer; color: var(--text-muted); border-radius: var(--radius-sm);
-  border: none; background: transparent; font-family: var(--font-ui);
-  transition: color 0.15s, background 0.15s;
-}
-.team-subnav-btn:hover { color: var(--text); background: var(--surface-lift); }
-.team-subnav-btn.active {
-  background: var(--accent-dim); color: var(--accent); font-weight: 600;
-  border-bottom: 2px solid var(--accent);
-}
+/* Team detail tabs use the canonical .tabs/.tab primitives (components.css).
+   The tab bar itself needs breathing room under the hero: */
+#team-subnav { margin-bottom: 18px; }
 
 /* ── Depth chart ── */
 .depth-section { margin-bottom: 20px; }
@@ -1213,10 +1217,17 @@ td.num, th.num { font-family: var(--num-font); text-align: right; font-variant-n
 .history-table tbody tr:hover { background: var(--surface-hover); }
 .hist-season { font-weight: 700; color: var(--accent); }
 .hist-record, .hist-sp { font-variant-numeric: tabular-nums; }
+/* Canonical rating pill — the single way an OVR appears anywhere.
+   Fill + text color are set inline via ratingColor()/ratingTextColor()
+   (luminance-guarded #111/#fff). */
 .ovr-badge {
   display: inline-block;
-  padding: 0.15rem 0.55rem;
+  min-width: 30px;
+  text-align: center;
+  padding: 0.15rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

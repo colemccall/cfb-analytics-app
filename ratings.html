@@ -9,30 +9,9 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
-<body>
-
-<!-- ==================== SIDEBAR ==================== -->
-<aside class="sidebar">
-  <nav class="sidebar-nav">
-    <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
-    <a href="players.html"  class="snav-item"><span class="snav-icon">👤</span> Players</a>
-    <a href="teams.html"    class="snav-item"><span class="snav-icon">🏟</span> Teams</a>
-    <a href="ratings.html"  class="snav-item active"><span class="snav-icon">📊</span> Ratings</a>
-    <a href="research.html" class="snav-item"><span class="snav-icon">🔬</span> Research</a>
-    <a href="info.html"     class="snav-item"><span class="snav-icon">ℹ</span> How It Works</a>
-  </nav>
-  <div class="sidebar-bottom">
-    <div>
-      <div class="sidebar-theme-label">Theme</div>
-      <div class="theme-swatches">
-        <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
-        <button class="theme-swatch" data-theme="mid" title="Slate"></button>
-        <button class="theme-swatch" data-theme="light" title="Light"></button>
-      </div>
-    </div>
-    <div class="sidebar-version">v2.0.1</div>
-  </div>
-</aside>
+<body data-page="ratings">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
 <!-- ==================== MAIN CONTENT ==================== -->
 <div class="main-content">
 
@@ -53,13 +32,22 @@
   <div id="pos-filter-bar" class="position-tabs" style="margin-bottom:1rem"></div>
 
   <div class="scatter-section">
-    <h2>Rating vs Recruiting Stars</h2>
+    <h2>Where production breaks from recruiting hype</h2>
     <p class="section-sub">
       Players above the dashed trend line outperform their recruiting ranking — the "hidden gems" the model identifies.
       Green dots = 8+ OVR above trend. Click any dot to open the player profile.
     </p>
     <div id="scatter-chart"></div>
   </div>
+
+  <section class="ratings-board-section" style="margin-top:2rem">
+    <div class="section-rule">
+      <span class="eyebrow">POSITION LEADERBOARDS</span>
+      <span class="section-rule-sub">Top 50 per position group — click any player for the full breakdown</span>
+    </div>
+    <div id="board-pos-tabs" class="tabs" style="margin-bottom:0.75rem"></div>
+    <div id="position-board"></div>
+  </section>
 </div>
 
 <div id="player-modal" class="modal">
@@ -68,42 +56,25 @@
 
 </div><!-- /.main-content -->
 
-<!-- ==================== MOBILE NAV ==================== -->
-<nav class="mobile-tab-bar" aria-label="Mobile navigation">
-  <div class="mobile-tab-bar-inner">
-    <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>
-    <a href="players.html"  class="mobile-tab-btn"><span class="tab-icon">👤</span>Players</a>
-    <a href="teams.html"    class="mobile-tab-btn"><span class="tab-icon">🏟</span>Teams</a>
-    <a href="ratings.html"  class="mobile-tab-btn active"><span class="tab-icon">📊</span>Ratings</a>
-    <a href="research.html" class="mobile-tab-btn"><span class="tab-icon">🔬</span>Research</a>
-  </div>
-</nav>
-
 <!-- ==================== SCRIPTS ==================== -->
-<script src="js/config.js"></script>
 <script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dataTable.js"></script>
 <script src="js/playerSearch.js"></script>
 <script src="js/ratingsDisplay.js"></script>
 <script>
-  const _savedTheme = localStorage.getItem("cfb-theme");
-  if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
-  document.querySelectorAll(".theme-swatch").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const t = btn.dataset.theme;
-      document.documentElement.setAttribute("data-theme", t);
-      localStorage.setItem("cfb-theme", t);
-    });
-  });
-
   fillSeasonSelect(document.getElementById("ratings-season-select"), CONFIG.CURRENT_SEASON);
 
   document.getElementById("ratings-season-select").addEventListener("change", async e => {
     _filterPos  = "ALL";
     _filterTeam = "ALL";
-    await initRatings(parseInt(e.target.value));
+    const season = parseInt(e.target.value);
+    await initRatings(season);
+    await initPositionBoard(season);
   });
 
   initRatings();
+  initPositionBoard();
 </script>
 </body>
 </html>

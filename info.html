@@ -9,30 +9,9 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
-<body>
-
-<!-- ==================== SIDEBAR ==================== -->
-<aside class="sidebar">
-  <nav class="sidebar-nav">
-    <a href="index.html"    class="snav-item"><span class="snav-icon">⬡</span> Home</a>
-    <a href="players.html"  class="snav-item"><span class="snav-icon">👤</span> Players</a>
-    <a href="teams.html"    class="snav-item"><span class="snav-icon">🏟</span> Teams</a>
-    <a href="ratings.html"  class="snav-item"><span class="snav-icon">📊</span> Ratings</a>
-    <a href="research.html" class="snav-item"><span class="snav-icon">🔬</span> Research</a>
-    <a href="info.html"     class="snav-item active"><span class="snav-icon">ℹ</span> How It Works</a>
-  </nav>
-  <div class="sidebar-bottom">
-    <div>
-      <div class="sidebar-theme-label">Theme</div>
-      <div class="theme-swatches">
-        <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
-        <button class="theme-swatch" data-theme="mid" title="Slate"></button>
-        <button class="theme-swatch" data-theme="light" title="Light"></button>
-      </div>
-    </div>
-    <div class="sidebar-version">v2.0.1</div>
-  </div>
-</aside>
+<body data-page="info">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
 <!-- ==================== MAIN CONTENT ==================== -->
 <div class="main-content">
 
@@ -384,30 +363,5 @@
 </div>
 
 </div><!-- /.main-content -->
-
-<!-- ==================== MOBILE NAV ==================== -->
-<nav class="mobile-tab-bar" aria-label="Mobile navigation">
-  <div class="mobile-tab-bar-inner">
-    <a href="index.html"    class="mobile-tab-btn"><span class="tab-icon">⬡</span>Home</a>
-    <a href="players.html"  class="mobile-tab-btn"><span class="tab-icon">👤</span>Players</a>
-    <a href="teams.html"    class="mobile-tab-btn"><span class="tab-icon">🏟</span>Teams</a>
-    <a href="ratings.html"  class="mobile-tab-btn"><span class="tab-icon">📊</span>Ratings</a>
-    <a href="research.html" class="mobile-tab-btn"><span class="tab-icon">🔬</span>Research</a>
-  </div>
-</nav>
-
-<!-- ==================== SCRIPTS ==================== -->
-<script src="js/config.js"></script>
-<script>
-  const _savedTheme = localStorage.getItem("cfb-theme");
-  if (_savedTheme) document.documentElement.setAttribute("data-theme", _savedTheme);
-  document.querySelectorAll(".theme-swatch").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const t = btn.dataset.theme;
-      document.documentElement.setAttribute("data-theme", t);
-      localStorage.setItem("cfb-theme", t);
-    });
-  });
-</script>
 </body>
 </html>

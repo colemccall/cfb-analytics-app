@@ -1,4 +1,5 @@
-// Ratings dashboard — scatter plot with team/position filters. No leaderboard list.
+// Ratings page — the talent-vs-production scatter plus per-position
+// leaderboards (top 50 per group, from ratings_by_position_{season}.json).
 
 let _ratingsAllPlayers = [];
 let _ratingSeason = CONFIG.CURRENT_SEASON;
@@ -184,6 +185,75 @@ function renderScatterPlot(players) {
 
   // Tooltip + click
   const tt = container.querySelector("#scatter-tooltip");
+  _bindScatterDots(container, tt);
+}
+
+// ---------------------------------------------------------------------------
+// Position leaderboards — top 50 per position group, straight from the
+// pipeline's ratings_by_position export. This is the "Full Leaderboard" the
+// home page links to.
+// ---------------------------------------------------------------------------
+
+let _boardPos = "QB";
+let _boardSeason = CONFIG.CURRENT_SEASON;
+let _boardData = null;
+
+async function initPositionBoard(season) {
+  if (season !== undefined) _boardSeason = season;
+  const container = document.getElementById("position-board");
+  const tabsEl = document.getElementById("board-pos-tabs");
+  if (!container || !tabsEl) return;
+
+  container.innerHTML = skeletonRows(8);
+  _boardData = await _load(`ratings_by_position_${_boardSeason}.json`);
+  if (!_boardData || !Object.keys(_boardData).length) {
+    tabsEl.innerHTML = "";
+    container.innerHTML = emptyState(`No position leaderboard for ${_boardSeason} — run pipeline script 12.`);
+    return;
+  }
+
+  const positions = CONFIG.POSITIONS.filter(p => (_boardData[p] || []).length);
+  if (!positions.includes(_boardPos)) _boardPos = positions[0];
+
+  tabsEl.innerHTML = positions.map(p =>
+    `<button class="tab${p === _boardPos ? " active" : ""}" data-pos="${p}">${p}</button>`).join("");
+  tabsEl.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabsEl.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _boardPos = btn.dataset.pos;
+      _renderPositionBoard(container);
+    });
+  });
+
+  _renderPositionBoard(container);
+}
+
+function _renderPositionBoard(container) {
+  const rows = (_boardData[_boardPos] || []).map((r, i) => ({ ...r, rank: i + 1 }));
+  const yearLabels = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" };
+
+  createDataTable(container, {
+    rows,
+    sort: { key: "rank", asc: true },
+    footnote: `Top ${rows.length} ${_esc(_boardPos)}s of ${_boardSeason} by overall rating. 🔥 = breakout candidate (Engine D probability ≥ 35%).`,
+    empty: "No rated players at this position for this season.",
+    columns: [
+      { key: "rank", label: "#", num: true,
+        fmt: (v) => `<span class="rank-num ${v <= 3 ? "top3" : v <= 10 ? "top10" : ""}">${v}</span>` },
+      { key: "name", label: "Player",
+        fmt: (v, r) => `${playerLink(r.id, v, { season: _boardSeason })}${r.breakout_prob >= 0.35 ? " 🔥" : ""}` },
+      { key: "team", label: "Team", fmt: (v) => v ? teamLink(v, { season: _boardSeason }) : "—" },
+      { key: "conference", label: "Conf", fmt: v => _esc(v || "—") },
+      { key: "year", label: "Yr", fmt: v => yearLabels[v] || "—" },
+      { key: "stars", label: "Recruit", fmt: v => v ? starsHtml(v) : "—" },
+      { key: "overall", label: "OVR", num: true,
+        fmt: v => ovrPill(v, { label: `Overall rating, ${_boardSeason}` }) },
+    ],
+  });
+}
+
+function _bindScatterDots(container, tt) {
   container.querySelectorAll(".scatter-dot").forEach(dot => {
     dot.style.cursor = "pointer";
     dot.addEventListener("mouseenter", e => {
