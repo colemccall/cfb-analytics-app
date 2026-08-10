@@ -603,7 +603,7 @@
         <tr>
           <td style="color:var(--text-muted)">${wkLabel}</td>
           <td style="color:var(--text-muted)">${dateStr}</td>
-          <td>${site} <strong>${g.opponent || "TBD"}</strong>${g.neutral_site ? " <small>(N)</small>" : ""}</td>
+          <td>${site} <strong>${g.opponent ? teamLink(g.opponent, { season: _currentSeason }) : "TBD"}</strong>${g.neutral_site ? " <small>(N)</small>" : ""}</td>
           <td>${result}</td>
         </tr>`;
     }).join("");
@@ -651,9 +651,9 @@
       }
 
       return `<tr>
-        <td class="name-col">${t.name || "—"}</td>
+        <td class="name-col">${t.player_id ? playerLink(t.player_id, t.name, { season: _currentSeason }) : (t.name || "—")}</td>
         <td>${t.position_group || "—"}</td>
-        <td>${otherSchool || "—"}</td>
+        <td>${otherSchool ? teamLink(otherSchool, { season: _currentSeason }) : "—"}</td>
         <td>${ovrCell}</td>
         <td style="color:var(--text-muted);font-size:0.8rem">${t.portal_date || "—"}</td>
       </tr>`;

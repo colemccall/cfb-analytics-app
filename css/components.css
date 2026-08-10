@@ -702,3 +702,23 @@ a.research-card--live .finding-stat { color: var(--accent); }
   .home-hero-actions { flex-direction: column; }
   .home-hero-actions .btn { text-align: center; }
 }
+
+/* ── Entity links ─────────────────────────────────────────────────────────
+   Team and player references anywhere in the app. Deliberately subtle: these
+   appear inside dense tables and grids, so they read as text until hovered.  */
+.entity-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+  transition: color 0.12s ease, border-color 0.12s ease;
+  cursor: pointer;
+}
+.entity-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.entity-link--team { white-space: nowrap; }
+.entity-logo {
+  width: 14px; height: 14px; object-fit: contain;
+  vertical-align: -2px; margin-right: 5px;
+}

@@ -69,7 +69,12 @@ function _renderTeamPerfTable(section) {
   if (!tableContainer) return;
 
   const cols = [
-    { key: "school",                 label: "School",    fmt: (v, r) => r.talent_imputed ? `${v} <span class="badge-imputed" title="Talent estimated from conference median">est</span>` : v },
+    { key: "school",                 label: "School",    fmt: (v, r) => {
+        const link = teamLink(v, { season: r.season });
+        return r.talent_imputed
+          ? `${link} <span class="badge-imputed" title="Talent estimated from conference median">est</span>`
+          : link;
+      } },
     { key: "season",                 label: "Season",    fmt: v => v },
     { key: "conference",             label: "Conf",      fmt: v => v || "—" },
     { key: "talent_normalized",      label: "Talent",    fmt: v => v != null ? v.toFixed(1) : "—" },
@@ -201,7 +206,7 @@ function _renderBreakoutTable(section) {
   const labelColors = { breakout: "#2ecc71", decline: "#e74c3c", steady: "var(--text-muted)" };
 
   const cols = [
-    { key: "name",              label: "Player",      fmt: v => v || "—" },
+    { key: "name",              label: "Player",      fmt: (v, r) => playerLink(r.player_id, v, { season: r.season }) },
     { key: "position_group",    label: "Pos",         fmt: v => v || "—" },
     { key: "current_ovr",       label: "Curr OVR",    fmt: v => v != null ? v.toFixed(1) : "—" },
     { key: "predicted_ovr",     label: "Pred OVR",    fmt: v => v != null ? v.toFixed(1) : "—" },
@@ -219,7 +224,7 @@ function _renderBreakoutTable(section) {
     const color = labelColors[r.trajectory_label] || "var(--text-primary)";
     const cells = cols.map(c => {
       const v = r[c.key];
-      let display = c.fmt(v);
+      let display = c.fmt(v, r);
       if (c.key === "delta" && v != null) {
         display = `<span style="color:${color};font-weight:700">${display}</span>`;
       }
@@ -323,7 +328,7 @@ function _renderRecRoiTable(section) {
   if (!tableContainer) return;
 
   const cols = [
-    { key: "school",              label: "School",       fmt: (v, r) => v },
+    { key: "school",              label: "School",       fmt: (v, r) => teamLink(v, { season: r.recruit_year }) },
     { key: "recruit_year",        label: "Class",        fmt: (v, r) => r.maturing
         ? `${v} <span class="badge-maturing" title="Class still developing (< 3 seasons)">dev</span>`
         : String(v) },

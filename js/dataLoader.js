@@ -51,11 +51,23 @@ async function fetchPlayers(options = {}) {
 // Teams
 // ---------------------------------------------------------------------------
 async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
-  const [teams, teamRatings] = await Promise.all([
+  const [teams, teamRatings, history] = await Promise.all([
     _load("teams.json"),
     _load("team_ratings.json"),
+    _load("team_history.json"),
   ]);
   if (!teams) return [];
+
+  // teams.json carries only the CURRENT conference, so viewing an older season
+  // would label every team with its 2025 home — Texas in the SEC in 2013, a
+  // 12-team Pac-12 that no longer exists. team_history has the per-season value.
+  const confBySeason = {};
+  if (history) {
+    for (const [teamId, seasons] of Object.entries(history)) {
+      const row = (seasons || []).find(s => s.season == season);
+      if (row?.conference) confBySeason[teamId] = row.conference;
+    }
+  }
 
   const teamRatingsMap = {};
   if (teamRatings) {
@@ -74,6 +86,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
     const teamRating = teamRatingsMap[t.id] || {};
     return {
       ...t,
+      conference:     confBySeason[String(t.id)] || t.conference,
       overall_rating: teamRating.ovr || null,
       offense_rating: teamRating.off || null,
       defense_rating: teamRating.def || null,

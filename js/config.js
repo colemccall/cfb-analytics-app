@@ -190,3 +190,69 @@ function fillSeasonSelect(el, selected = CONFIG.CURRENT_SEASON) {
     `<option value="${y}"${y === Number(selected) ? " selected" : ""}>${y}</option>`
   ).join("");
 }
+
+// ---------------------------------------------------------------------------
+// Entity links — every team and player reference in the app routes through
+// these, so a team name means the same thing (and is clickable) everywhere it
+// appears: grids, modals, research tables, schedules, transfers, rosters.
+// ---------------------------------------------------------------------------
+
+function _esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function teamHref(school, season) {
+  const q = new URLSearchParams({ team: school ?? "" });
+  if (season) q.set("season", season);
+  return `teams.html?${q}`;
+}
+
+// Renders a team as a link. Pass logo:true to prefix the team mark.
+function teamLink(school, { season, logo, cls = "" } = {}) {
+  if (!school) return '<span class="muted">—</span>';
+  const img = logo ? `<img class="entity-logo" src="${_esc(logo)}" alt="" loading="lazy">` : "";
+  return `<a class="entity-link entity-link--team ${cls}" href="${teamHref(school, season)}"
+             title="View ${_esc(school)}">${img}${_esc(school)}</a>`;
+}
+
+function playerHref(playerId, season) {
+  const q = new URLSearchParams({ player: playerId });
+  if (season) q.set("season", season);
+  return `players.html?${q}`;
+}
+
+// Renders a player as a link. On pages that host the modal the delegated
+// handler below opens it in place; elsewhere the href navigates, so the link
+// works either way.
+function playerLink(playerId, name, { season, cls = "" } = {}) {
+  if (!playerId) return _esc(name || "—");
+  return `<a class="entity-link entity-link--player ${cls}" href="${playerHref(playerId, season)}"
+             data-player-id="${_esc(playerId)}" data-player-season="${_esc(season ?? "")}"
+             >${_esc(name || "Player")}</a>`;
+}
+
+// One delegated listener per page, installed automatically below. Intercepts
+// player links only when this page can actually show the modal; otherwise the
+// plain href navigation stands.
+function initEntityLinks() {
+  if (window._entityLinksBound) return;
+  window._entityLinksBound = true;
+  document.addEventListener("click", ev => {
+    const a = ev.target.closest("a.entity-link--player[data-player-id]");
+    if (!a) return;
+    if (typeof openPlayerModal !== "function" || !document.getElementById("player-modal")) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;  // let new-tab through
+    ev.preventDefault();
+    const season = a.dataset.playerSeason ? Number(a.dataset.playerSeason) : undefined;
+    openPlayerModal(Number(a.dataset.playerId), season);
+  });
+}
+
+// Delegated entity-link handling is page-agnostic, so install it once here
+// rather than requiring every page to remember the call.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initEntityLinks);
+} else {
+  initEntityLinks();
+}

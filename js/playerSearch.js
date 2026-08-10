@@ -83,11 +83,6 @@ const CAREER_FIELDS = {
 };
 
 // All known conferences — populated on first load
-const _CONFERENCES = [
-  "ACC","American Athletic","Big 12","Big Ten","Conference USA",
-  "FBS Independents","Mid-American","Mountain West","Pac-12","SEC","Sun Belt",
-];
-
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
@@ -95,7 +90,7 @@ const _CONFERENCES = [
 async function initPlayerSearch() {
   buildPosChips();
   fillSeasonSelect(document.getElementById("filter-season"), _activeFilters.season);
-  populateConferenceOptions();
+  await populateConferenceOptions();
   bindFilterEvents();
   await fetchAndRender();
 }
@@ -112,6 +107,9 @@ async function fetchAndRender() {
   const grid = document.getElementById("player-grid");
   const { position, conference, season } = _activeFilters;
   grid.innerHTML = '<p class="empty-state">Loading…</p>';
+  // Prime the caches the row renderer reads synchronously — the PROJ and EDGE
+  // columns would otherwise render dashes on first paint.
+  await Promise.all([loadTrajectory(), buildEdgePercentiles(season)]);
   try {
     if (position && position !== "ALL") {
       const limit = POS_LIMITS[position] || 150;
@@ -172,14 +170,61 @@ function buildPosChips() {
   if (defRow) DEF_POS.forEach(p => defRow.appendChild(makeChip(p)));
 }
 
-function populateConferenceOptions() {
+// EDGE percentile within position group, computed once per season from the full
+// season roster. Raw edge_score is position-specific by construction — QBs
+// accumulate ~1,600 and linebackers ~65 — so showing raw values side by side in
+// one column invites a comparison that isn't valid. Percentile is.
+let _edgePctBySeason = {};
+
+async function buildEdgePercentiles(season) {
+  if (_edgePctBySeason[season]) return _edgePctBySeason[season];
+  const players = await fetchAllPlayers(season).catch(() => []);
+  const byPos = {};
+  for (const p of players) {
+    if (p.edge_score == null) continue;
+    (byPos[p.position_group] ||= []).push(p.edge_score);
+  }
+  for (const pos in byPos) byPos[pos].sort((a, b) => a - b);
+
+  const map = {};
+  for (const p of players) {
+    if (p.edge_score == null) continue;
+    const arr = byPos[p.position_group];
+    let lo = 0, hi = arr.length;
+    while (lo < hi) {                       // first index >= edge_score
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] < p.edge_score) lo = mid + 1; else hi = mid;
+    }
+    map[p.player_season_id] = arr.length > 1
+      ? Math.round((lo / (arr.length - 1)) * 100)
+      : 50;
+  }
+  _edgePctBySeason[season] = map;
+  return map;
+}
+
+// Conferences are derived from the season being viewed, not from a fixed list.
+// Realignment makes a static list wrong for most of the archive: the Pac-12 has
+// 2 members in 2025 and 12 in 2013, and the Big East, WAC, and independents all
+// come and go. Reading the season's own players is the only accurate source.
+async function populateConferenceOptions(season = _activeFilters.season) {
   const confSelect = document.getElementById("filter-conference");
   if (!confSelect) return;
-  _CONFERENCES.forEach(c => {
-    const opt = document.createElement("option");
-    opt.value = c; opt.textContent = c;
-    confSelect.appendChild(opt);
-  });
+
+  const players = await fetchAllPlayers(season).catch(() => []);
+  const confs = [...new Set(players.map(p => p.conference).filter(Boolean))].sort();
+  const previous = _activeFilters.conference;
+
+  confSelect.innerHTML = `<option value="">All Conferences</option>` +
+    confs.map(c => `<option value="${c}">${c}</option>`).join("");
+
+  // Keep the current filter if that conference still existed this season,
+  // otherwise fall back to All rather than silently showing nothing.
+  if (previous && confs.includes(previous)) {
+    confSelect.value = previous;
+  } else if (previous) {
+    _activeFilters.conference = "";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -215,8 +260,10 @@ function bindFilterEvents() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => { _activeFilters.query = e.target.value; applyClientFilters(); }, 200);
   });
-  document.getElementById("filter-season")?.addEventListener("change", e => {
+  document.getElementById("filter-season")?.addEventListener("change", async e => {
     _activeFilters.season = parseInt(e.target.value);
+    // Conference membership is season-specific, so rebuild the list before rendering.
+    await populateConferenceOptions(_activeFilters.season);
     fetchAndRender();
   });
 }
@@ -237,7 +284,7 @@ function renderGrid() {
     <span>#</span><span>POS</span><span>Player</span>
     <span>Team</span><span>Yr / Conf</span><span>Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
-    <span style="text-align:center">OVR</span><span style="text-align:center">Traj</span><span style="text-align:center">EDGE</span>
+    <span style="text-align:center">OVR</span><span style="text-align:center" title="Engine D projected change in OVR next season">Proj</span><span style="text-align:center" title="EDGE percentile within position group — raw EDGE is not comparable across positions">EDGE %</span>
   </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Sortable column headers
@@ -246,9 +293,13 @@ function renderGrid() {
     grid.querySelector("#player-grid-rows")
   );
 
-  // Attach click handlers
+  // Row opens the player modal — except when the click landed on an entity link
+  // (the team cell), which should navigate to that team instead.
   grid.querySelectorAll(".draft-row").forEach(row => {
-    row.addEventListener("click", () => openPlayerModal(parseInt(row.dataset.id), parseInt(row.dataset.season)));
+    row.addEventListener("click", ev => {
+      if (ev.target.closest("a.entity-link")) return;
+      openPlayerModal(parseInt(row.dataset.id), parseInt(row.dataset.season));
+    });
   });
 }
 
@@ -259,7 +310,10 @@ function playerRowHtml(p, rank) {
   const pg       = p.position_group || p.position || "ATH";
   const posClr   = posColor(pg);
   const rankCls  = rank < 3 ? "top3" : rank < 10 ? "top10" : "";
-  const oap      = p.edge_score != null ? p.edge_score.toFixed(2) : "—";
+  const edgePct  = _edgePctBySeason[p.season]?.[p.player_season_id];
+  const oap      = edgePct != null
+    ? `<span title="EDGE ${p.edge_score.toFixed(1)} — ${edgePct}th percentile among ${p.position_group}s in ${p.season}">${edgePct}</span>`
+    : "—";
   const breakout = p.breakout_prob >= 0.35 ? ' 🔥' : "";
   const yr       = yearLabel(p.year);
   const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
@@ -276,19 +330,35 @@ function playerRowHtml(p, rank) {
       <div class="draft-name" title="${p.hometown_state ? p.name + ' · ' + p.hometown_state : p.name}">
         <span class="player-name-text">${p.name}${breakout}</span>
       </div>
-      <div class="draft-team">${p.team || "—"}</div>
+      <div class="draft-team">${teamLink(p.team, { season: p.season })}</div>
       <div class="draft-yr-conf">${yr} · ${p.conference || "—"}</div>
       <div class="draft-stars">${starsStr}</div>
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
       <div class="draft-ovr"><span class="draft-ovr-pill" style="background:${ovrColor};color:${ratingTextColor(ovrColor)}">${ovr || "—"}</span></div>
-      <div class="draft-traj">${trajHtml(p.trajectory)}</div>
+      <div class="draft-traj">${projHtml(p.player_season_id)}</div>
       <div class="draft-edge">${oap}</div>
     </div>`;
 }
 
 function yearLabel(yr) {
   return { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" }[yr] || "—";
+}
+
+// Projected next-season movement for the grid's PROJ column.
+// Reads the Engine D cache, which initGrid() primes before the first render.
+// The old column used ratings.trajectory, which script 07 never populates — it
+// is 0.0 for every player, so the column rendered a flat arrow 8,437 times.
+function projHtml(playerSeasonId) {
+  const pred = _trajectoryCache?.[String(playerSeasonId)];
+  if (!pred || pred.delta == null) return '<span class="traj-flat">—</span>';
+  const d = pred.delta;
+  const sign = d > 0 ? "+" : "";
+  if (d >= 5)  return `<span class="traj-up2">▲ ${sign}${d.toFixed(1)}</span>`;
+  if (d >= 1)  return `<span class="traj-up1">▲ ${sign}${d.toFixed(1)}</span>`;
+  if (d <= -5) return `<span class="traj-down2">▼ ${d.toFixed(1)}</span>`;
+  if (d <= -1) return `<span class="traj-down1">▼ ${d.toFixed(1)}</span>`;
+  return '<span class="traj-flat">→</span>';
 }
 
 // ---------------------------------------------------------------------------
