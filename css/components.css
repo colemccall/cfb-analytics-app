@@ -73,11 +73,11 @@
   letter-spacing: 1.5px; line-height: 1.1; position: relative;
 }
 .page-hero-sub {
-  font-size: var(--fs-xs); color: var(--text-muted);
+  font-size: var(--fs-sm); color: var(--text-muted);
   margin-top: 5px; position: relative;
 }
 .sidebar-theme-label {
-  font-size: var(--fs-xs); color: var(--text-muted);
+  font-size: var(--fs-label); color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
   display: block; margin-bottom: 6px;
 }
@@ -89,7 +89,7 @@
   max-width: 1200px;
 }
 .masthead-date {
-  font-size: var(--fs-xs); font-weight: 700; letter-spacing: 1.2px;
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 1.2px;
   color: var(--text-muted); margin-bottom: 0.6rem;
 }
 .masthead h1 {
@@ -117,11 +117,11 @@
 .marquee-side { display: inline-flex; align-items: center; gap: 8px; }
 .marquee-side .entity-logo { width: 26px; height: 26px; }
 .marquee-at { font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; }
-.marquee-note { font-size: var(--fs-xs); color: var(--text-muted); }
+.marquee-note { font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ── Editorial primitives: eyebrow + section rule ── */
 .eyebrow {
-  font-family: var(--font-display); font-size: var(--fs-xs);
+  font-family: var(--font-display); font-size: var(--fs-label);
   font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
   color: var(--accent);
 }
@@ -131,7 +131,7 @@
   border-bottom: 1px solid var(--border-strong);
   padding-bottom: 0.4rem; margin-bottom: 1rem;
 }
-.section-rule-sub { font-size: var(--fs-xs); color: var(--text-muted); }
+.section-rule-sub { font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ── Storyline cards: claim headline → evidence → destination ── */
 .story-grid {
@@ -155,14 +155,14 @@
   font-size: var(--fs-sm);
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
-.evidence-note { color: var(--text-muted); font-size: var(--fs-xs); line-height: 1.5; }
+.evidence-note { color: var(--text-muted); font-size: var(--fs-sm); line-height: 1.5; }
 .evidence-arrow { color: var(--text-muted); }
 .evidence-big {
   font-family: var(--font-display); font-size: var(--fs-2xl);
   font-weight: 900; color: var(--positive); line-height: 1;
 }
 .story-links { margin-top: auto; padding-top: 0.35rem; border-top: 1px solid var(--border); }
-.story-links a { font-size: var(--fs-xs); font-weight: 700; color: var(--accent); }
+.story-links a { font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
 
 /* Delta chip — movement always ships with its number */
 .delta-chip {
@@ -183,11 +183,11 @@
 .slate-row:hover { background: var(--surface-lift); }
 .slate-date {
   font-family: var(--font-display); font-weight: 700; color: var(--text-muted);
-  width: 56px; flex-shrink: 0; text-transform: uppercase; font-size: var(--fs-xs);
+  width: 56px; flex-shrink: 0; text-transform: uppercase; font-size: var(--fs-label);
 }
 .slate-team { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; }
 .slate-at { color: var(--text-muted); font-size: var(--fs-label); text-transform: uppercase; }
-.slate-footnote { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.6rem; }
+.slate-footnote { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 0.6rem; }
 
 /* ── Research desk rail (home panel) ── */
 .mini-finding {
@@ -198,7 +198,7 @@
 .mini-finding:last-child { border-bottom: none; }
 .mini-finding:hover { background: var(--surface-lift); }
 .mini-finding-tag {
-  font-family: var(--font-display); font-size: var(--fs-xs); font-weight: 700;
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent);
   flex-shrink: 0; width: 108px;
 }
@@ -210,7 +210,7 @@
   display: flex; gap: 1.5rem; flex-wrap: wrap;
   margin: 1.5rem 2rem 0; padding: 0.9rem 0 1.5rem;
   max-width: 1136px;
-  font-size: var(--fs-xs); color: var(--text-muted);
+  font-size: var(--fs-sm); color: var(--text-muted);
   border-top: 1px solid var(--border);
 }
 .coverage-strip a { color: var(--accent); font-weight: 700; }
@@ -248,10 +248,10 @@
 }
 /* Season the panel is currently showing — follows the sidebar season picker */
 .home-panel-season {
-  font-family: var(--font-ui); font-size: var(--fs-xs);
+  font-family: var(--font-ui); font-size: var(--fs-sm);
   font-weight: 600; color: var(--text-muted); letter-spacing: 0;
 }
-.home-panel-link { font-size: var(--fs-xs); color: var(--accent); font-weight: 700; }
+.home-panel-link { font-size: var(--fs-sm); color: var(--accent); font-weight: 700; }
 
 /* ── Home page team/player rows (rendered by JS) ── */
 .home-team-row, .home-player-row {
@@ -272,7 +272,7 @@
   font-size: var(--fs-sm); font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.home-team-conf, .home-player-meta { font-size: var(--fs-xs); color: var(--text-muted); }
+.home-team-conf, .home-player-meta { font-size: var(--fs-sm); color: var(--text-muted); }
 .home-team-ovr, .home-player-rating {
   font-family: var(--font-display); font-size: var(--fs-md);
   font-weight: 800; flex-shrink: 0;
@@ -288,7 +288,7 @@
 .research-card p  { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 0.75rem; }
 .research-tag {
   display: inline-block; padding: 2px 8px; border-radius: 3px;
-  font-size: var(--fs-xs); background: var(--accent-dim); color: var(--accent);
+  font-size: var(--fs-sm); background: var(--accent-dim); color: var(--accent);
   margin-bottom: 0.5rem;
 }
 .finding-stat {
@@ -333,13 +333,13 @@ a.research-card--live .finding-stat { color: var(--accent); }
 
 .badge-imputed {
   display: inline-block; padding: 0 4px; border-radius: 3px;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.2px;
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.2px;
   background: var(--surface-lift); color: var(--text-muted);
   vertical-align: middle; margin-left: 3px;
 }
 .badge-maturing {
   display: inline-block; padding: 0 5px; border-radius: 3px;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.2px;
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.2px;
   background: rgba(241, 196, 15, 0.18); color: #f1c40f;
   vertical-align: middle; margin-left: 3px;
 }
@@ -385,9 +385,9 @@ a.research-card--live .finding-stat { color: var(--accent); }
   font-family: 'Barlow Condensed', monospace; font-size: 1.05rem;
   color: var(--accent); letter-spacing: 0.3px; line-height: 1.6;
 }
-.formula-block .formula-note { font-family: var(--font-ui); font-size: var(--fs-xs); color: var(--text-muted); margin-top: 6px; display: block; }
+.formula-block .formula-note { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--text-muted); margin-top: 6px; display: block; }
 .weight-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin: 0.75rem 0 1.25rem; }
-.weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-strong); }
+.weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-strong); }
 .weight-table td { padding: 7px 10px 7px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: middle; }
 .weight-table td:first-child { color: var(--text); font-weight: 500; }
 .weight-table .w-bar-cell { min-width: 120px; }
@@ -414,15 +414,15 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 .pos-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow); }
 .pos-card-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; color: var(--accent); margin-bottom: 0.5rem; letter-spacing: 0.3px; }
-.pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.7; }
+.pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.7; }
 .tier-rows { display: flex; flex-direction: column; gap: 8px; margin: 0.75rem 0 1.5rem; }
 .tier-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-sm); padding: 8px 12px; background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .tier-range { font-family: var(--font-display); font-size: 1rem; font-weight: 800; min-width: 50px; }
-.tier-desc { color: var(--text-muted); font-size: var(--fs-xs); }
+.tier-desc { color: var(--text-muted); font-size: var(--fs-sm); }
 .limitations-box { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 1.125rem 1.375rem; margin: 1rem 0; }
 .limitations-box h3 { margin-top: 0; color: var(--text); }
-.version-note { margin-top: 2.5rem; color: var(--text-muted); font-size: var(--fs-xs); padding-top: 1rem; border-top: 1px solid var(--border); }
+.version-note { margin-top: 2.5rem; color: var(--text-muted); font-size: var(--fs-sm); padding-top: 1rem; border-top: 1px solid var(--border); }
 .version-note a { color: var(--accent); }
 .status-live    { color: var(--positive); font-weight: 600; white-space: nowrap; }
 .status-wip     { color: var(--warning);  font-weight: 600; white-space: nowrap; }
@@ -480,7 +480,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
   font-weight: 900;
   line-height: 1;
 }
-.stat-context { font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5; }
+.stat-context { font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
 
 /* ── Rank digits (draft-board style) ── */
 .rank-num {
@@ -493,7 +493,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 /* ── Provenance: projected model output vs earned rating ── */
 .badge-proj {
   display: inline-block;
-  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase;
   color: var(--projected);
   border: 1px solid var(--projected);
@@ -519,11 +519,11 @@ a.research-card--live .finding-stat { color: var(--accent); }
   position: absolute; top: -3px; width: 3px; height: 10px;
   border-radius: 1px; background: var(--accent);
 }
-.context-strip-label { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+.context-strip-label { font-size: var(--fs-sm); color: var(--text-muted); white-space: nowrap; }
 
 /* ── Comparison: prev → new (transfers, projections, week-over-week) ── */
 .compare-pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.compare-pair-arrow { color: var(--text-muted); font-size: var(--fs-xs); }
+.compare-pair-arrow { color: var(--text-muted); font-size: var(--fs-sm); }
 
 /* ── Tabs (canonical; team-subnav migrates onto this) ── */
 .tabs {
@@ -544,7 +544,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 /* ── Data table (canonical; leaderboard/research tables migrate onto this) ── */
 .data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .data-table thead th {
-  font-family: var(--font-display); font-size: var(--fs-xs); font-weight: 700;
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.8px;
   color: var(--text-muted); text-align: left;
   padding: 6px 10px; border-bottom: 1px solid var(--border-strong);
@@ -584,10 +584,10 @@ a.research-card--live .finding-stat { color: var(--accent); }
 
 /* ── Chart framing: the title is a claim, the subtitle says how to read it ── */
 .chart-claim     { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; }
-.chart-claim-sub { font-size: var(--fs-xs); color: var(--text-muted); margin: 2px 0 10px; }
+.chart-claim-sub { font-size: var(--fs-sm); color: var(--text-muted); margin: 2px 0 10px; }
 
 /* ── DataTable support ── */
-.table-footnote { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.5rem; line-height: 1.55; }
+.table-footnote { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 0.5rem; line-height: 1.55; }
 .filter-inline-label {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: var(--fs-sm); color: var(--text-muted);

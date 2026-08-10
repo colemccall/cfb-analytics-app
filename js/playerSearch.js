@@ -566,7 +566,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         return `
           <tr>
             <td><strong>${yr}</strong></td>
-            <td style="color:var(--text-muted);font-size:var(--fs-xs)">${rowTeam || "—"}</td>
+            <td style="color:var(--text-muted);font-size:var(--fs-sm)">${rowTeam || "—"}</td>
             ${careerFields.map(([k]) => {
               const v = getStatVal(combined, k);
               const disp = v !== null ? (typeof v === "number" ? (Number.isInteger(v) ? v : parseFloat(v).toFixed(1)) : v) : "—";
@@ -626,12 +626,12 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div style="text-align:center">
             <div style="font-size:2rem;font-weight:900;color:${color}">${icon} ${Math.round(pred)}</div>
-            <div style="font-size:var(--fs-xs);color:var(--text-muted)">Predicted OVR</div>
+            <div style="font-size:var(--fs-sm);color:var(--text-muted)">Predicted OVR</div>
           </div>
           <div>
             <div style="font-size:1.1rem;font-weight:700;color:${color};text-transform:capitalize">${label}</div>
             <div style="font-size:var(--fs-sm);color:var(--text-muted)">${deltaStr} from current</div>
-            ${feat ? `<div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px">Key factor: <em>${feat}</em></div>` : ""}
+            ${feat ? `<div style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:4px">Key factor: <em>${feat}</em></div>` : ""}
           </div>
         </div>
         <p class="breakdown-note" style="margin-top:8px">XGBoost model trained on 2008–2022 player seasons. MAE ~9 OVR points.</p>
@@ -660,7 +660,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     similarHtml = `
       <div class="modal-section">
         <div class="modal-section-title">Similar Players (Cross-Era)</div>
-        <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:0.5rem">Players from any season with the most similar production profile at this position.</p>
+        <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:0.5rem">Players from any season with the most similar production profile at this position.</p>
         <div class="similar-list">${rows}</div>
       </div>`;
   }
@@ -807,7 +807,7 @@ function renderStatBlocks(stats, pg) {
     P:  [["puntingYDS","Yds"],["puntingNO","Punts"],["puntingIn 20","In 20"],["puntingYPP","Avg"]],
   };
   const cols = fields[pg] || [];
-  if (!cols.length) return '<p class="text-muted" style="font-size:var(--fs-xs)">No individual stats tracked for this position.</p>';
+  if (!cols.length) return '<p class="text-muted" style="font-size:var(--fs-sm)">No individual stats tracked for this position.</p>';
   const blocks = cols.map(([key, label]) => {
     const val = stats[key];
     const display = val !== null && val !== undefined ? (typeof val === "number" ? (Number.isInteger(val) ? val : parseFloat(val).toFixed(1)) : val) : "—";

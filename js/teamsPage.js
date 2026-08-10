@@ -290,7 +290,7 @@ async function buildTeamRatingsHTML(team) {
       </div>
       ${statsPanel}
       ${performers}
-      <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:1rem">
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:1rem">
         OVR is anchored to SP+ (schedule-adjusted scoring margin) blended with roster talent,
         so a 2019 LSU compares directly to any other season. POWER is the raw SP+ margin.
       </p>
