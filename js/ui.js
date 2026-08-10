@@ -37,9 +37,13 @@ function ovrPill(rating, { label = "", projected = false } = {}) {
 }
 
 // ── Position badge ──────────────────────────────────────────────────────────
+// Text color comes from the luminance guard, not a fixed value: light-theme
+// position colors are deep (readable with white), dark-theme ones are bright
+// (readable with near-black).
 function posBadge(pg) {
   const g = pg || "ATH";
-  return `<span class="pos-group-badge" style="background:${posColor(g)}">${_esc(g)}</span>`;
+  const c = posColor(g);
+  return `<span class="pos-group-badge" style="background:${c};color:${ratingTextColor(c)}">${_esc(g)}</span>`;
 }
 
 // ── Delta chip — movement always ships with its number ──────────────────────

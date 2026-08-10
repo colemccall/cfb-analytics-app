@@ -623,7 +623,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 }
 .tstat-val { font-family: var(--font-display); font-size: var(--fs-md); font-weight: 700; color: var(--text); }
 .tstat-lbl { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
-@media (max-width: 600px) { .tstat-grid { grid-template-columns: repeat(2, 1fr); } }
+
 
 /* ── Top performers ── */
 .tperf-list { display: flex; flex-direction: column; gap: 4px; }
@@ -650,34 +650,9 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .text-muted { color: var(--text-muted); }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
-  :root { --sidebar-width: 180px; }
-  .snav-item { font-size: var(--fs-sm); padding: 8px 10px; }
-}
-@media (max-width: 768px) {
-  .teams-sidebar { width: 220px; }
-}
-@media (max-width: 640px) {
-  body { display: block; }
-  .sidebar { display: none; }
-  .main-content { margin-left: 0; }
-  .page-content { padding: 1rem; }
-  .filter-bar { gap: 0.5rem; }
-  #search-input { width: 100%; }
-  .info-grid { grid-template-columns: 1fr; }
-  .teams-layout { flex-direction: column; height: auto; overflow: visible; }
-  .teams-sidebar { width: 100%; height: 320px; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); }
-  .teams-main { overflow-y: visible; }
-  .team-list-item { padding: 7px 12px; gap: 8px; }
-  .team-list-name { font-size: var(--fs-sm); }
-  .team-list-conf { display: none; }
-  .team-list-logo { width: 22px; height: 22px; }
-  .draft-row        { grid-template-columns: 38px 1fr 52px 48px; }
-  .draft-board-header { grid-template-columns: 38px 1fr 52px 48px; }
-  .draft-row .draft-edge, .draft-board-header .draft-edge-header { display: none; }
-  #leaderboard .draft-row { grid-template-columns: 38px 1fr 52px 48px 48px; }
-  #leaderboard .draft-board-header { grid-template-columns: 38px 1fr 52px 48px 48px; }
-}
+
+
+
 
 /* ── Position badge with color identity ── */
 .pos-group-badge {
@@ -685,7 +660,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   padding: 2px 8px; border-radius: var(--radius-pill);
   font-size: var(--fs-label); font-weight: 700;
   letter-spacing: 0.3px; text-transform: uppercase;
-  color: #111; background: var(--pos-color, var(--text-muted));
+  color: var(--bg); background: var(--pos-color, var(--text-muted));  /* JS overrides both via the luminance guard */
 }
 
 /* ── Trajectory arrows ── */
@@ -699,7 +674,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
    (widened for the 14px data floor) */
 .draft-row, .draft-board-header {
   display: grid;
-  grid-template-columns: 36px 50px minmax(120px,1fr) 120px 92px 64px 48px 48px 58px 56px 56px;
+  grid-template-columns: 36px 58px minmax(120px,1fr) 118px 104px 74px 46px 46px 58px 74px 54px;
   gap: 0;
   align-items: center;
 }
@@ -744,6 +719,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .draft-yr-conf {
   font-size: var(--fs-sm); color: var(--text-muted);
   white-space: nowrap; padding: 0 4px;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .draft-stars { font-size: var(--fs-sm); color: var(--stars); text-align: center; }
 .draft-ht, .draft-wt { font-size: var(--fs-sm); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
@@ -755,7 +731,8 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   text-align: center; font-variant-numeric: tabular-nums;
   display: flex; align-items: center; justify-content: center;
 }
-.draft-traj { font-size: var(--fs-sm); text-align: center; }
+/* Deltas must never wrap — "▼ -15.0" on two lines reads as two numbers */
+.draft-traj { font-size: var(--fs-sm); text-align: center; white-space: nowrap; }
 .draft-edge { font-size: var(--fs-sm); text-align: center; color: var(--text-muted); font-family: var(--num-font); }
 
 /* Roster grid (teams.html) — different column set to Yr/Ht/Wt/Hometown */
@@ -803,20 +780,20 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   height: 54px;
 }
 .mobile-tab-btn {
-  flex: 1; display: flex; flex-direction: column;
+  /* min-width:0 is load-bearing: without it flex items refuse to shrink below
+     their label width and the bar pushes the whole page into horizontal scroll. */
+  flex: 1 1 0; min-width: 0; overflow: hidden;
+  display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 2px;
   background: none; border: none; cursor: pointer;
-  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.6px;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.3px;
   text-transform: uppercase; color: var(--text-muted);
-  text-decoration: none;
+  text-decoration: none; white-space: nowrap;
   transition: color 0.15s;
 }
 .mobile-tab-btn:hover, .mobile-tab-btn.active { color: var(--accent); }
 .mobile-tab-btn .tab-icon { font-size: 18px; line-height: 1; }
-@media (max-width: 640px) {
-  .mobile-tab-bar { display: block; }
-  body { padding-bottom: 54px; }
-}
+
 
 /* ── Team History tab ── */
 .team-history-wrap { overflow-x: auto; }
@@ -835,4 +812,50 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   font-size: var(--fs-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — must stay at the END of this file. These overrides share
+   specificity with the desktop rules above, so source order is what makes
+   them win. Moving them earlier silently disables them.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) { .tstat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) {
+  :root { --sidebar-width: 180px; }
+  .snav-item { font-size: var(--fs-sm); padding: 8px 10px; }
+}
+@media (max-width: 768px) {
+  .teams-sidebar { width: 220px; }
+}
+@media (max-width: 640px) {
+  body { display: block; }
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; }
+  .page-content { padding: 1rem; }
+  .filter-bar { gap: 0.5rem; }
+  #search-input { width: 100%; }
+  .info-grid { grid-template-columns: 1fr; }
+  .teams-layout { flex-direction: column; height: auto; overflow: visible; }
+  .teams-sidebar { width: 100%; height: 320px; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .teams-main { overflow-y: visible; }
+  .team-list-item { padding: 7px 12px; gap: 8px; }
+  .team-list-name { font-size: var(--fs-sm); }
+  .team-list-conf { display: none; }
+  .team-list-logo { width: 22px; height: 22px; }
+  /* Phone board keeps rank · pos · name · OVR · proj. Cells 4-8 (team,
+     yr/conf, stars, ht, wt) and 11 (EDGE %) are hidden by position because
+     both the players grid and the roster grid emit 11 cells in that order. */
+  .draft-row, .draft-board-header {
+    grid-template-columns: 28px 54px minmax(0,1fr) 50px 64px;
+    padding: 8px 10px;
+  }
+  .draft-row > :nth-child(n+4):nth-child(-n+8),
+  .draft-board-header > :nth-child(n+4):nth-child(-n+8),
+  .draft-row > :nth-child(11),
+  .draft-board-header > :nth-child(11) { display: none; }
+}
+@media (max-width: 640px) {
+  .mobile-tab-bar { display: block; }
+  body { padding-bottom: 54px; }
 }

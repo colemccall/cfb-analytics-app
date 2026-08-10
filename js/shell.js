@@ -22,9 +22,11 @@
 
   const VERSION = "v3.1.0";
 
+  // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
+  // so anything longer than ~8 characters gets an abbreviation here.
   const PAGES = [
     { id: "home",     href: "index.html",      icon: "⬡",  label: "Home" },
-    { id: "season26", href: "season2026.html", icon: "🏈", label: "'26 Season" },
+    { id: "season26", href: "season2026.html", icon: "🏈", label: "'26 Season", short: "'26" },
     { id: "teams",    href: "teams.html",      icon: "🏟",  label: "Teams" },
     { id: "players",  href: "players.html",    icon: "👤", label: "Players" },
     { id: "ratings",  href: "ratings.html",    icon: "📊", label: "Ratings" },
@@ -60,7 +62,7 @@
       <div class="mobile-tab-bar-inner">
         ${PAGES.filter(p => MOBILE.includes(p.id)).map(p => `
           <a href="${p.href}" class="mobile-tab-btn${p.id === active ? " active" : ""}">
-            <span class="tab-icon">${p.icon}</span>${p.label}</a>`).join("")}
+            <span class="tab-icon">${p.icon}</span>${p.short || p.label}</a>`).join("")}
       </div>
     </nav>`;
 
