@@ -24,13 +24,8 @@
   <div class="sidebar-bottom">
     <div class="sidebar-season-wrap">
       <label>Season</label>
-      <select id="sidebar-season-global">
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
-        <option value="2023">2023</option>
-        <option value="2022">2022</option>
-        <option value="2021">2021</option>
-      </select>
+      <!-- options filled from CONFIG by fillSeasonSelect() -->
+      <select id="sidebar-season-global"></select>
     </div>
     <div>
       <div class="sidebar-theme-label">Theme</div>
@@ -72,8 +67,8 @@
     <span class="home-stat-lbl">Hidden Gems</span>
   </div>
   <div class="home-stat-tile">
-    <span class="home-stat-num" id="stat-seasons">18</span>
-    <span class="home-stat-lbl">Seasons (2008–2025)</span>
+    <span class="home-stat-num" id="stat-seasons">—</span>
+    <span class="home-stat-lbl" id="stat-seasons-lbl">Seasons</span>
   </div>
 </div>
 
@@ -82,7 +77,7 @@
 
   <div class="home-panel-card">
     <div class="home-panel-hdr">
-      <span class="home-panel-title">Top Programs</span>
+      <span class="home-panel-title">Top Programs <span class="home-panel-season" id="teams-season-lbl"></span></span>
       <a href="teams.html" class="home-panel-link">All Teams →</a>
     </div>
     <div id="home-top-teams">
@@ -92,7 +87,7 @@
 
   <div class="home-panel-card">
     <div class="home-panel-hdr">
-      <span class="home-panel-title">Top Rated Players</span>
+      <span class="home-panel-title">Top Rated Players <span class="home-panel-season" id="players-season-lbl"></span></span>
       <a href="ratings.html" class="home-panel-link">Full Leaderboard →</a>
     </div>
     <div id="home-top-players">
@@ -167,16 +162,28 @@
     return "#ef4444";
   }
 
-  async function loadHome() {
-    try {
-      // Fetch top-rated players (2025)
-      const players = await fetchPlayers({ season: 2025, limit: 10 });
+  async function loadHome(season = CONFIG.CURRENT_SEASON) {
+    document.querySelectorAll(".home-panel-season").forEach(el => el.textContent = season);
 
-      // Stats bar — animate counters
-      const gems = players.filter(p => (p.stars || 0) <= 2 && (p.overall_rating || 0) >= 75).length;
-      animateCounter("stat-players", 8421);
-      animateCounter("stat-teams", 137);
-      animateCounter("stat-gems", Math.max(gems, 412));
+    try {
+      // Every rated player for the season — the stat tiles below count real rows,
+      // so this can't be the limit:10 slice used for the leaderboard.
+      const allPlayers = await fetchAllPlayers(season);
+      const players = [...allPlayers]
+        .sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
+
+      // Stats bar — counted from the actual data, never hardcoded
+      const gems = allPlayers.filter(p =>
+        (p.stars || 0) <= 2 && (p.overall_rating || 0) >= 75).length;
+      animateCounter("stat-players", allPlayers.length);
+      animateCounter("stat-gems", gems);
+
+      const seasonsEl = document.getElementById("stat-seasons");
+      if (seasonsEl) seasonsEl.textContent = seasonList().length;
+      const seasonsLbl = document.getElementById("stat-seasons-lbl");
+      if (seasonsLbl) {
+        seasonsLbl.textContent = `Seasons (${CONFIG.FIRST_SEASON}–${CONFIG.CURRENT_SEASON})`;
+      }
 
       // Top players list (show top 8) — EA card style
       const top8 = players.slice(0, 8);
@@ -201,7 +208,7 @@
       }).join("");
 
       document.querySelectorAll(".home-player-row[data-player-id]").forEach(el => {
-        el.addEventListener("click", () => openPlayerModal(parseInt(el.dataset.playerId), 2025));
+        el.addEventListener("click", () => openPlayerModal(parseInt(el.dataset.playerId), season));
       });
     } catch (e) {
       document.getElementById("home-top-players").innerHTML =
@@ -210,8 +217,8 @@
 
     try {
       // Top teams by avg rating
-      const teams = await fetchTeams();
-      document.getElementById("stat-teams").textContent = teams.length;
+      const teams = await fetchTeams(season);
+      animateCounter("stat-teams", teams.length);
 
       const sorted = [...teams]
         .filter(t => t.avg_rating)
@@ -233,6 +240,13 @@
       document.getElementById("home-top-teams").innerHTML =
         '<div style="padding:1rem;color:var(--text-muted);font-size:var(--fs-sm)">Team data loading…</div>';
     }
+  }
+
+  // Season picker — populate from CONFIG and reload the page data on change.
+  const _seasonSel = document.getElementById("sidebar-season-global");
+  fillSeasonSelect(_seasonSel, CONFIG.CURRENT_SEASON);
+  if (_seasonSel) {
+    _seasonSel.addEventListener("change", () => loadHome(Number(_seasonSel.value)));
   }
 
   loadHome();

@@ -3,6 +3,9 @@
 const CONFIG = {
   DATA_BASE:      "./data/",
   CURRENT_SEASON: 2025,
+  // Full range of seasons exported by the pipeline (data/players_YYYY.json).
+  // Season pickers build their options from this — don't hardcode year lists.
+  FIRST_SEASON:   2008,
 
   // 12-group position system
   POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "CB", "S", "K", "P"],
@@ -167,3 +170,23 @@ function makeGridSortable(headerEl, containerEl) {
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Season pickers
+// ---------------------------------------------------------------------------
+
+// All exported seasons, newest first.
+function seasonList() {
+  const out = [];
+  for (let y = CONFIG.CURRENT_SEASON; y >= CONFIG.FIRST_SEASON; y--) out.push(y);
+  return out;
+}
+
+// Fill a <select> with the full season range and select `selected`.
+// Keeps every picker in sync with the data actually on disk.
+function fillSeasonSelect(el, selected = CONFIG.CURRENT_SEASON) {
+  if (!el) return;
+  el.innerHTML = seasonList().map(y =>
+    `<option value="${y}"${y === Number(selected) ? " selected" : ""}>${y}</option>`
+  ).join("");
+}

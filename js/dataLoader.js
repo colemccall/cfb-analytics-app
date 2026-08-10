@@ -132,7 +132,7 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
 }
 
 // ---------------------------------------------------------------------------
-// Single player live stats — included in players.json, no extra fetch needed.
+// Single player live stats — included in players_{season}.json, no extra fetch needed.
 // Returns array shaped like old stats rows: [{season, stat_type, data, team}]
 // ---------------------------------------------------------------------------
 async function fetchPlayerStats(playerId, season = CONFIG.CURRENT_SEASON) {

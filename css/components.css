@@ -468,6 +468,11 @@
   font-family: var(--font-display); font-size: var(--fs-md);
   font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px;
 }
+/* Season the panel is currently showing — follows the sidebar season picker */
+.home-panel-season {
+  font-family: var(--font-body); font-size: var(--fs-xs);
+  font-weight: 600; color: var(--text-muted); letter-spacing: 0;
+}
 .home-panel-link { font-size: var(--fs-xs); color: var(--accent); font-weight: 700; }
 
 /* EDGE explainer strip */
@@ -531,6 +536,19 @@
 }
 .coming-soon { opacity: 0.45; }
 .research-card--active { border-color: var(--warning); opacity: 0.9; }
+
+/* Live analysis cards link down to their table — full opacity, accent border */
+a.research-card--live {
+  display: block; text-decoration: none;
+  border-color: var(--border-accent);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+a.research-card--live:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+a.research-card--live .finding-stat { color: var(--accent); }
 .research-tag--warning { background: rgba(240,168,48,0.15); color: var(--warning); }
 .finding-stat--warning { font-size: var(--fs-lg); color: var(--warning); }
 

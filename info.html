@@ -300,6 +300,9 @@
   <p>
     No individual offensive lineman statistics exist in any publicly available college football data source. There are no personal blocking grades, pressure rates allowed, or run-block efficiency numbers tracked at the player level. As a result, <strong>every OL rating is a team-level proxy</strong> — rush yards per attempt and sack rate allowed are averaged across the entire offensive line and distributed evenly. An elite LT and a mediocre RT at the same school will receive identical ratings. This is a structural limitation of the data ecosystem, not a modeling choice.
   </p>
+  <p>
+    Because of that, <strong>OL ratings are capped at 88</strong> rather than the 99 available to skill positions. A proxy built from team rushing numbers cannot distinguish an All-American from a solid starter on the same line, so rating a lineman 99 would claim a precision the underlying data does not support.
+  </p>
 
   <h3>Pre-2016 Defense — Severely Stat-Limited</h3>
   <p>
@@ -366,7 +369,7 @@
       <tr><td>Team Ratings</td><td class="status-live">✓ Live</td><td>SP+ + roster quality + recruiting pipeline composite, 2025. Historical team ratings planned.</td></tr>
       <tr><td>Similar Players</td><td class="status-live">✓ Live</td><td>Cosine similarity across EDGE vectors — top 5 comp players per season.</td></tr>
       <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite for market value vs production gap.</td></tr>
-      <tr><td>Engine C (EA CFB26)</td><td class="status-wip">In progress</td><td>EA Sports ratings scraped and mapped to our player IDs for direct comparison.</td></tr>
+      <tr><td>Engine C (EA CFB 27)</td><td class="status-wip">In progress</td><td>All 9,000+ EA Sports CFB 27 player ratings (2026 rosters, 54 attributes each) harvested and mapped to our player IDs. Side-by-side comparison against EDGE coming next.</td></tr>
       <tr><td>ML Breakout Engine (D)</td><td class="status-wip">In progress</td><td>XGBoost regressor on lagged EDGE + trajectory + recruiting to predict next-season OVR. Historical backfill complete — model training next.</td></tr>
       <tr><td>Historical explorer</td><td class="status-planned">Planned</td><td>Season-by-season leaderboards and cross-era comparisons for 2008–2025 — who were the best players of each decade?</td></tr>
       <tr><td>Transfer portal ROI</td><td class="status-planned">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>

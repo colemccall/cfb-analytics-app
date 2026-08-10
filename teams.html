@@ -125,10 +125,7 @@
 
   function buildYearSelect() {
     const sel = document.getElementById("year-select");
-    const years = [];
-    for (let y = CONFIG.CURRENT_SEASON; y >= 2008; y--) years.push(y);
-    sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
-    sel.value = _currentSeason;
+    fillSeasonSelect(sel, _currentSeason);
     sel.addEventListener("change", async () => {
       _currentSeason = parseInt(sel.value);
       document.getElementById("team-list").innerHTML = '<p class="empty-state">Loading…</p>';

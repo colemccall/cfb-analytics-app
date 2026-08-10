@@ -94,6 +94,7 @@ const _CONFERENCES = [
 
 async function initPlayerSearch() {
   buildPosChips();
+  fillSeasonSelect(document.getElementById("filter-season"), _activeFilters.season);
   populateConferenceOptions();
   bindFilterEvents();
   await fetchAndRender();
