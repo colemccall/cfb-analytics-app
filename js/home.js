@@ -351,3 +351,7 @@ function initHome() {
 }
 
 initHome();
+
+// Rating pills and delta chips are theme-computed — repaint on theme switch.
+// All data comes from dataLoader's in-memory cache, so this is a re-render.
+onThemeChange(initHome);

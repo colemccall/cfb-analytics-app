@@ -15,6 +15,12 @@ async function initSeason2026() {
   buildSeasonMasthead(games, firstDate);
   buildCircleTable(games);
   await buildTeamScheduleLookup();
+
+  // OVR pills are theme-computed; repaint the table from cached data on switch.
+  if (!initSeason2026._themeBound) {
+    initSeason2026._themeBound = true;
+    onThemeChange(() => fetchSeasonGames(SEASON).then(r => buildCircleTable(r.games)));
+  }
 }
 
 // ── Masthead + counted facts ───────────────────────────────────────────────

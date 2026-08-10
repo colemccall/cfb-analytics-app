@@ -39,33 +39,9 @@
 
   <!-- ── Rating tiers ── -->
   <h2>Rating Tiers</h2>
-  <div class="tier-rows">
-    <div class="tier-row">
-      <div class="tier-dot" style="background:#FFD700"></div>
-      <div class="tier-range" style="color:#FFD700">90–99</div>
-      <div><strong>ELITE</strong> — <span class="tier-desc">All-American caliber; top ~5% of the position group nationally</span></div>
-    </div>
-    <div class="tier-row">
-      <div class="tier-dot" style="background:#FFA000"></div>
-      <div class="tier-range" style="color:#FFA000">80–89</div>
-      <div><strong>GOLD</strong> — <span class="tier-desc">Clear starter with above-average production</span></div>
-    </div>
-    <div class="tier-row">
-      <div class="tier-dot" style="background:#78909C"></div>
-      <div class="tier-range" style="color:#78909C">70–79</div>
-      <div><strong>SILVER</strong> — <span class="tier-desc">Contributing starter, solid production</span></div>
-    </div>
-    <div class="tier-row">
-      <div class="tier-dot" style="background:#8D6E63"></div>
-      <div class="tier-range" style="color:#8D6E63">55–69</div>
-      <div><strong>BRONZE</strong> — <span class="tier-desc">Rotation player or limited sample size</span></div>
-    </div>
-    <div class="tier-row">
-      <div class="tier-dot" style="background:var(--border-strong)"></div>
-      <div class="tier-range" style="color:var(--text-muted)">&lt;55</div>
-      <div><strong>DEVELOPING</strong> — <span class="tier-desc">Bench, redshirt, or insufficient data — recruiting-anchored estimate</span></div>
-    </div>
-  </div>
+  <!-- Rendered from CONFIG.RATING_TIERS so the swatches always match the
+       ratings the app actually paints, in whichever theme is active. -->
+  <div class="tier-rows" id="tier-rows"></div>
 
   <!-- ── EDGE formula ── -->
   <h2>The EDGE Formula</h2>
@@ -364,5 +340,35 @@
 </div>
 
 </div><!-- /.main-content -->
+
+<script>
+  // Tier legend — colors come from the same ramp the ratings use (config.js),
+  // never hardcoded here, so a palette change can't leave this page stale.
+  const TIER_COPY = {
+    ELITE:  ["90–99", "All-American caliber; top ~5% of the position group nationally"],
+    GOLD:   ["80–89", "Clear starter with above-average production"],
+    SILVER: ["70–79", "Contributing starter, solid production"],
+    BRONZE: ["55–69", "Rotation player or limited sample size"],
+  };
+  function renderTierRows() {
+    const el = document.getElementById("tier-rows");
+    if (!el) return;
+    const rows = Object.entries(TIER_COPY).map(([name, [range, desc]]) => {
+      const color = ratingColor(CONFIG.RATING_TIERS[name].min);
+      return `<div class="tier-row">
+        <div class="tier-dot" style="background:${color}"></div>
+        <div class="tier-range" style="color:${color}">${range}</div>
+        <div><strong>${name}</strong> — <span class="tier-desc">${desc}</span></div>
+      </div>`;
+    }).join("");
+    el.innerHTML = rows + `<div class="tier-row">
+      <div class="tier-dot" style="background:var(--border-strong)"></div>
+      <div class="tier-range" style="color:var(--text-muted)">&lt;55</div>
+      <div><strong>DEVELOPING</strong> — <span class="tier-desc">Bench, redshirt, or insufficient data — recruiting-anchored estimate</span></div>
+    </div>`;
+  }
+  renderTierRows();
+  window.addEventListener("cfb:themechange", renderTierRows);
+</script>
 </body>
 </html>

@@ -36,6 +36,15 @@ async function initTeamsPage() {
   renderTeamList();
   bindSidebarEvents();
 
+  // OVR pills / position badges are theme-computed — repaint list and the open
+  // team from cached data on theme switch.
+  onThemeChange(() => {
+    renderTeamList();
+    const main = document.getElementById("teams-main");
+    const open = main?.dataset.teamId && _allTeams.find(t => t.id === parseInt(main.dataset.teamId));
+    if (open) showTeam(open);
+  });
+
   const hash = window.location.hash.replace("#", "");
   const qTeam = new URLSearchParams(window.location.search).get("team");
   if (hash) {

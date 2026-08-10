@@ -93,6 +93,9 @@ async function initPlayerSearch() {
   await populateConferenceOptions();
   bindFilterEvents();
   await fetchAndRender();
+  // Position chips and OVR pills are theme-computed — repaint on theme switch
+  // from the already-filtered rows (no refetch).
+  onThemeChange(() => { buildPosChips(); renderGrid(); });
 }
 
 // Per-position fetch limits — top N per position chip click
@@ -158,7 +161,7 @@ function buildPosChips() {
         b.style.color = "";
       });
       btn.classList.add("active");
-      if (pg !== "ALL") { btn.style.background = color; btn.style.color = "#fff"; }
+      if (pg !== "ALL") { btn.style.background = color; btn.style.color = ratingTextColor(color); }
       _activeFilters.position = pg;
       fetchAndRender();
     });
@@ -434,8 +437,8 @@ function modalLoadingHtml(player) {
 function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = [], trajectory = null) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
-  const color = ovr ? ratingColor(ovr) : "#555";
-  const txtCol = ovr ? ratingTextColor(ovr) : "#fff";
+  const color = ovr ? ratingColor(ovr) : "var(--surface-lift)";
+  const txtCol = ovr ? ratingTextColor(ovr) : "var(--text)";
   const pg    = player.position_group || "QB";
   const [pgBg, pgColor] = posGroupColor(pg);
   const initials  = (player.name || "?").split(" ").map(n => n[0]).slice(0, 2).join("");
@@ -616,7 +619,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     const pred  = trajectory.predicted_ovr;
     const label = trajectory.trajectory_label;
     const feat  = trajectory.shap_top_feature || "";
-    const labelColors = { breakout: "#2ecc71", decline: "#e74c3c", steady: "var(--text-muted)" };
+    const labelColors = { breakout: "var(--positive)", decline: "var(--negative)", steady: "var(--text-muted)" };
     const labelIcons  = { breakout: "&#9650;", decline: "&#9660;", steady: "&mdash;" };
     const color = labelColors[label] || "var(--text-muted)";
     const icon  = labelIcons[label] || "&mdash;";

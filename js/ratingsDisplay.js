@@ -34,6 +34,16 @@ async function initRatings(season) {
 
   buildFilters();
   applyFilters();
+
+  // Scatter dots and leaderboard pills are theme-computed — repaint on switch.
+  if (!initRatings._themeBound) {
+    initRatings._themeBound = true;
+    onThemeChange(() => {
+      applyFilters();
+      const board = document.getElementById("position-board");
+      if (board && _boardData) _renderPositionBoard(board);
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -127,9 +137,9 @@ function renderScatterPlot(players) {
     const cy = yScale(Math.min(yMax, Math.max(yMin, p.overall_rating)));
     const predicted = regY(p.stars);
     const over = p.overall_rating > predicted + 8;
-    const color = over ? "#00c853" : posColor(p.position_group || p.position || "ATH");
+    const color = over ? "var(--positive)" : posColor(p.position_group || p.position || "ATH");
     const r = over ? 6 : 4;
-    const stroke = over ? "rgba(255,255,255,0.5)" : "none";
+    const stroke = over ? "var(--text)" : "none";
     const name = (p.name || "").replace(/"/g, "&quot;");
     const team = (p.team || "").replace(/"/g, "&quot;");
     return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}"
@@ -144,7 +154,7 @@ function renderScatterPlot(players) {
   const rx1 = xScale(xMin + 0.3), ry1 = yScale(Math.max(yMin, Math.min(yMax, regY(xMin + 0.3))));
   const rx2 = xScale(xMax - 0.3), ry2 = yScale(Math.max(yMin, Math.min(yMax, regY(xMax - 0.3))));
   const regLine = `<line x1="${rx1}" y1="${ry1}" x2="${rx2}" y2="${ry2}"
-    stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-dasharray="5,4"/>`;
+    stroke="var(--border-strong)" stroke-width="1.5" stroke-dasharray="5,4"/>`;
 
   // Axes
   const xAxis = [1,2,3,4,5].map(s => `
@@ -153,7 +163,7 @@ function renderScatterPlot(players) {
 
   const yAxis = [40,50,60,70,80,90].map(r => `
     <line x1="${PAD.left - 4}" y1="${yScale(r).toFixed(1)}" x2="${PAD.left + PW}" y2="${yScale(r).toFixed(1)}"
-      stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      stroke="var(--border)" stroke-width="1"/>
     <text x="${PAD.left - 10}" y="${(yScale(r) + 4).toFixed(1)}" text-anchor="end"
       font-size="11" fill="var(--text-muted)">${r}</text>`).join("");
 
@@ -167,11 +177,10 @@ function renderScatterPlot(players) {
       fill="var(--negative)" opacity="0.5" font-style="italic">Underperforming</text>`;
 
   container.innerHTML = `
-    <div id="scatter-tooltip" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);
-      border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;pointer-events:none;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.4)">
-      <div class="tooltip-name" style="font-weight:700;margin-bottom:2px"></div>
-      <div class="tooltip-meta" style="color:var(--text-muted)"></div>
-      <div class="tooltip-ovr" style="color:var(--accent);margin-top:2px;font-weight:600"></div>
+    <div id="scatter-tooltip">
+      <div class="tooltip-name"></div>
+      <div class="tooltip-meta"></div>
+      <div class="tooltip-ovr"></div>
     </div>
     <svg id="scatter-svg" width="${W}" height="${H}" style="display:block;overflow:visible">
       ${yAxis}${regLine}${points}${annotations}${xAxis}
@@ -179,7 +188,7 @@ function renderScatterPlot(players) {
       <text x="13" y="${H / 2}" text-anchor="middle" font-size="12" fill="var(--text-muted)"
         transform="rotate(-90,13,${H/2})">Rating (OVR)</text>
     </svg>
-    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.5rem">
+    <p class="chart-caption">
       Green = 8+ pts above trend line (overperformer). Dots colored by position group.
     </p>`;
 

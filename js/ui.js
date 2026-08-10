@@ -11,6 +11,18 @@
 //
 // Load order: config.js → dataLoader.js → ui.js → page script.
 
+// ── Live theme switching ────────────────────────────────────────────────────
+// Data colors (tier pills, position chips, chart marks) are computed in JS from
+// the active theme, so they must be re-rendered when the theme changes.
+// shell.js dispatches "cfb:themechange" on swatch click; pages register the
+// render function that redraws from already-cached state (never a refetch —
+// dataLoader._load serves from its in-memory cache).
+function onThemeChange(render) {
+  window.addEventListener("cfb:themechange", () => {
+    try { render(); } catch (e) { /* a failed repaint must not break the page */ }
+  });
+}
+
 // ── Rating pill ─────────────────────────────────────────────────────────────
 // The single way an OVR appears. `projected: true` adds the hatch + PROJ badge
 // so a model number can never pass as an earned one.

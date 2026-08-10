@@ -108,6 +108,10 @@ function createDataTable(container, opts) {
   render();
   return {
     update(rows) { state.rows = rows || []; render(); },
+    // Re-render the current rows and sort — used after a theme switch, where
+    // cell formatters (pills, chips) resolve different colors.
+    refresh() { render(); },
+    rows() { return state.rows; },
   };
 }
 

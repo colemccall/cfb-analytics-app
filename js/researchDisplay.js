@@ -63,6 +63,8 @@ async function initTeamPerformance() {
       (v.season === "ALL" || String(r.season) === v.season) &&
       (v.conf === "ALL" || r.conference === v.conf)));
   });
+
+  onThemeChange(() => table.refresh());
 }
 
 // ── Breakout Candidates — Engine D (script 15) ─────────────────────────────
@@ -114,6 +116,8 @@ async function initBreakoutCandidates() {
       (v.pos === "ALL" || r.position_group === v.pos) &&
       (v.label === "ALL" || r.trajectory_label === v.label)));
   });
+
+  onThemeChange(() => table.refresh());
 }
 
 // ── Recruiting Class ROI (script 14) ───────────────────────────────────────
@@ -167,4 +171,6 @@ async function initRecruitingRoi() {
       (v.conf === "ALL" || r.conference === v.conf) &&
       r.n_recruits >= (v.minClass || 1)));
   });
+
+  onThemeChange(() => table.refresh());
 }
