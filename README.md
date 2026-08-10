@@ -108,15 +108,33 @@ themselves from this range via `fillSeasonSelect()` — don't hardcode year list
 
 ## Theme System
 
-Three themes are controlled by the `data-theme` attribute on `<html>`:
+Two first-class themes, set as `data-theme` on `<html>` by `js/shell.js` before
+first paint:
 
-| Value | Name |
-|-------|------|
-| `dynasty-dark` | Dynasty Dark (default) |
-| `mid` | Slate |
-| `light` | Light |
+| Value | Token block |
+|-------|-------------|
+| `dark` | `:root` |
+| `light` | `[data-theme="light"]` overrides |
 
-CSS variables are defined per-theme in `css/styles.css`. The theme swatch buttons in the sidebar persist the selection to `localStorage`.
+Resolution order: `?theme=dark\|light` URL override (used for deterministic
+screenshots) → the saved `localStorage["cfb-theme"]` choice (legacy
+`dynasty-dark` / `mid` values migrate to `dark`) → the OS `prefers-color-scheme`.
+The sidebar swatches persist the choice and dispatch a `cfb:themechange` event.
+
+**Any JS that computes a color must repaint on that event** — rating pills,
+position badges and chart marks are theme-derived, so page scripts register
+`onThemeChange(render)` (`js/ui.js`) to re-render from the in-memory cache.
+
+**Contrast is enforced by a tool, not by eye.** After changing any token or
+palette value, run:
+
+```bash
+node tools/contrast-check.mjs
+```
+
+It asserts text ≥7:1, muted ≥4.5:1, borders ≥1.8:1 (≥3:1 for `--border-strong`),
+and every rating/position fill ≥3:1 against its luminance-guarded text color, in
+both themes. It exits non-zero with a table of failures.
 
 ---
 
@@ -131,13 +149,20 @@ CSS variables are defined per-theme in `css/styles.css`. The theme swatch button
 
 ## Design System Primitives ("Press Box")
 
-Reusable building blocks live in two places and pages adopt them incrementally
-(home page first — other pages migrate as they're touched):
+Full change record for the v3.1 rebuild: [CHANGELOG_v3.1_redesign.md](CHANGELOG_v3.1_redesign.md).
 
-- **Tokens** — `css/styles.css` `:root`: semantic colors (`--projected`, `--delta-up/down`),
-  motion (`--t-fast/base/slow`), extended type scale (`--fs-3xl`, `--fs-num-lg`).
-  Per-theme overrides live in the `[data-theme]` blocks. No hex values outside tokens
-  and the two domain palettes (rating tiers + position colors in `config.js`).
+Reusable building blocks live in two places; all pages are migrated onto them:
+
+- **Tokens** — `css/styles.css` `:root` (dark) + `[data-theme="light"]`:
+  surfaces, ink (`--text`, `--text-muted`), edges (`--border`,
+  `--border-strong`), the editorial voice (`--voice`, aliased by `--accent`),
+  data colors (`--positive`, `--negative`, `--stars`, `--projected`, `--info`),
+  motion (`--t-fast/base/slow`) and the type scale (`--fs-label` … `--fs-3xl`).
+  No hex values outside these blocks and the two domain palettes in `config.js`.
+- **Accent policy** — `--voice` is the editorial gold (eyebrows, mastheads,
+  active nav). Team/player surfaces re-point `--accent` to ink via a single
+  inheritance block on `.teams-layout, .modal, .entity-scope`, so team colors
+  and data colors carry the personality there. Never fork a component for this.
 - **CSS primitives** — end of `css/components.css`: `.ovr-badge` (canonical rating pill),
   `.delta-chip`, `.badge-proj` + `.is-projected` hatch, `.context-strip`, `.compare-pair`,
   `.tabs`/`.tab`, `.data-table`, `.skeleton*`, `.empty-state`/`.error-state`,
