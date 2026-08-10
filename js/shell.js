@@ -7,11 +7,20 @@
 // being copy-pasted into every page.
 
 (function () {
-  // Theme first — before any content paints.
+  // Theme first — before any content paints. Two themes: dark | light.
+  // Order: ?theme= URL override (screenshot tests) → saved choice (legacy
+  // "dynasty-dark"/"mid" migrate to dark) → OS preference.
+  const legacy = { "dynasty-dark": "dark", "mid": "dark" };
   const saved = localStorage.getItem("cfb-theme");
-  if (saved) document.documentElement.setAttribute("data-theme", saved);
+  const urlOverride = new URLSearchParams(location.search).get("theme");
+  let theme = urlOverride || legacy[saved] || saved;
+  if (theme !== "dark" && theme !== "light") {
+    theme = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  document.documentElement.setAttribute("data-theme", theme);
+  if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v3.0.0";
+  const VERSION = "v3.1.0";
 
   const PAGES = [
     { id: "home",     href: "index.html",      icon: "⬡",  label: "Home" },
@@ -38,9 +47,8 @@
         <div>
           <div class="sidebar-theme-label">Theme</div>
           <div class="theme-swatches">
-            <button class="theme-swatch" data-theme="dynasty-dark" title="Dark"></button>
-            <button class="theme-swatch" data-theme="mid" title="Slate"></button>
-            <button class="theme-swatch" data-theme="light" title="Light"></button>
+            <button class="theme-swatch" data-theme-pick="dark" title="Dark" aria-label="Dark theme"></button>
+            <button class="theme-swatch" data-theme-pick="light" title="Light" aria-label="Light theme"></button>
           </div>
         </div>
         <div class="sidebar-version">${VERSION}</div>
@@ -61,11 +69,21 @@
   // position:fixed, so its DOM position is irrelevant.
   document.body.insertAdjacentHTML("afterbegin", sidebar + mobileNav);
 
+  // Swatches: mark the active one, and re-render data-colored UI on change —
+  // page scripts listen for "cfb:themechange" and re-render from cached state.
+  function markActive(t) {
+    document.querySelectorAll(".theme-swatch").forEach(b =>
+      b.classList.toggle("active", b.dataset.themePick === t));
+  }
+  markActive(theme);
+
   document.querySelectorAll(".theme-swatch").forEach(btn => {
     btn.addEventListener("click", () => {
-      const t = btn.dataset.theme;
+      const t = btn.dataset.themePick;
       document.documentElement.setAttribute("data-theme", t);
       localStorage.setItem("cfb-theme", t);
+      markActive(t);
+      window.dispatchEvent(new CustomEvent("cfb:themechange", { detail: { theme: t } }));
     });
   });
 })();

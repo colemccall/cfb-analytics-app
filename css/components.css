@@ -95,7 +95,7 @@
 .page-hero {
   padding: 2rem 2rem 1.5rem;
   background: linear-gradient(160deg, var(--surface-deep) 0%, var(--surface) 100%);
-  border-bottom: 1px solid var(--border-mid);
+  border-bottom: 1px solid var(--border-strong);
   position: relative; overflow: hidden;
 }
 .page-hero::before {
@@ -125,7 +125,7 @@
   display: flex; align-items: center; gap: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--tier-color, var(--border-mid));
+  border-left: 4px solid var(--tier-color, var(--border-strong));
   border-radius: var(--radius-sm);
   margin-bottom: 3px;
   cursor: pointer; overflow: hidden;
@@ -261,7 +261,7 @@
   display: flex; align-items: center;
   padding: 6px 12px 6px 60px;
   background: var(--surface-deep);
-  border-bottom: 2px solid var(--border-mid);
+  border-bottom: 2px solid var(--border-strong);
   font-size: var(--fs-xs); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--text-muted); margin-bottom: 4px;
@@ -341,7 +341,7 @@
 .modal-tabs {
   display: flex; gap: 0;
   background: var(--surface-deep);
-  border-bottom: 1px solid var(--border-mid);
+  border-bottom: 1px solid var(--border-strong);
 }
 .modal-tab-btn {
   flex: 1; padding: 10px 4px;
@@ -428,7 +428,7 @@
 
 /* Marquee opener card inside the masthead */
 .marquee {
-  border: 1px solid var(--border-mid); border-left: 3px solid var(--accent);
+  border: 1px solid var(--border-strong); border-left: 3px solid var(--accent);
   border-radius: var(--radius); background: var(--surface);
   padding: 0.9rem 1.1rem; max-width: 640px;
 }
@@ -451,7 +451,7 @@
 .home-section { padding: 1.5rem 2rem 0; max-width: 1200px; }
 .section-rule {
   display: flex; align-items: baseline; gap: 0.75rem;
-  border-bottom: 1px solid var(--border-mid);
+  border-bottom: 1px solid var(--border-strong);
   padding-bottom: 0.4rem; margin-bottom: 1rem;
 }
 .section-rule-sub { font-size: var(--fs-xs); color: var(--text-muted); }
@@ -468,7 +468,7 @@
   display: flex; flex-direction: column; gap: 0.5rem;
   transition: border-color 0.12s, background 0.12s;
 }
-.story-card:hover { border-color: var(--border-mid); background: var(--surface-lift); }
+.story-card:hover { border-color: var(--border-strong); background: var(--surface-lift); }
 .story-headline {
   font-family: var(--font-display); font-size: var(--fs-lg);
   font-weight: 700; line-height: 1.25; color: var(--text);
@@ -509,7 +509,7 @@
   width: 56px; flex-shrink: 0; text-transform: uppercase; font-size: var(--fs-xs);
 }
 .slate-team { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; }
-.slate-at { color: var(--text-dim); font-size: var(--fs-xs); text-transform: uppercase; }
+.slate-at { color: var(--text-muted); font-size: var(--fs-label); text-transform: uppercase; }
 .slate-footnote { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.6rem; }
 
 /* ── Research desk rail (home panel) ── */
@@ -558,7 +558,7 @@
   border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.home-panel-card:hover { border-color: var(--border-mid); }
+.home-panel-card:hover { border-color: var(--border-strong); }
 .home-panel-hdr {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -571,7 +571,7 @@
 }
 /* Season the panel is currently showing — follows the sidebar season picker */
 .home-panel-season {
-  font-family: var(--font-body); font-size: var(--fs-xs);
+  font-family: var(--font-ui); font-size: var(--fs-xs);
   font-weight: 600; color: var(--text-muted); letter-spacing: 0;
 }
 .home-panel-link { font-size: var(--fs-xs); color: var(--accent); font-weight: 700; }
@@ -630,7 +630,7 @@ a.research-card--live {
 a.research-card--live:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow);
 }
 a.research-card--live .finding-stat { color: var(--accent); }
 .research-tag--warning { background: rgba(240,168,48,0.15); color: var(--warning); }
@@ -644,7 +644,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 .research-filter-bar select {
   background: var(--surface); border: 1px solid var(--border);
-  color: var(--text-primary); border-radius: 6px;
+  color: var(--text); border-radius: 6px;
   padding: 0.3rem 0.6rem; font-size: var(--fs-sm);
 }
 .research-table-wrap { overflow-x: auto; }
@@ -661,7 +661,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .research-table th:hover { color: var(--accent); }
 .research-table td {
   padding: 5px 10px; border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
+  color: var(--text);
 }
 .research-table tr:hover td { background: var(--surface-lift); }
 /* Strong over/under-achievers: one accent edge + a faint wash, not per-cell borders */
@@ -710,7 +710,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .callout p strong { color: var(--text); }
 .callout-alt {
   background: var(--surface);
-  border: 1px solid var(--border-mid);
+  border: 1px solid var(--border-strong);
   border-top: 2px solid var(--accent);
   padding: 0.875rem 1.125rem;
   border-radius: var(--radius);
@@ -719,14 +719,14 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 .callout-alt p { margin: 0; }
 .formula-block {
-  background: var(--surface-deep); border: 1px solid var(--border-mid);
+  background: var(--surface-deep); border: 1px solid var(--border-strong);
   border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0;
   font-family: 'Barlow Condensed', monospace; font-size: 1.05rem;
   color: var(--accent); letter-spacing: 0.3px; line-height: 1.6;
 }
 .formula-block .formula-note { font-family: var(--font-ui); font-size: var(--fs-xs); color: var(--text-muted); margin-top: 6px; display: block; }
 .weight-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin: 0.75rem 0 1.25rem; }
-.weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-mid); }
+.weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-strong); }
 .weight-table td { padding: 7px 10px 7px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: middle; }
 .weight-table td:first-child { color: var(--text); font-weight: 500; }
 .weight-table .w-bar-cell { min-width: 120px; }
@@ -747,11 +747,11 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .step-text strong { color: var(--text); }
 .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
 .pos-card {
-  background: var(--surface); border: 1px solid var(--border-mid);
+  background: var(--surface); border: 1px solid var(--border-strong);
   border-radius: var(--radius); padding: 0.875rem 1rem;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.pos-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
+.pos-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow); }
 .pos-card-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; color: var(--accent); margin-bottom: 0.5rem; letter-spacing: 0.3px; }
 .pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.7; }
 .tier-rows { display: flex; flex-direction: column; gap: 8px; margin: 0.75rem 0 1.5rem; }
@@ -759,7 +759,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .tier-range { font-family: var(--font-display); font-size: 1rem; font-weight: 800; min-width: 50px; }
 .tier-desc { color: var(--text-muted); font-size: var(--fs-xs); }
-.limitations-box { background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius); padding: 1.125rem 1.375rem; margin: 1rem 0; }
+.limitations-box { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 1.125rem 1.375rem; margin: 1rem 0; }
 .limitations-box h3 { margin-top: 0; color: var(--text); }
 .version-note { margin-top: 2.5rem; color: var(--text-muted); font-size: var(--fs-xs); padding-top: 1rem; border-top: 1px solid var(--border); }
 .version-note a { color: var(--accent); }
@@ -858,7 +858,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .context-strip { display: inline-flex; align-items: center; gap: 8px; }
 .context-strip-track {
   position: relative; width: 90px; height: 4px;
-  background: var(--border-mid); border-radius: 2px;
+  background: var(--border-strong); border-radius: 2px;
 }
 .context-strip-marker {
   position: absolute; top: -3px; width: 3px; height: 10px;
@@ -873,7 +873,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 /* ── Tabs (canonical; team-subnav migrates onto this) ── */
 .tabs {
   display: flex; gap: 2px; flex-wrap: wrap;
-  border-bottom: 1px solid var(--border-mid);
+  border-bottom: 1px solid var(--border-strong);
 }
 .tab {
   font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700;
@@ -892,14 +892,13 @@ a.research-card--live .finding-stat { color: var(--accent); }
   font-family: var(--font-display); font-size: var(--fs-xs); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.8px;
   color: var(--text-muted); text-align: left;
-  padding: 6px 10px; border-bottom: 1px solid var(--border-mid);
+  padding: 6px 10px; border-bottom: 1px solid var(--border-strong);
   white-space: nowrap;
 }
 .data-table thead th[aria-sort] { cursor: pointer; }
 .data-table thead th[aria-sort="ascending"]::after  { content: " ▲"; color: var(--accent); }
 .data-table thead th[aria-sort="descending"]::after { content: " ▼"; color: var(--accent); }
 .data-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
-.data-table tbody tr:nth-child(even) { background: var(--table-row-alt); }
 .data-table tbody tr:hover { background: var(--surface-lift); }
 .data-table td.num, .data-table th.num { text-align: right; }
 
@@ -923,7 +922,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 /* ── Error state (inline, honest, retryable; .empty-state already exists) ── */
 .error-state {
   font-size: var(--fs-sm); color: var(--text-muted);
-  border: 1px dashed var(--border-mid); border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
 }
 .error-state a { color: var(--accent); font-weight: 700; }

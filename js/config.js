@@ -10,21 +10,38 @@ const CONFIG = {
   // 12-group position system
   POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "CB", "S", "K", "P"],
 
-  // Position identity colors
+  // ── Domain palettes — the SINGLE source of position/tier/rating color.
+  // Theme-keyed: light mode uses deepened variants so fills and text stay
+  // readable on paper. There is deliberately no CSS copy of these values.
   POS_COLORS: {
-    QB: "#FFB300", RB: "#43A047", WR: "#1E88E5", TE: "#00ACC1",
-    OL: "#757575", EDGE: "#FF5722", DL: "#E53935", LB: "#FB8C00",
-    CB: "#8E24AA", S: "#5C6BC0",   K: "#039BE5",  P: "#0288D1",
-    DB: "#5C6BC0", ATH: "#546E7A",
+    dark: {
+      QB: "#FFB300", RB: "#43A047", WR: "#1E88E5", TE: "#26C6DA",
+      OL: "#757575", EDGE: "#FF5722", DL: "#E53935", LB: "#FB8C00",
+      CB: "#8E24AA", S: "#5C6BC0",   K: "#039BE5",  P: "#0288D1",
+      DB: "#5C6BC0", ATH: "#546E7A",
+    },
+    light: {
+      QB: "#8a6400", RB: "#2e7d32", WR: "#1565c0", TE: "#00838f",
+      OL: "#546e7a", EDGE: "#bf360c", DL: "#b71c1c", LB: "#e65100",
+      CB: "#6a1b9a", S: "#3949ab",   K: "#0277bd",  P: "#01579b",
+      DB: "#3949ab", ATH: "#455a64",
+    },
   },
 
-  // EA CFB 25-style rating tiers
+  // Rating ramp: [threshold, fill] pairs, walked top-down. Fill text color is
+  // chosen by ratingTextColor()'s luminance guard.
+  RATING_RAMP: {
+    dark:  [[90, "#FFD700"], [80, "#FFA000"], [70, "#90A4AE"], [55, "#A1887F"], [40, "#FF9800"], [0, "#F44336"]],
+    light: [[90, "#8a6d00"], [80, "#9a5b00"], [70, "#546e7a"], [55, "#6d4c41"], [40, "#9a3412"], [0, "#b91c1c"]],
+  },
+
+  // Tier labels (colors come from RATING_RAMP at the tier threshold)
   RATING_TIERS: {
-    ELITE:   { min: 90, label: "ELITE",  color: "#FFD700" },
-    GOLD:    { min: 80, label: "GOLD",   color: "#FFA000" },
-    SILVER:  { min: 70, label: "SILVER", color: "#78909C" },
-    BRONZE:  { min: 55, label: "BRONZE", color: "#8D6E63" },
-    NORMAL:  { min: 0,  label: "",       color: null },
+    ELITE:  { min: 90, label: "ELITE" },
+    GOLD:   { min: 80, label: "GOLD" },
+    SILVER: { min: 70, label: "SILVER" },
+    BRONZE: { min: 55, label: "BRONZE" },
+    NORMAL: { min: 0,  label: "" },
   },
 
   // Skill attribute display names per position group (mirrors SHAP feature names)
@@ -45,34 +62,28 @@ const CONFIG = {
   },
 };
 
+// Active theme: "dark" | "light" (anything else degrades to dark — safe)
+function _activeTheme() {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+
 // Rating tier — returns {label, color, cls}
 function getRatingTier(rating) {
   const c = ratingColor(rating);
-  if (rating >= 90) return { label: "", color: c, cls: "tier-elite"  };
-  if (rating >= 80) return { label: "", color: c, cls: "tier-gold"   };
-  if (rating >= 70) return { label: "", color: c, cls: "tier-silver" };
-  if (rating >= 55) return { label: "", color: c, cls: "tier-bronze" };
+  if (rating >= 90) return { label: "ELITE",  color: c, cls: "tier-elite"  };
+  if (rating >= 80) return { label: "GOLD",   color: c, cls: "tier-gold"   };
+  if (rating >= 70) return { label: "SILVER", color: c, cls: "tier-silver" };
+  if (rating >= 55) return { label: "BRONZE", color: c, cls: "tier-bronze" };
   return                    { label: "", color: null, cls: "tier-normal" };
 }
 
-// Rating color gradient — adapts to light vs dark theme
+// Rating fill color — walks the active theme's ramp.
 function ratingColor(rating) {
-  const isLight = document.documentElement.getAttribute("data-theme") === "light";
-  if (isLight) {
-    if (rating >= 90) return "#1565C0";
-    if (rating >= 80) return "#1976D2";
-    if (rating >= 70) return "#0288D1";
-    if (rating >= 55) return "#455A64";
-    if (rating >= 40) return "#8D6E63";
-    return "#c62828";
+  const ramp = CONFIG.RATING_RAMP[_activeTheme()];
+  for (const [min, color] of ramp) {
+    if (rating >= min) return color;
   }
-  // Dark / mid theme — gold/amber palette
-  if (rating >= 90) return "#FFD700";
-  if (rating >= 80) return "#FFA000";
-  if (rating >= 70) return "#90A4AE";  // lighter slate — readable with dark text
-  if (rating >= 55) return "#A1887F";  // lighter brown — readable with dark text
-  if (rating >= 40) return "#ff9800";
-  return "#f44336";
+  return ramp[ramp.length - 1][1];
 }
 
 // Returns #111 or #fff depending on whether the hex background is light enough
@@ -87,9 +98,10 @@ function ratingTextColor(hexOrRating) {
   return lum > 140 ? "#111" : "#fff";
 }
 
-// Position color helper
+// Position color helper — theme-aware
 function posColor(pg) {
-  return CONFIG.POS_COLORS[pg] || CONFIG.POS_COLORS.ATH;
+  const palette = CONFIG.POS_COLORS[_activeTheme()];
+  return palette[pg] || palette.ATH;
 }
 
 // Stars display helper
