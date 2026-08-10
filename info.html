@@ -323,18 +323,39 @@
     <tbody>
       <tr><td>EDGE (Engine A)</td><td class="status-live">✓ Live</td><td>Per-game opponent-adjusted stat composites → 30–99 OVR, all positions, 2008–2025. Pre-2016 defense uses CLASSIC system (INTs + recruiting).</td></tr>
       <tr><td>Team Ratings</td><td class="status-live">✓ Live</td><td>SP+ + roster quality + recruiting pipeline composite, 2025. Historical team ratings planned.</td></tr>
-      <tr><td>Similar Players</td><td class="status-live">✓ Live</td><td>Cosine similarity across EDGE vectors — top 5 comp players per season.</td></tr>
-      <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite for market value vs production gap.</td></tr>
-      <tr><td>Engine C (EA CFB 27)</td><td class="status-wip">In progress</td><td>All 9,000+ EA Sports CFB 27 player ratings (2026 rosters, 54 attributes each) harvested and mapped to our player IDs. Side-by-side comparison against EDGE coming next.</td></tr>
-      <tr><td>ML Breakout Engine (D)</td><td class="status-wip">In progress</td><td>XGBoost regressor on lagged EDGE + trajectory + recruiting to predict next-season OVR. Historical backfill complete — model training next.</td></tr>
-      <tr><td>Historical explorer</td><td class="status-planned">Planned</td><td>Season-by-season leaderboards and cross-era comparisons for 2008–2025 — who were the best players of each decade?</td></tr>
+      <tr><td>Similar Players</td><td class="status-live">✓ Live</td><td>Weighted z-score distance across OVR, EDGE percentile, trajectory, recruiting and era — top 5 comps per player-season, with an OVR band so elite and mediocre players never match, and a cap of 2 cross-era comps.</td></tr>
+      <tr><td>EDGE percentiles</td><td class="status-live">✓ Live</td><td>Raw EDGE is not comparable across positions (QBs accumulate ~1,600, linebackers ~65), so boards and the player modal show percentile within position group instead.</td></tr>
+      <tr><td>Team Performance Evaluator</td><td class="status-live">✓ Live</td><td>Regresses SP+ on a 3-year recruiting-talent composite; the residual identifies programs beating or trailing the roster they recruited. Live table on the Research page.</td></tr>
+      <tr><td>Recruiting Class ROI</td><td class="status-live">✓ Live</td><td>Per class, the share of recruits who became real contributors (peak OVR ≥ 75) — separating programs that recruit well from programs that develop well.</td></tr>
+      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>XGBoost regressor over lagged EDGE, trajectory, recruiting composite and usage predicts next-season OVR, with the top SHAP driver per call. Trained on 2008–2022, test MAE ≈ 9 OVR. Predictions are labeled <span class="badge-proj">PROJ</span> everywhere they appear — never mixed with earned ratings.</td></tr>
+      <tr><td>Position leaderboards</td><td class="status-live">✓ Live</td><td>Top 50 per position group per season, on the Ratings page.</td></tr>
+      <tr><td>'26 Season hub</td><td class="status-live">✓ Live</td><td>The full 2026 FBS schedule with matchup quality from final-2025 team ratings. The season hasn't been played, so nothing on that page is a projection yet.</td></tr>
+      <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite. Blocked: On3 blocks scraping, so the NIL table is currently empty and the engine runs recruiting-only.</td></tr>
+      <tr><td>Engine C (EA CFB 27)</td><td class="status-wip">In progress</td><td>9,013 EA Sports CFB 27 player ratings (54 attributes each) harvested and 81.6% matched to our player IDs. Not yet surfaced in the app.</td></tr>
+      <tr><td>Projected 2026 ratings</td><td class="status-planned">Planned</td><td>Player and team ratings for the season ahead, from Engine D predictions, carried-forward EDGE, and recruiting composites for true freshmen. Will always carry the <span class="badge-proj">PROJ</span> label.</td></tr>
+      <tr><td>Playoff prediction model</td><td class="status-planned">Planned</td><td>Game-level win probability → Monte Carlo season simulation → 12-team bracket odds. Ships only alongside its backtest against 2024 and 2025; a model that can't show its backtest doesn't ship.</td></tr>
       <tr><td>Transfer portal ROI</td><td class="status-planned">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>
-      <tr><td>Team ratings history</td><td class="status-planned">Planned</td><td>Multi-year team rating trends, conference strength over time, coaching-change impact tracking.</td></tr>
     </tbody>
   </table>
 
   <p class="version-note">
-    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite (2025). App: <strong>v2.0.1</strong>. Note: individual defensive stats unavailable from API prior to 2016; pre-2016 DL/EDGE ratings are recruiting-caliber estimates.
+    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite. App: <strong>v3.1.0</strong>.
+  </p>
+
+  <h2>What These Ratings Cannot See</h2>
+  <p>
+    Stating the limits is part of the method. The model has no view of:
+  </p>
+  <ul>
+    <li><strong>Injuries and availability.</strong> A player who misses half a season is rated on the games he played, and a team's rating says nothing about who was healthy for them.</li>
+    <li><strong>Individual defensive stats before 2016.</strong> The API doesn't carry them, so pre-2016 DL/EDGE ratings are recruiting-anchored estimates, not production grades.</li>
+    <li><strong>Offensive line play directly.</strong> OL ratings are built from team proxies (team rush YPA, sack rate allowed) plus recruiting, and are deliberately <strong>capped at 88</strong> — the inputs don't support claiming one lineman is a 99.</li>
+    <li><strong>Scheme, usage and role.</strong> A back-up quarterback in a run-heavy offense and a starter in an air raid are measured by the same yardstick, with only opponent quality adjusted for.</li>
+    <li><strong>Coaching.</strong> The coaching-change table is 22 seeded rows — far too thin to be a model input.</li>
+  </ul>
+  <p class="version-note">
+    Where a number is a model projection rather than something earned on the field, it carries a
+    <span class="badge-proj">PROJ</span> badge. That distinction is deliberate and is never blurred.
   </p>
 
 </div>
