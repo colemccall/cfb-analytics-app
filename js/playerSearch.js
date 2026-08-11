@@ -816,7 +816,8 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   // EA's independent read. Keeping the breakdown would narrate model output as
   // though it were production.
   const isProj = isProjectedSeason(season ?? player.season);
-  const eaHtml = renderEaSection(player, pg);
+  const eaHtml   = renderEaSection(player, pg);
+  const archHtml = renderArchetypes(player, pg);
 
   return `
     ${headerHtml}
@@ -827,10 +828,67 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${careerHtml}
       ${yoyHtml}
       ${isProj ? "" : shapHtml}
+      ${archHtml}
       ${trajectoryHtml}
       ${eaHtml}
       ${careerPathHtml}
       ${similarHtml}
+    </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Defensive-back archetypes — the three jobs behind one label
+// ---------------------------------------------------------------------------
+// A DB's overall IS the weighted sum of these, so showing them is not a garnish:
+// it is the rating, itemised. Weights mirror SECONDARY_ARCHETYPE_WEIGHTS in
+// script 06.
+const ARCHETYPE_META = {
+  ball_hawk:   { label: "Ball hawk",   blurb: "Interceptions, pass breakups and returns — what he does when the ball arrives." },
+  coverage:    { label: "Lockdown",    blurb: "Full-time snaps on a defense that gave up little through the air. Built from playing time and what his defense allowed, not from his own box score — the whole point is that a covered receiver produces no statistic." },
+  run_support: { label: "Run support", blurb: "Tackles, tackles for loss and sacks — the part of the job that happens in front of him." },
+};
+
+const ARCHETYPE_WEIGHTS = {
+  CB: { coverage: 0.40, ball_hawk: 0.40, run_support: 0.20 },
+  S:  { run_support: 0.50, ball_hawk: 0.30, coverage: 0.20 },
+  DB: { run_support: 1 / 3, ball_hawk: 1 / 3, coverage: 1 / 3 },
+};
+
+function renderArchetypes(player, pg) {
+  const a = player.archetypes;
+  if (!a || typeof a !== "object") return "";
+  const weights = ARCHETYPE_WEIGHTS[pg];
+  if (!weights) return "";
+
+  const order = Object.keys(weights).sort((x, y) => (a[y] ?? 0) - (a[x] ?? 0));
+  const top = order[0];
+  const rows = order.map(k => {
+    const v = Number(a[k] ?? 0);
+    const meta = ARCHETYPE_META[k] || { label: k, blurb: "" };
+    const pct = Math.max(0, Math.min(100, v * 10));
+    const col = ratingColor(Math.round(30 + v * 6.5));
+    return `
+      <div class="ea-attr" title="${_esc(meta.blurb)}">
+        <span class="ea-attr-label">${meta.label}
+          <span class="arch-weight">${Math.round(weights[k] * 100)}%</span></span>
+        <span class="ea-attr-track"><span class="ea-attr-fill"
+          style="width:${pct.toFixed(0)}%;background:${col}"></span></span>
+        <span class="ea-attr-val">${v.toFixed(1)}</span>
+      </div>`;
+  }).join("");
+
+  const name = player.name?.split(" ")[0] || "He";
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">What kind of defensive back</div>
+      <p class="breakdown-summary">${name} grades out as a
+        <strong>${(ARCHETYPE_META[top] || {}).label || top}</strong>.
+        His overall is these three scored out of 10 and weighted by what a
+        ${_esc(pg)} is paid to do.</p>
+      <div class="ea-attrs">${rows}</div>
+      <p class="breakdown-note">Lockdown carries no box-score input at all — quarterbacks
+        avoid the players who earn it, so it is built from playing time and what his defense
+        allowed per pass thrown.</p>
     </div>`;
 }
 
