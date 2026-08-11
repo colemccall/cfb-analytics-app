@@ -627,6 +627,24 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 .preview-player:last-child { border-bottom: none; }
 
+/* A position we deliberately do not project. Stated, not blank. */
+.unprojected {
+  font-size: var(--fs-label); color: var(--text-muted);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-sm);
+  padding: 1px 5px; white-space: nowrap; cursor: help;
+}
+
+/* How much to trust a projection, by position family. */
+.conf-chip {
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  border-radius: var(--radius-sm); padding: 1px 6px; cursor: help;
+  border: 1px solid currentColor;
+}
+.conf-high   { color: var(--positive); }
+.conf-medium { color: var(--text-muted); }
+.conf-low    { color: var(--negative); }
+
 /* Two-letter provenance code in the roster grid. */
 .proj-source-code {
   font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;

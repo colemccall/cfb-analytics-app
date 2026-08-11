@@ -235,6 +235,15 @@ const FINDINGS = {
     filters(rows) {
       const pos = [...new Set(rows.map(r => r.position_group).filter(Boolean))].sort();
       return [
+        // Defaults to offensive skill on purpose. Sorted by vs-cohort across all
+        // positions, the top of this table fills with low-confidence defensive
+        // calls whose underlying ratings we already know need rework — which
+        // makes the whole list look unreliable. The filter is right there for
+        // anyone who wants them.
+        { id: "family", type: "select", value: "offense",
+          options: [{ value: "offense", label: "Offensive skill (modelled on opportunity)" },
+                    { value: "defense", label: "Defense (low confidence)" },
+                    { value: "ALL", label: "Every position" }] },
         { id: "pos", type: "select", value: "ALL",
           options: [{ value: "ALL", label: "All Positions" }, ...pos.map(p => ({ value: p, label: p }))] },
         { id: "label", type: "select", value: "ALL",
@@ -244,6 +253,7 @@ const FINDINGS = {
       ];
     },
     apply: (rows, v) => rows.filter(r =>
+      (v.family === "ALL" || r.family === v.family) &&
       (v.pos === "ALL" || r.position_group === v.pos) &&
       (v.label === "ALL" || r.trajectory_label === v.label) &&
       (r.current_ovr || 0) >= (v.minOvr || 0)),
@@ -265,19 +275,26 @@ const FINDINGS = {
         title: "Projection minus cohort expectation — the actual claim",
         fmt: v => v != null ? deltaChip(v, { title: "Projected OVR vs cohort expectation" }) : "—" },
       { key: "trajectory_label", label: "Call", fmt: v => _callCell(v) },
+      { key: "confidence", label: "Confidence", fmt: v => confidenceChip(v) },
       { key: "shap_top_feature", label: "Top Driver", fmt: v => _esc(v || "—") },
     ],
-    method: `Every season a player has played is converted to an EDGE percentile within its own
-      season and position group, forming a career curve. The model reads that curve's shape —
-      slope, acceleration, distance from peak, consistency, availability — against cohort
-      development curves built from 2008–2020, then inflates variance 50% toward the realised
-      distribution so the spread matches reality rather than collapsing to the mean.
-      Click any player for the drivers, the plain-English reasoning, and historical comparables.`,
-    limitations: `These curves are built only from players who <em>have</em> a next season. The
-      best players leave for the NFL, so the record overstates how often elite players decline,
-      and projections at the very top read slightly optimistic as a result. Injuries are
-      invisible to us. OL, K and P are projected by carrying their rating along the cohort
-      curve rather than by the model, because their inputs are team-level proxies.`,
+    method: `Two models, because two position families have very different evidence behind them.
+      <strong>Offensive skill</strong> (QB/RB/WR/TE) gets the full treatment: a career curve built
+      from EDGE percentiles within each season and position, cohort development curves, and —
+      the part that actually moves a projection — the <em>opportunity</em> in front of him:
+      depth-chart rank on next season's roster, his share of his position room's production, and
+      how much production is departing ahead of him. <strong>Defense</strong> gets the career
+      curve and cohort only; there is no meaningful notion of touches or depth chart, so those
+      projections are marked low confidence. Both are variance-inflated 50% toward the realised
+      distribution. Click any player for drivers, reasoning and historical comparables.`,
+    limitations: `<strong>Offensive linemen are not projected at all.</strong> No individual
+      blocking data exists in any public source, so an OL rating is 77% recruiting composite and
+      anti-correlates with the one independent assessment available — carrying that forward would
+      publish a recruiting ranking wearing the word "projection". Defensive and special-teams
+      projections are published but marked low confidence: their underlying ratings need reworking
+      before the projections can be trusted. These curves are also built only from players who
+      <em>have</em> a next season — the best leave for the NFL, so the record overstates elite
+      decline and the top of the scale reads slightly optimistic. Injuries are invisible to us.`,
   },
 
   // ── Storyline: hidden gems ───────────────────────────────────────────────

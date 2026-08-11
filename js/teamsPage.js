@@ -515,7 +515,9 @@ function renderRosterCards(players) {
         <div class="draft-ht">${ht}</div>
         <div class="draft-wt">${wt}</div>
         <div class="draft-team" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(hometown)}</div>
-        <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}</div>
+        <div class="draft-ovr">${p.overall_rating == null && proj
+          ? unprojectedNote(p.position_group || p.position) || '<span class="text-muted">—</span>'
+          : ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}</div>
         <div class="draft-traj">${proj ? eaCell(p) : projHtml(p.player_season_id)}</div>
         <div class="draft-edge">${proj ? sourceCell(p) : oap}</div>
       </div>`;

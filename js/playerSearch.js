@@ -753,14 +753,20 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
             <div style="font-size:var(--fs-sm);color:var(--text-muted)">
               ${vsStr} vs a cohort expectation of ${trajectory.cohort_expected}
             </div>
+            <div style="margin-top:4px">${confidenceChip(trajectory.confidence)}</div>
           </div>
         </div>
         <div id="proj-reasoning" class="proj-reasoning">
           ${skeletonRows(2)}
         </div>
         <p class="breakdown-note" style="margin-top:8px">
-          Projected from this player's whole career production curve against what players at
-          the same position and class year historically did next.${mae ? ` Typical error ±${mae} OVR.` : ""}
+          ${trajectory.family === "offense"
+            ? `Projected from his career production curve, his cohort's development curve, and the
+               opportunity in front of him — depth-chart position on the ${forSeason} roster and how
+               much production is departing ahead of him.`
+            : `Projected from his career production curve against what players at the same position
+               and class year historically did next. Defensive ratings rest on less complete
+               production data than offensive ones, so read this as indicative.`}${mae ? ` Typical error ±${mae} OVR.` : ""}
           Players who leave for the NFL are absent from the history these curves are built on,
           so decline at the very top is somewhat overstated.
         </p>

@@ -56,6 +56,32 @@ const PROJECTION_SOURCE_LABELS = {
   ea_cfb27:    "EA CFB 27's overall — we had no signal of our own",
 };
 
+// Positions we deliberately do not project, and why. An unexplained blank reads
+// as a bug; a stated refusal reads as a judgement.
+const UNPROJECTED_POSITIONS = {
+  OL: "No individual blocking data exists in any public source, so an OL rating is " +
+      "mostly a recruiting ranking. We don't project what we can't measure.",
+};
+
+function unprojectedNote(pg) {
+  const why = UNPROJECTED_POSITIONS[pg];
+  return why ? `<span class="unprojected" title="${_esc(why)}">not projected</span>` : "";
+}
+
+// Confidence is a property of the position family as much as the player: an
+// offensive skill player has counting stats and a depth chart behind his
+// number; a linebacker has neither.
+function confidenceChip(level) {
+  if (!level) return "";
+  const label = { high: "High confidence", medium: "Medium confidence", low: "Low confidence" }[level] || level;
+  const why = {
+    high: "Offensive skill: real per-player production and a knowable depth chart behind this number.",
+    medium: "Carried forward along a development curve rather than modelled from a full career.",
+    low: "Defensive and special-teams ratings rest on less complete production data. Treat as indicative.",
+  }[level] || "";
+  return `<span class="conf-chip conf-${_esc(level)}" title="${_esc(why)}">${_esc(label)}</span>`;
+}
+
 // A projected value with its range. The interval is the honest part: the point
 // estimate alone implies a precision the model does not have.
 function projRange(low, high) {
