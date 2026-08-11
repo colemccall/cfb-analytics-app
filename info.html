@@ -86,6 +86,17 @@
   <p>
     This is a <em>rating</em> system, not a <em>ranking</em> system. The thresholds don't change year to year. If no one in the 2024 class hit the 99 threshold, no one rates 99 — there's no forced distribution curve.
   </p>
+  <p>
+    Where the anchors themselves come from: each one is pinned to the EDGE score posted by the
+    Nth-best player at that position in a typical season over the last five. What has to be
+    <em>chosen</em> is only what a given standing is worth, and for that we check ourselves against
+    EA Sports CFB 27 — not to copy its numbers, but to answer whether we are handing out too many
+    85s, too few, and whether the top of the scale sits in the right place. Two positions are
+    deliberately narrower than the rest: <strong>offensive line</strong> stops at 88 because its
+    inputs are team proxies, and <strong>kickers and punters</strong> stop near 90 because the gap
+    between the best specialist in the country and an average one changes far fewer games than the
+    same gap at receiver.
+  </p>
 
   <!-- ── Per-position weights ── -->
   <h2>What We Measure Per Position</h2>
@@ -317,7 +328,7 @@
   <div class="limitations-box">
     <h3>Additional model limitations</h3>
     <ul>
-      <li><strong>Coverage snaps for CB/S</strong>: We count INTs and PBUs, not targets allowed or coverage yards. A lockdown corner who is never thrown at will show low counting stats and rate below their true impact.</li>
+      <li><strong>Coverage snaps for CB/S</strong>: We still have no targets allowed or coverage yards — nobody publishes them. We now <em>partly</em> correct for it: a defensive back who is one of his secondary's five regulars is credited for how few passing yards his defense gave up, on top of his own interceptions and breakups. That credit is additive, so it survives the very suppression it exists to fix, and a player's modal shows what share of his rating came from it. It is still a team proxy standing in for an individual measurement, and it cannot tell you <em>which</em> corner earned the silence.</li>
       <li><strong>Tackle quality beyond TFLs</strong>: We minimize raw tackle weight for this reason, but can't distinguish a broken-tackle stop from a gang-tackle pile-on with existing data.</li>
       <li><strong>Receiver targets for WR/TE</strong>: EDGE reflects production per game, but can't distinguish a receiver who ran perfect routes but was ignored by the QB from one who was targeted and dropped passes.</li>
       <li><strong>Transfer Year 1 context</strong>: The model doesn't yet adjust for first-year transfer learning curves. Research question RQ9 (Year 1 vs. Year 2 transfer performance) is planned.</li>

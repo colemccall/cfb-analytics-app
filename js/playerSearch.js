@@ -436,7 +436,8 @@ async function openPlayerModal(playerId, seasonOverride) {
   // Fetch profile + stats + history + similar + transfers + trajectory in parallel.
   // buildEdgePercentiles primes the EDGE-context cache so the modal can place
   // the player's EDGE on its position distribution.
-  const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap, trajectoryMap] = await Promise.all([
+  const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap,
+         trajectoryMap, _edgePct, eaMap] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
@@ -445,6 +446,7 @@ async function openPlayerModal(playerId, seasonOverride) {
     loadPlayerTransfers().catch(() => ({})),
     loadTrajectory().catch(() => ({})),
     buildEdgePercentiles(season).catch(() => ({})),
+    fetchEaRatings(season).catch(() => ({})),
   ]);
 
   if (!player) {
@@ -467,6 +469,15 @@ async function openPlayerModal(playerId, seasonOverride) {
     ? (transfersMap[String(player.id)] || []) : [];
   // Look up Engine D trajectory prediction by player_season_id
   const trajectory = trajectoryFor(psId, player.id);
+
+  // EA's attribute grades live in ea_ratings_{season}.json, not in the player
+  // row, so attach them here rather than teaching the exporter to duplicate them.
+  const eaRow = eaMap && player.id != null ? eaMap[player.id] : null;
+  if (eaRow) {
+    if (player.ea_ovr == null) player.ea_ovr = eaRow.ovr;
+    player.ea_attributes = eaRow.attributes || null;
+  }
+
   modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory, trajectory);
   bindModalClose(modal);
 
@@ -800,6 +811,13 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       </div>`;
   }
 
+  // On a season that has not been played there is no earned rating to explain,
+  // so "Why this rating?" is replaced by the projection's own reasoning plus
+  // EA's independent read. Keeping the breakdown would narrate model output as
+  // though it were production.
+  const isProj = isProjectedSeason(season ?? player.season);
+  const eaHtml = renderEaSection(player, pg);
+
   return `
     ${headerHtml}
     <div class="modal-body">
@@ -808,10 +826,64 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${edgeHtml}
       ${careerHtml}
       ${yoyHtml}
-      ${shapHtml}
+      ${isProj ? "" : shapHtml}
       ${trajectoryHtml}
+      ${eaHtml}
       ${careerPathHtml}
       ${similarHtml}
+    </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// What EA CFB 27 says — an independent opinion, never an input to ours
+// ---------------------------------------------------------------------------
+// Shown for any player EA rates, at every position, including the ones we
+// decline to project. Where we have no number, EA's is the only one there is,
+// and withholding it because our own model abstained helps nobody.
+function renderEaSection(player, pg) {
+  const ea = player.ea_ovr;
+  if (ea == null) return "";
+
+  const ours = player.overall_rating != null ? Math.round(player.overall_rating) : null;
+  const gap  = ours != null ? Math.round(ea) - ours : null;
+  const c    = ratingColor(Math.round(ea));
+
+  let verdict;
+  if (gap == null) {
+    verdict = `We don't publish a rating for ${_esc(pg || "this position")} — EA does, and this is it.`;
+  } else if (Math.abs(gap) <= 2) {
+    verdict = `We land within ${Math.abs(gap)} point${Math.abs(gap) === 1 ? "" : "s"} of each other.`;
+  } else if (gap > 0) {
+    verdict = `EA is <strong>${gap} points higher</strong> than us. EA rates talent; we rate production, so the gap usually means a highly regarded player who hasn't produced at that level yet.`;
+  } else {
+    verdict = `We are <strong>${-gap} points higher</strong> than EA. That usually means production EA's scouting grade hasn't caught up with.`;
+  }
+
+  const attrs = Array.isArray(player.ea_attributes) ? player.ea_attributes : null;
+  const bars = attrs && attrs.length
+    ? `<div class="ea-attrs">${attrs.map(a => `
+        <div class="ea-attr">
+          <span class="ea-attr-label">${_esc(a.label || a.key)}</span>
+          <span class="ea-attr-track"><span class="ea-attr-fill"
+            style="width:${Math.max(0, Math.min(100, a.value))}%;background:${ratingColor(a.value)}"></span></span>
+          <span class="ea-attr-val">${a.value}</span>
+        </div>`).join("")}</div>`
+    : "";
+
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">What EA CFB 27 says</div>
+      <div class="proj-headline">
+        <div class="proj-headline-num">
+          <div style="font-size:2rem;font-weight:900;color:${c}">${Math.round(ea)}</div>
+          <div style="font-size:var(--fs-sm);color:var(--text-muted)">EA overall</div>
+        </div>
+        <div><p class="breakdown-summary" style="margin:0">${verdict}</p></div>
+      </div>
+      ${bars}
+      <p class="breakdown-note">EA Sports CFB 27's own numbers, shown as a cross-check.
+        They are never an input to our rating${player.projection_source === "ea_cfb27"
+          ? " — except for this player, where we had no signal of our own and used it" : ""}.</p>
     </div>`;
 }
 
@@ -844,10 +916,22 @@ function renderRatingBreakdown(player, pg) {
     ? `<div class="breakdown-line"><span class="breakdown-icon">🔥</span><span><strong>Breakout candidate</strong> — young player with high recruiting pedigree below current production median (${(player.breakout_prob * 100).toFixed(0)}% probability)</span></div>`
     : "";
 
+  // Coverage denial — a defensive back's best games leave no stat line, because
+  // quarterbacks stop throwing at him. Part of his score is therefore credited
+  // from what his defense allowed through the air rather than from his own
+  // counting stats, and a rating that moves for an invisible reason has to say so.
+  const covShare = shap && typeof shap.coverage_share === "number" ? shap.coverage_share : 0;
+  const coverageLine = covShare > 0.02
+    ? `<div class="breakdown-line"><span class="breakdown-icon">🛡️</span><span><strong>${Math.round(covShare * 100)}% of this rating is coverage denial</strong> — quarterbacks threw elsewhere, so his tackles and breakups understate him. That share comes from how few passing yards his defense gave up, weighted by how much of the secondary's workload he carried.</span></div>`
+    : "";
+
   // SHAP factor bars — normalized to % of total absolute influence
   let factorsHtml = "";
   if (shap) {
     const entries = Object.entries(shap)
+      // coverage_share is a fraction, not a model input on the same scale as the
+      // rest; it gets its own sentence above instead of a misleading bar.
+      .filter(([k]) => k !== "coverage_share")
       .filter(([, v]) => Math.abs(v) > 0.001)
       .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
       .slice(0, 6);
@@ -890,6 +974,7 @@ function renderRatingBreakdown(player, pg) {
       ${tierSentence}
       <div class="breakdown-lines">
         ${recLine}
+        ${coverageLine}
         ${trajLine}
         ${breakoutLine}
         ${fallbackNote}

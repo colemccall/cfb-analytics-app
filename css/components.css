@@ -664,6 +664,21 @@ a.research-card--live .finding-stat { color: var(--accent); }
   border-left: 3px solid var(--projected);
 }
 .proj-drivers, .proj-comparables { margin-top: 0.85rem; }
+
+/* EA CFB 27 attribute grades — an outside opinion, shown as its own block so it
+   never reads as one of our inputs. */
+.ea-attrs {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.35rem 1.25rem; margin-top: 0.9rem;
+}
+.ea-attr { display: grid; grid-template-columns: 8.5rem 1fr 2rem; align-items: center; gap: 0.5rem; }
+.ea-attr-label { font-size: var(--fs-sm); color: var(--text-muted); }
+.ea-attr-track {
+  height: 6px; border-radius: var(--radius-pill);
+  background: var(--surface-deep); overflow: hidden;
+}
+.ea-attr-fill { display: block; height: 100%; border-radius: var(--radius-pill); }
+.ea-attr-val { font-size: var(--fs-sm); font-weight: 700; text-align: right; color: var(--text); }
 .modal-subsection-title {
   font-family: var(--font-display); font-size: var(--fs-label);
   letter-spacing: 1px; text-transform: uppercase;

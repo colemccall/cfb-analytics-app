@@ -44,10 +44,21 @@ const CONFIG = {
   },
 
   // Rating ramp: [threshold, fill] pairs, walked top-down. Fill text color is
-  // chosen by ratingTextColor()'s luminance guard.
+  // chosen by ratingTextColor()'s luminance guard. Two things were wrong here
+  // and both are fixed:
+  //
+  //  · the ELITE gold was #FFD700 — a pure, maximally light yellow. It cleared
+  //    the contrast floor as a pill fill, but ratingColor() is also used as a
+  //    TEXT color (teamsPage.js conference averages), and small text in a
+  //    near-white yellow is hard to read whatever the ratio says. It is now a
+  //    deeper gold that still reads as gold.
+  //
+  //  · the 80-90 band (#FFA000) and the 40-55 band (#FF9800) differed by 8 in a
+  //    single channel — an 82-rated player and a 45-rated one were the same
+  //    color. The low band is now clay, so no two bands are confusable.
   RATING_RAMP: {
-    dark:  [[90, "#FFD700"], [80, "#FFA000"], [70, "#90A4AE"], [55, "#A1887F"], [40, "#FF9800"], [0, "#F44336"]],
-    light: [[90, "#8a6d00"], [80, "#9a5b00"], [70, "#546e7a"], [55, "#6d4c41"], [40, "#9a3412"], [0, "#b91c1c"]],
+    dark:  [[90, "#F2C230"], [80, "#E8973C"], [70, "#90A4AE"], [55, "#A1887F"], [40, "#D9705F"], [0, "#F0574A"]],
+    light: [[90, "#7d6300"], [80, "#8f5300"], [70, "#546e7a"], [55, "#6d4c41"], [40, "#a13d2d"], [0, "#b91c1c"]],
   },
 
   // Tier labels (colors come from RATING_RAMP at the tier threshold)
