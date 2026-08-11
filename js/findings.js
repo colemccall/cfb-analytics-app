@@ -225,6 +225,7 @@ const FINDINGS = {
       const c = rows.reduce((a, r) => (a[r.trajectory_label] = (a[r.trajectory_label] || 0) + 1, a), {});
       return [
         { value: String(c.breakout || 0), label: "projected to beat their cohort" },
+        { value: String(c.bounceback || 0), label: "returning from a season cut short" },
         { value: String(c.decline || 0), label: "projected to fall short of it" },
         { value: meta.model_mae ? `±${meta.model_mae}` : "—", label: `typical error, vs ±${meta.naive_mae ?? "—"} for assuming no change` },
         { value: meta.interval_coverage_pct ? `${meta.interval_coverage_pct}%` : "—", label: "of outcomes inside the published 80% range" },
@@ -248,6 +249,7 @@ const FINDINGS = {
           options: [{ value: "ALL", label: "All Positions" }, ...pos.map(p => ({ value: p, label: p }))] },
         { id: "label", type: "select", value: "ALL",
           options: [{ value: "ALL", label: "All Calls" }, { value: "breakout", label: "Breakout" },
+                    { value: "bounceback", label: "Bounceback" },
                     { value: "steady", label: "Steady" }, { value: "decline", label: "Decline" }] },
         { id: "minOvr", type: "number", label: `Min ${PLAYED_SEASON} OVR:`, value: 0, min: 0, max: 99 },
       ];
@@ -615,7 +617,11 @@ function _hitCell(v) {
 }
 
 function _callCell(v) {
-  const colors = { breakout: "var(--positive)", decline: "var(--negative)", steady: "var(--text-muted)" };
+  // Bounceback is its own call, not a flavour of breakout: the player is
+  // returning to a level he already posted before a season cut short, which is a
+  // different and better-supported claim than breaking new ground.
+  const colors = { breakout: "var(--positive)", bounceback: "var(--positive)",
+                   decline: "var(--negative)", steady: "var(--text-muted)" };
   return `<span style="color:${colors[v] || "var(--text)"};font-weight:600;text-transform:capitalize">${_esc(v || "—")}</span>`;
 }
 

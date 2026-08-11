@@ -744,7 +744,8 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
     const pred  = trajectory.predicted_ovr;
     const label = trajectory.trajectory_label;
     const forSeason = _trajectoryMeta.predicts_season || CONFIG.CURRENT_SEASON;
-    const labelColors = { breakout: "var(--positive)", decline: "var(--negative)", steady: "var(--text-muted)" };
+    const labelColors = { breakout: "var(--positive)", bounceback: "var(--positive)",
+                          decline: "var(--negative)", steady: "var(--text-muted)" };
     const color = labelColors[label] || "var(--text-muted)";
     const vs = trajectory.vs_cohort;
     const vsStr = vs > 0 ? `+${vs.toFixed(1)}` : vs.toFixed(1);
