@@ -74,30 +74,54 @@ const _BREAKOUT_COLORS = { breakout: "var(--positive)", decline: "var(--negative
 async function initBreakoutCandidates() {
   const section = document.getElementById("breakout-section");
   if (!section) return;
-  const data = await _load("trajectory.json");
-  if (!data) {
+  const traj = await fetchTrajectory();
+  const data = traj.rows;
+  if (!data.length) {
     section.innerHTML = emptyState("Trajectory data not available yet — run script 15 first.");
     return;
   }
 
   const positions = [...new Set(data.map(r => r.position_group).filter(Boolean))].sort();
+  const forSeason = traj.meta.predicts_season || CONFIG.CURRENT_SEASON;
+  const m = traj.meta;
+
+  // The model states its own accuracy rather than leaving the reader to assume
+  // precision. "Beats naive" is the number that justifies the model existing.
+  const accuracy = (m.naive_mae && m.model_mae)
+    ? ` Typical error ±${m.model_mae} OVR, against ±${m.naive_mae} for simply carrying
+        last season's rating forward. The published 80% range contains the true
+        outcome ${m.interval_coverage_pct}% of the time on held-out seasons.`
+    : "";
 
   const table = createDataTable(section.querySelector(".research-table-wrap"), {
     rows: data,
-    sort: { key: "delta", asc: false },
+    sort: { key: "vs_cohort", asc: false },
     maxRows: 200,
-    footnote: "Predictions are model output, not earned ratings. Key Factor = SHAP feature with largest influence on this prediction.",
+    footnote: `Projections are model output, not earned ratings. <strong>vs Cohort</strong> is
+      the number that matters: how the projection compares to what players at the same
+      position, class year and production level historically did next. Ranking by raw
+      change instead just surfaces whoever rated lowest last season.${accuracy}`,
     columns: [
-      { key: "name", label: "Player", fmt: (v, r) => playerLink(r.player_id, v, { season: r.season }) },
+      { key: "name", label: "Player", fmt: (v, r) => playerLink(r.player_id, v, { season: forSeason }) },
       { key: "position_group", label: "Pos", fmt: v => posBadge(v) },
-      { key: "current_ovr",   label: "Curr OVR", num: true, fmt: v => ovrPill(v, { label: "Current OVR" }) },
-      { key: "predicted_ovr", label: "Pred OVR", num: true,
-        fmt: v => ovrPill(v, { label: "Predicted next-season OVR (Engine D)", projected: true }) },
-      { key: "delta", label: "Delta", num: true,
-        fmt: (v, r) => v != null ? deltaChip(v, { title: "Predicted OVR change next season" }) : "—" },
-      { key: "trajectory_label", label: "Label",
+      { key: "class_year", label: "Yr", num: true, fmt: v => v != null ? String(v) : "—" },
+      { key: "current_ovr", label: `${CONFIG.LAST_PLAYED_SEASON} OVR`, num: true,
+        title: "Earned rating last season",
+        fmt: v => ovrPill(v, { label: `Earned OVR, ${CONFIG.LAST_PLAYED_SEASON}` }) },
+      { key: "predicted_ovr", label: `${forSeason} Proj`, num: true,
+        fmt: v => ovrPill(v, { label: `Projected ${forSeason} OVR`, projected: true }) },
+      { key: "proj_low", label: "Range", num: true, sortVal: (v, r) => r.proj_high - r.proj_low,
+        title: "80% of outcomes land in this range",
+        fmt: (v, r) => projRange(v, r.proj_high) },
+      { key: "cohort_expected", label: "Cohort", num: true,
+        title: "What players at his position, class year and production level typically reach",
+        fmt: v => v != null ? v.toFixed(1) : "—" },
+      { key: "vs_cohort", label: "vs Cohort", num: true,
+        title: "Projection minus cohort expectation — the actual claim",
+        fmt: v => v != null ? deltaChip(v, { title: "Projected OVR vs cohort expectation" }) : "—" },
+      { key: "trajectory_label", label: "Call",
         fmt: v => `<span style="color:${_BREAKOUT_COLORS[v] || "var(--text)"};font-weight:600;text-transform:capitalize">${_esc(v || "—")}</span>` },
-      { key: "shap_top_feature", label: "Key Factor", fmt: v => _esc(v || "—") },
+      { key: "shap_top_feature", label: "Top Driver", fmt: v => _esc(v || "—") },
     ],
   });
 
@@ -106,15 +130,17 @@ async function initBreakoutCandidates() {
       options: [{ value: "ALL", label: "All Positions" }, ...positions.map(p => ({ value: p, label: p }))] },
     { id: "label", type: "select", value: "ALL",
       options: [
-        { value: "ALL", label: "All Labels" },
+        { value: "ALL", label: "All Calls" },
         { value: "breakout", label: "Breakout" },
         { value: "steady", label: "Steady" },
         { value: "decline", label: "Decline" },
       ] },
+    { id: "minOvr", type: "number", label: "Min last-season OVR:", value: 0, min: 0, max: 99 },
   ], v => {
     table.update(data.filter(r =>
       (v.pos === "ALL" || r.position_group === v.pos) &&
-      (v.label === "ALL" || r.trajectory_label === v.label)));
+      (v.label === "ALL" || r.trajectory_label === v.label) &&
+      (r.current_ovr || 0) >= (v.minOvr || 0)));
   });
 
   onThemeChange(() => table.refresh());

@@ -31,8 +31,12 @@
     </div>
   </aside>
 
-  <!-- Main: team detail -->
+  <!-- Main: team detail. On phone/tablet this IS the page and the picker above
+       is summoned by this button — see .picker-toggle in styles.css. -->
   <main class="teams-main" id="teams-main">
+    <button class="picker-toggle" type="button">
+      <span>Choose a team</span><span aria-hidden="true">▾</span>
+    </button>
     <div class="team-placeholder">
       <p class="empty-state">Select a team from the list.</p>
     </div>

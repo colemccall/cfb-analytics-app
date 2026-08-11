@@ -98,7 +98,10 @@ Pipeline (cfb-analytics-pipeline)
               ├── player_transfers.json          — player-centric transfer history
               ├── team_performance.json          — SP+ vs recruiting-talent residual (script 13)
               ├── recruiting_roi.json            — class hit rates (script 14)
-              ├── trajectory.json                — Engine D next-season predictions (script 15)
+              ├── trajectory.json                — projections + model accuracy (script 15)
+              ├── trajectory_detail.json         — per-player explanation, drivers, comparables
+              ├── ea_ratings_{season}.json       — EA CFB 27 overalls (cross-check column)
+              ├── manifest.json                  — seasons, last_played_season, projected_seasons
               └── research/index.json            — published research findings
 
 Frontend (this repo)
@@ -115,15 +118,25 @@ Frontend (this repo)
 
 ```js
 const CONFIG = {
-  DATA_BASE:      "./data/",
-  CURRENT_SEASON: 2025,   // newest exported season
-  FIRST_SEASON:   2008,   // oldest exported season
+  DATA_BASE:          "./data/",
+  FIRST_SEASON:       2008,   // oldest exported season
+  LAST_PLAYED_SEASON: 2025,   // newest season with EARNED ratings
+  CURRENT_SEASON:     2026,   // season the app defaults to (projected)
+  PROJECTED_SEASONS:  [2026], // seasons whose ratings are model output
   // ...
 };
 ```
 
-After exporting a new season with the pipeline, bump `CURRENT_SEASON`. Season dropdowns build
-themselves from this range via `fillSeasonSelect()` — don't hardcode year lists in HTML.
+Three season constants, because "the current season" means two different things. Anything
+retrospective — hidden gems, research, "best class we've graded" — must read
+`LAST_PLAYED_SEASON`, or it will narrate model output as fact. `isProjectedSeason(season)`
+is the single test; `ovrPill()` calls it internally, so passing a `season` is enough to get
+the PROJ treatment and a caller cannot forget to.
+
+These mirror `data/manifest.json`, which the pipeline writes. config.js loads synchronously
+before any fetch so it cannot read the manifest at runtime — instead a pipeline contract test
+(`tests/test_export_contract.py::test_frontend_season_constants_agree`) fails if they drift.
+After exporting a new season, update both.
 
 ---
 
@@ -235,7 +248,7 @@ Precomputed cosine similarity across EDGE feature vectors (OVR ≥ 55 players on
 
 ## Version
 
-`v3.1.0` — branch: `main`.
+`v3.2.0` — branch: `main`.
 
 See [CHANGELOG_v3.1_redesign.md](CHANGELOG_v3.1_redesign.md) for the visual rebuild
 (two-theme token system, contrast gate, component consolidation) and the rules it set.

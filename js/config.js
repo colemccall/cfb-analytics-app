@@ -2,10 +2,25 @@
 
 const CONFIG = {
   DATA_BASE:      "./data/",
-  CURRENT_SEASON: 2025,
-  // Full range of seasons exported by the pipeline (data/players_YYYY.json).
-  // Season pickers build their options from this — don't hardcode year lists.
-  FIRST_SEASON:   2008,
+
+  // ── Seasons ───────────────────────────────────────────────────────────────
+  // Three constants, because "the current season" means two different things:
+  //   CURRENT_SEASON     the season the app defaults to — 2026, not yet played,
+  //                      so its ratings are projections
+  //   LAST_PLAYED_SEASON the newest season with EARNED ratings. Anything
+  //                      retrospective (hidden gems, research, "best of last
+  //                      year") must use this or it will narrate model output
+  //                      as fact.
+  //   PROJECTED_SEASONS  seasons whose ratings come from the projection engine
+  //
+  // These mirror data/manifest.json, which the pipeline writes. config.js is
+  // loaded synchronously before any fetch, so it cannot read the manifest at
+  // runtime; a pipeline contract test asserts the two agree
+  // (tests/test_export_contract.py::test_frontend_season_constants_agree).
+  FIRST_SEASON:       2008,
+  LAST_PLAYED_SEASON: 2025,
+  CURRENT_SEASON:     2026,
+  PROJECTED_SEASONS:  [2026],
 
   // 12-group position system
   POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "CB", "S", "K", "P"],
@@ -61,6 +76,13 @@ const CONFIG = {
     P:    [["avg_yards","Avg Yds"],["inside_20_pct","Inside 20 %"]],
   },
 };
+
+// Is this season's rating model output rather than earned production?
+// Every rating render path routes through this, so provenance is a property of
+// the season rather than something each call site has to remember to pass.
+function isProjectedSeason(season) {
+  return CONFIG.PROJECTED_SEASONS.includes(Number(season));
+}
 
 // Active theme: "dark" | "light" (anything else degrades to dark — safe)
 function _activeTheme() {
@@ -186,11 +208,13 @@ function seasonList() {
 }
 
 // Fill a <select> with the full season range and select `selected`.
-// Keeps every picker in sync with the data actually on disk.
+// Keeps every picker in sync with the data actually on disk. Projected seasons
+// say so in the option text — picking 2026 should never feel like picking a
+// season that has been played.
 function fillSeasonSelect(el, selected = CONFIG.CURRENT_SEASON) {
   if (!el) return;
   el.innerHTML = seasonList().map(y =>
-    `<option value="${y}"${y === Number(selected) ? " selected" : ""}>${y}</option>`
+    `<option value="${y}"${y === Number(selected) ? " selected" : ""}>${y}${isProjectedSeason(y) ? " (projected)" : ""}</option>`
   ).join("");
 }
 

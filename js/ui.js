@@ -24,16 +24,62 @@ function onThemeChange(render) {
 }
 
 // ── Rating pill ─────────────────────────────────────────────────────────────
-// The single way an OVR appears. `projected: true` adds the hatch + PROJ badge
-// so a model number can never pass as an earned one.
-function ovrPill(rating, { label = "", projected = false } = {}) {
+// The single way an OVR appears.
+//
+// Provenance is derived from the season, not asked of the caller: pass
+// `season` and any projected season automatically renders the hatch + PROJ
+// badge. With 2026 as the app's default season, "the caller remembered to pass
+// projected: true" is not a strong enough guarantee — one missed call site
+// presents model output as an earned rating.
+//
+// `projected` remains as an explicit override for the rare case where the value
+// is projected but no season is in scope.
+function ovrPill(rating, { label = "", projected = false, season = null, source = "" } = {}) {
   if (rating == null) return '<span class="text-muted">—</span>';
+  const isProj = projected || (season != null && isProjectedSeason(season));
   const v = Math.round(rating);
   const c = ratingColor(v);
-  const cls = projected ? "ovr-badge is-projected" : "ovr-badge";
+  const cls = isProj ? "ovr-badge is-projected" : "ovr-badge";
+  const title = isProj
+    ? `${label || "Projected rating"}${source ? ` — ${PROJECTION_SOURCE_LABELS[source] || source}` : ""}`
+    : label;
   const pill = `<span class="${cls}" style="background:${c};color:${ratingTextColor(c)}"
-    title="${_esc(label)}">${v}</span>`;
-  return projected ? `${pill} ${projBadge()}` : pill;
+    title="${_esc(title)}">${v}</span>`;
+  return isProj ? `${pill} ${projBadge()}` : pill;
+}
+
+// How each projected number was arrived at — shown in tooltips and the modal.
+const PROJECTION_SOURCE_LABELS = {
+  engine_d:    "projected from his career production curve",
+  carry:       "last season's rating, moved along his cohort's development curve",
+  recruiting:  "recruiting grade (no college production yet)",
+  ea_cfb27:    "EA CFB 27's overall — we had no signal of our own",
+};
+
+// A projected value with its range. The interval is the honest part: the point
+// estimate alone implies a precision the model does not have.
+function projRange(low, high) {
+  if (low == null || high == null) return "";
+  return `<span class="proj-range" title="80% of outcomes land in this range">${Math.round(low)}–${Math.round(high)}</span>`;
+}
+
+// Page-level banner for a projected season. Stated once, at the top, so no
+// individual number has to carry the whole explanation.
+function projectedSeasonNotice(season) {
+  if (!isProjectedSeason(season)) return "";
+  return `<div class="projected-notice">
+      <span class="badge-proj">PROJ</span>
+      <span>Every rating for ${_esc(season)} is a projection — the season has not been played.
+      <a href="info.html#projections">How these are built →</a></span>
+    </div>`;
+}
+
+// Keeps the page-level banner in step with a season picker. Pages call this on
+// load and whenever their season changes, so switching from 2026 back to 2025
+// removes the notice instead of leaving a stale one behind.
+function renderSeasonProvenance(season, id = "season-provenance") {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = projectedSeasonNotice(season);
 }
 
 // ── Position badge ──────────────────────────────────────────────────────────

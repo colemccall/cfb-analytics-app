@@ -16,8 +16,16 @@
 // dataLoader.js — the '26 Season hub uses the same ones.)
 // ---------------------------------------------------------------------------
 
-const _OVR_LABEL = `Final ${CONFIG.CURRENT_SEASON} team OVR`;
-const NEXT_SEASON = 2026;
+// Two clocks run on this page and conflating them is how a projection gets
+// narrated as a fact. PLAYED is the last season with earned ratings — every
+// retrospective claim (hidden gem, class that hit, over-expectations) uses it.
+// UPCOMING is the season we are heading into; its ratings are projections and
+// every claim built on them says so.
+const PLAYED   = CONFIG.LAST_PLAYED_SEASON;
+const UPCOMING = CONFIG.CURRENT_SEASON;
+
+const _OVR_LABEL      = `Projected ${UPCOMING} team OVR`;
+const _PLAYED_LABEL   = `Final ${PLAYED} team OVR`;
 
 function _fmtDate(d) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -27,8 +35,8 @@ function _matchupHtml(g) {
   const side = t => `
     <span class="marquee-side">
       ${t.team.logo_url ? `<img class="entity-logo" src="${_esc(t.team.logo_url)}" alt="">` : ""}
-      ${teamLink(t.team.school, { season: CONFIG.CURRENT_SEASON })}
-      ${ovrPill(t.ovr, { label: _OVR_LABEL })}
+      ${teamLink(t.team.school, { season: UPCOMING })}
+      ${ovrPill(t.ovr, { label: _OVR_LABEL, season: UPCOMING })}
     </span>`;
   return `${side({ team: g.away, ovr: g.awayOvr })}
     <span class="marquee-at">${g.neutral ? "vs" : "at"}</span>
@@ -45,7 +53,7 @@ async function buildMasthead() {
   const headlineEl = document.getElementById("masthead-headline");
   const marqueeEl  = document.getElementById("masthead-marquee");
   try {
-    const { games, firstDate } = await fetchSeasonGames(NEXT_SEASON);
+    const { games, firstDate } = await fetchSeasonGames(UPCOMING);
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const days = firstDate ? Math.ceil((firstDate - today) / 86400000) : null;
 
@@ -54,7 +62,7 @@ async function buildMasthead() {
     } else if (days != null) {
       headlineEl.textContent = "The season is underway.";
     } else {
-      headlineEl.textContent = `The ${CONFIG.CURRENT_SEASON} book, in full.`;
+      headlineEl.textContent = `The ${UPCOMING} book, in full.`;
     }
 
     // Marquee: the opening week's best matchup by the "circle it" score.
@@ -66,7 +74,8 @@ async function buildMasthead() {
         <div class="marquee animate-pop">
           <div class="eyebrow">THE OPENER TO CIRCLE · WEEK 1 · ${_esc(_fmtDate(m.date).toUpperCase())}</div>
           <div class="marquee-teams">${_matchupHtml(m)}</div>
-          <div class="marquee-note">Ratings are final ${CONFIG.CURRENT_SEASON} team OVR — the last earned number before the new season.</div>
+          <div class="marquee-note">Ratings are projected ${UPCOMING} team OVR, built from each roster's
+            projected players. Nothing here has been played.</div>
         </div>`;
     }
   } catch (e) {
@@ -78,15 +87,16 @@ async function buildMasthead() {
 // Storylines — each one is a computed claim with a named subject and a link
 // ---------------------------------------------------------------------------
 
-// Rising / sliding programs: biggest team-OVR change, 2024 → 2025 (team_history).
+// Rising / sliding programs: biggest projected team-OVR change into the new
+// season. Forward-looking, so both cards are explicit that the new number is a
+// projection off a roster, not a result.
 async function storyRiserAndSlider() {
   const [history, teams] = await Promise.all([_load("team_history.json"), fetchTeamsById()]);
   if (!history) return [];
-  const cur = CONFIG.CURRENT_SEASON, prev = cur - 1;
   const moves = [];
   for (const [tid, rows] of Object.entries(history)) {
-    const a = (rows || []).find(r => r.season === cur  && r.overall_rating != null);
-    const b = (rows || []).find(r => r.season === prev && r.overall_rating != null);
+    const a = (rows || []).find(r => r.season === UPCOMING && r.overall_rating != null);
+    const b = (rows || []).find(r => r.season === PLAYED   && r.overall_rating != null);
     const team = teams[tid];
     if (a && b && team) moves.push({ team, now: a.overall_rating, delta: a.overall_rating - b.overall_rating });
   }
@@ -98,20 +108,21 @@ async function storyRiserAndSlider() {
   const up   = moves.find(m => m.now >= 75);
   const down = [...moves].reverse().find(m => m.now - m.delta >= 75);
   if (!up || !down) return [];
-  const chipTitle = `Change in team OVR vs ${prev}`;
+  const chipTitle = `Projected ${UPCOMING} team OVR vs actual ${PLAYED}`;
+  const note = `projected ${UPCOMING} vs actual ${PLAYED}`;
 
   return [
     storyCard({
-      eyebrow: "RISING",
-      headline: `${teamLink(up.team.school, { season: cur })} climbed faster than anyone in ${cur}.`,
-      evidence: `${ovrPill(up.now, { label: `Team OVR, ${cur}` })} ${deltaChip(up.delta, { title: chipTitle })} <span class="evidence-note">team OVR vs ${prev}</span>`,
-      links: `<a href="${teamHref(up.team.school, cur)}">Program page →</a>`,
+      eyebrow: "PROJECTED TO RISE",
+      headline: `${teamLink(up.team.school, { season: UPCOMING })} gains more from its ${UPCOMING} roster than anyone.`,
+      evidence: `${ovrPill(up.now, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })} ${deltaChip(up.delta, { title: chipTitle })} <span class="evidence-note">${note}</span>`,
+      links: `<a href="${teamHref(up.team.school, UPCOMING)}">Program page →</a>`,
     }),
     storyCard({
-      eyebrow: "SLIDING",
-      headline: `Nobody fell further in ${cur} than ${teamLink(down.team.school, { season: cur })}.`,
-      evidence: `${ovrPill(down.now, { label: `Team OVR, ${cur}` })} ${deltaChip(down.delta, { title: chipTitle })} <span class="evidence-note">team OVR vs ${prev}</span>`,
-      links: `<a href="${teamHref(down.team.school, cur)}">Program page →</a>`,
+      eyebrow: "PROJECTED TO SLIDE",
+      headline: `No program loses more going into ${UPCOMING} than ${teamLink(down.team.school, { season: UPCOMING })}.`,
+      evidence: `${ovrPill(down.now, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })} ${deltaChip(down.delta, { title: chipTitle })} <span class="evidence-note">${note}</span>`,
+      links: `<a href="${teamHref(down.team.school, UPCOMING)}">Program page →</a>`,
     }),
   ];
 }
@@ -120,7 +131,7 @@ async function storyRiserAndSlider() {
 async function storyOverachiever() {
   const perf = await _load("team_performance.json");
   if (!perf) return [];
-  const cur = CONFIG.CURRENT_SEASON;
+  const cur = PLAYED;   // retrospective: SP+ only exists for played seasons
   const rows = perf.filter(r => r.season === cur && r.performance_residual != null);
   if (!rows.length) return [];
   const best = rows.reduce((a, b) => (b.performance_residual > a.performance_residual ? b : a));
@@ -133,28 +144,40 @@ async function storyOverachiever() {
   })];
 }
 
-// Breakout watch: Engine D's biggest projected riser among established players.
+// Breakout watch: the biggest projected riser *relative to his cohort*.
+// Not raw delta — that just surfaces whoever rated lowest last year. vs_cohort
+// asks the useful question: is he projected to beat what players like him
+// normally do at this stage?
 async function storyBreakout() {
-  const traj = await _load("trajectory.json");
-  if (!traj) return [];
+  const traj = await fetchTrajectory();
+  if (!traj.rows.length) return [];
   // "Established" = current OVR ≥ 60, so the call is a real riser rather than a
   // deep reserve moving off a tiny base.
-  const calls = traj.filter(r => r.trajectory_label === "breakout" && (r.current_ovr || 0) >= 60 && r.delta != null)
-                    .sort((a, b) => b.delta - a.delta);
+  const calls = traj.rows
+    .filter(r => r.trajectory_label === "breakout" && (r.current_ovr || 0) >= 60 && r.vs_cohort != null)
+    .sort((a, b) => b.vs_cohort - a.vs_cohort);
   const top = calls[0];
   if (!top) return [];
-  const factor = top.shap_top_feature ? ` Key factor: ${_esc(top.shap_top_feature)}.` : "";
+  const mae = traj.meta.model_mae;
   return [storyCard({
     eyebrow: "BREAKOUT WATCH",
-    headline: `The model's boldest call: ${playerLink(top.player_id, top.name, { season: top.season })} (${_esc(top.position_group || "—")}).`,
-    evidence: `${ovrPill(top.current_ovr, { label: "Current OVR" })} <span class="evidence-arrow">→</span> ${ovrPill(top.predicted_ovr, { label: "Predicted next-season OVR (Engine D)", projected: true })} ${deltaChip(top.delta, { title: "Predicted OVR change next season" })}<div class="evidence-note">XGBoost next-season projection · test error ≈ 9 OVR.${factor}</div>`,
+    headline: `The model's boldest call: ${playerLink(top.player_id, top.name, { season: UPCOMING })} (${_esc(top.position_group || "—")}).`,
+    evidence: `${ovrPill(top.current_ovr, { label: `Earned OVR, ${PLAYED}` })}
+      <span class="evidence-arrow">→</span>
+      ${ovrPill(top.predicted_ovr, { label: `Projected ${UPCOMING} OVR`, season: UPCOMING })}
+      ${projRange(top.proj_low, top.proj_high)}
+      ${deltaChip(top.vs_cohort, { title: "Projected OVR vs what his cohort typically does" })}
+      <div class="evidence-note">${_esc(String(top.vs_cohort > 0 ? "+" : ""))}${top.vs_cohort} against the ${_esc(top.position_group || "")}s
+        who were where he is now${mae ? ` · typical error ±${mae} OVR` : ""}.</div>`,
     links: `<a href="research.html#breakout-section">All ${calls.length} breakout calls →</a>`,
   })];
 }
 
 // Hidden gem: the highest-rated player recruited at 1–2 stars.
 async function storyHiddenGem() {
-  const players = await fetchAllPlayers(CONFIG.CURRENT_SEASON);
+  // Retrospective by nature: "the tape didn't care" is a claim about what he
+  // actually did, so it reads the last played season, never the projection.
+  const players = await fetchAllPlayers(PLAYED);
   const gems = (players || []).filter(p => p.stars >= 1 && p.stars <= 2 && (p.overall_rating || 0) >= 75)
                               .sort((a, b) => b.overall_rating - a.overall_rating);
   const g = gems[0];
@@ -208,7 +231,7 @@ async function buildSlate() {
   const section = document.getElementById("slate-section");
   if (!section) return;
   try {
-    const { games } = await fetchSeasonGames(NEXT_SEASON);
+    const { games } = await fetchSeasonGames(UPCOMING);
     const slate = games.filter(g => g.week === 1 && g.homeOvr && g.awayOvr)
                        .sort((a, b) => b.quality - a.quality)
                        .slice(1, 7);   // slot 0 is the masthead marquee
@@ -219,20 +242,20 @@ async function buildSlate() {
         <span class="slate-date">${_esc(_fmtDate(g.date))}</span>
         <span class="slate-team">
           ${g.away.logo_url ? `<img class="entity-logo" src="${_esc(g.away.logo_url)}" alt="">` : ""}
-          ${teamLink(g.away.school, { season: CONFIG.CURRENT_SEASON })}
-          ${ovrPill(g.awayOvr, { label: _OVR_LABEL })}
+          ${teamLink(g.away.school, { season: UPCOMING })}
+          ${ovrPill(g.awayOvr, { label: _OVR_LABEL, season: UPCOMING })}
         </span>
         <span class="slate-at">${g.neutral ? "vs" : "at"}</span>
         <span class="slate-team">
           ${g.home.logo_url ? `<img class="entity-logo" src="${_esc(g.home.logo_url)}" alt="">` : ""}
-          ${teamLink(g.home.school, { season: CONFIG.CURRENT_SEASON })}
-          ${ovrPill(g.homeOvr, { label: _OVR_LABEL })}
+          ${teamLink(g.home.school, { season: UPCOMING })}
+          ${ovrPill(g.homeOvr, { label: _OVR_LABEL, season: UPCOMING })}
         </span>
       </div>`).join("");
 
     document.getElementById("slate").innerHTML = `
       <div class="stagger-children">${rows}</div>
-      <p class="slate-footnote">Ranked by matchup quality (combined final-${CONFIG.CURRENT_SEASON} team OVR, penalized for mismatch). Game-by-game win probabilities arrive with the prediction model. <a href="season2026.html">The full '26 season hub →</a></p>`;
+      <p class="slate-footnote">Ranked by matchup quality (combined projected ${UPCOMING} team OVR, penalized for mismatch). Game-by-game win probabilities arrive with the prediction model. <a href="season2026.html">The full '26 season hub →</a></p>`;
   } catch (e) {
     section.style.display = "none";
   }
@@ -246,19 +269,19 @@ async function buildTopPrograms() {
   const el = document.getElementById("home-top-teams");
   if (!el) return;
   try {
-    const teams = await fetchTeams(CONFIG.CURRENT_SEASON);
+    const teams = await fetchTeams(UPCOMING);
     const top = teams.filter(t => t.overall_rating)
                      .sort((a, b) => b.overall_rating - a.overall_rating)
                      .slice(0, 8);
     el.innerHTML = top.map((t, i) => `
-      <a class="home-team-row" href="${teamHref(t.school, CONFIG.CURRENT_SEASON)}">
+      <a class="home-team-row" href="${teamHref(t.school, UPCOMING)}">
         <span class="home-team-rank rank-num ${i < 3 ? "top3" : ""}">${i + 1}</span>
         ${t.logo_url ? `<img class="home-team-logo" src="${_esc(t.logo_url)}" alt="" loading="lazy">` : '<span class="home-team-logo"></span>'}
         <div class="home-team-info">
           <div class="home-team-name">${_esc(t.school)}</div>
           <div class="home-team-conf">${_esc(t.conference || "")}</div>
         </div>
-        ${ovrPill(t.overall_rating, { label: `Team OVR, ${CONFIG.CURRENT_SEASON}` })}
+        ${ovrPill(t.overall_rating, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })}
       </a>`).join("");
   } catch (e) {
     el.innerHTML = errorState("Team ratings couldn't load.");
@@ -295,12 +318,16 @@ async function buildResearchRail() {
   } catch (_) {}
 
   try {
-    const traj = await _load("trajectory.json");
-    if (traj?.length) {
-      const breakouts = traj.filter(r => r.trajectory_label === "breakout").length;
+    const traj = await fetchTrajectory();
+    if (traj.rows.length) {
+      const breakouts = traj.rows.filter(r => r.trajectory_label === "breakout").length;
+      const m = traj.meta;
+      const accuracy = m.naive_mae && m.model_mae
+        ? ` Beats a naive carry-forward by ${(m.naive_mae - m.model_mae).toFixed(1)} OVR.`
+        : "";
       items.push({
         tag: "Breakout Predictor",
-        text: `${breakouts} players the model expects to jump next season — with the reason for each call.`,
+        text: `${breakouts} players projected to beat their cohort — each with the reason in plain English.${accuracy}`,
         href: "research.html#breakout-section",
       });
     }
@@ -321,14 +348,16 @@ async function buildCoverage() {
   const el = document.getElementById("coverage-strip");
   if (!el) return;
   try {
-    const [players, teams] = await Promise.all([
-      fetchAllPlayers(CONFIG.CURRENT_SEASON),
+    const [players, projected, teams] = await Promise.all([
+      fetchAllPlayers(PLAYED),
+      fetchAllPlayers(UPCOMING),
       _load("teams.json"),
     ]);
     const gems = (players || []).filter(p => (p.stars || 0) <= 2 && (p.overall_rating || 0) >= 75).length;
     el.innerHTML = `
       <span>${seasonList().length} seasons (${CONFIG.FIRST_SEASON}–${CONFIG.CURRENT_SEASON})</span>
-      <span>${(players || []).length.toLocaleString()} players rated in ${CONFIG.CURRENT_SEASON}</span>
+      <span>${(players || []).length.toLocaleString()} players rated in ${PLAYED}</span>
+      <span>${(projected || []).length.toLocaleString()} projected for ${UPCOMING}</span>
       <span>${(teams || []).length} programs</span>
       <span>${gems} hidden gems found</span>
       <a href="info.html">How the numbers work →</a>`;

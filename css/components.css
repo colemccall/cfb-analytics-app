@@ -496,6 +496,109 @@ a.research-card--live .finding-stat { color: var(--accent); }
   );
 }
 
+/* The range around a projected value. Shown next to the point estimate because
+   the point alone claims a precision the model does not have. */
+.proj-range {
+  font-family: var(--font-mono, inherit);
+  font-size: var(--fs-label); color: var(--text-muted);
+  white-space: nowrap; margin-left: 4px;
+}
+
+/* Page-level banner on a projected season — says it once, at the top, so every
+   individual number does not have to carry the whole explanation. */
+.projected-notice {
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+  padding: 0.6rem 0.85rem; margin: 0 0 1rem;
+  background: var(--projected-dim);
+  border: 1px solid var(--projected);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm); color: var(--text);
+}
+.projected-notice a { color: var(--text); font-weight: 700; }
+
+/* Where a projected number came from — a labelled bar per driver, signed. */
+.driver-row {
+  display: grid; grid-template-columns: minmax(96px, 1fr) 1fr auto;
+  align-items: center; gap: 0.6rem; padding: 3px 0;
+  font-size: var(--fs-sm);
+}
+.driver-label { color: var(--text-muted); }
+.driver-track {
+  position: relative; height: 10px;
+  background: var(--surface-deep); border-radius: var(--radius-sm);
+}
+.driver-fill {
+  position: absolute; top: 0; height: 100%; border-radius: var(--radius-sm);
+}
+.driver-fill.pos { background: var(--positive); }
+.driver-fill.neg { background: var(--negative); }
+.driver-value { font-weight: 600; min-width: 42px; text-align: right; }
+
+/* Projected top 25 — a wall of ranked programs, not a table. */
+.rank-wall {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px;
+}
+.rank-wall-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0.7rem; text-decoration: none; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.rank-wall-item:hover { background: var(--surface-lift); border-color: var(--border-strong); }
+.rank-wall-name { flex: 1; min-width: 0; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* EA's overall, visually distinct from ours so the two are never confused. */
+.ea-ovr {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md);
+  color: var(--text-muted); border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm); padding: 1px 6px;
+}
+
+/* Opponents with no team page of ours (FCS). Named, but not a link. */
+.opp-nonfbs { color: var(--text-muted); border-bottom: 1px dotted var(--border-strong); cursor: help; }
+
+/* Team preview: schedule beside projected roster. */
+.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+.preview-player {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.preview-player:last-child { border-bottom: none; }
+
+/* Two-letter provenance code in the roster grid. */
+.proj-source-code {
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 0.5px; color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0 4px; cursor: help;
+}
+
+/* Projection block inside the player modal. */
+.proj-headline { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.proj-headline-num { text-align: center; }
+.proj-headline-range { margin-top: 2px; }
+.proj-reasoning { margin-top: 0.9rem; }
+.proj-explanation {
+  font-size: var(--fs-base); line-height: 1.6; color: var(--text);
+  margin: 0 0 0.85rem; padding-left: 0.75rem;
+  border-left: 3px solid var(--projected);
+}
+.proj-drivers, .proj-comparables { margin-top: 0.85rem; }
+.modal-subsection-title {
+  font-family: var(--font-display); font-size: var(--fs-label);
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.4rem;
+}
+
+/* Historical players whose careers looked like this one at the same stage. */
+.comparable-row {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  padding: 4px 0; font-size: var(--fs-sm);
+  border-bottom: 1px solid var(--border);
+}
+.comparable-row:last-child { border-bottom: none; }
+.comparable-outcome { margin-left: auto; font-weight: 600; }
+
 /* ── Context strip: a value placed on its distribution ── */
 .context-strip { display: inline-flex; align-items: center; gap: 8px; }
 .context-strip-track {

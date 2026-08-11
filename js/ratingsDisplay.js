@@ -12,6 +12,7 @@ let _filterTeam = "ALL";
 
 async function initRatings(season) {
   if (season !== undefined) _ratingSeason = season;
+  renderSeasonProvenance(_ratingSeason);
   _ratingsAllPlayers = [];
 
   document.getElementById("scatter-chart").innerHTML =
@@ -257,7 +258,7 @@ function _renderPositionBoard(container) {
       { key: "year", label: "Yr", fmt: v => yearLabels[v] || "—" },
       { key: "stars", label: "Recruit", fmt: v => v ? starsHtml(v) : "—" },
       { key: "overall", label: "OVR", num: true,
-        fmt: v => ovrPill(v, { label: `Overall rating, ${_boardSeason}` }) },
+        fmt: (v, r) => ovrPill(v, { label: `Overall rating, ${_boardSeason}`, season: _boardSeason, source: r.projection_source }) },
     ],
   });
 }

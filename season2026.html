@@ -19,13 +19,41 @@
   <div class="masthead-date eyebrow">THE ROAD TO THE PLAYOFF</div>
   <h1 id="s26-headline">The 2026 season.</h1>
   <p class="standfirst">
-    The schedule is real; the games aren't played. Everything on this page is either an
-    earned 2025 number or a counted fact — when projections arrive, they will wear the
-    <span class="badge-proj" title="How model projections will be labeled">PROJ</span> badge, never
-    passed off as earned ratings.
+    The schedule is real; the games aren't played. Every rating on this page is a
+    projection wearing the <span class="badge-proj" title="Model output, not an earned rating">PROJ</span>
+    badge — built from each player's career production curve against what players like him
+    historically did next, never passed off as an earned number.
   </p>
   <div class="coverage-strip" id="s26-facts" style="border-top:none;margin:0;padding:0 0 0.25rem"></div>
 </header>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">PROJECTED TOP 25</span>
+    <span class="section-rule-sub">Rosters, not results</span>
+  </div>
+  <div id="s26-top25">
+    <div class="skeleton skeleton-row"></div>
+    <div class="skeleton skeleton-row"></div>
+    <div class="skeleton skeleton-row"></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">BIGGEST MOVERS</span>
+    <span class="section-rule-sub">Projected 2026 against what they earned in 2025</span>
+  </div>
+  <div id="s26-movers"></div>
+</section>
+
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">OUR PROJECTION vs EA CFB 27</span>
+    <span class="section-rule-sub">Where two systems disagree most</span>
+  </div>
+  <div id="s26-ea"><div class="ea-table-wrap"></div></div>
+</section>
 
 <section class="home-section">
   <div class="section-rule">
@@ -36,19 +64,18 @@
     <div class="skeleton skeleton-row"></div>
     <div class="skeleton skeleton-row"></div>
     <div class="skeleton skeleton-row"></div>
-    <div class="skeleton skeleton-row"></div>
   </div>
 </section>
 
 <section class="home-section">
   <div class="section-rule">
-    <span class="eyebrow">TEAM SCHEDULES</span>
-    <span class="section-rule-sub">Any team's full 2026 slate</span>
+    <span class="eyebrow">TEAM PREVIEW</span>
+    <span class="section-rule-sub">Any program's 2026 schedule and projected roster</span>
   </div>
   <div class="filter-bar" style="margin-bottom:0.75rem">
     <select id="s26-team-select"></select>
   </div>
-  <div id="s26-team-schedule"></div>
+  <div id="s26-team-preview"></div>
 </section>
 
 <section class="home-section">
@@ -60,18 +87,18 @@
     <div class="home-panel-card">
       <div class="home-panel-hdr"><span class="home-panel-title">Live now</span></div>
       <div style="padding:0.9rem 1rem;font-size:var(--fs-sm);line-height:1.7;color:var(--text-muted)">
-        The full 2026 FBS schedule, matchup quality from final-2025 team ratings,
-        every program's 2025 roster, ratings and history — all reachable from the
+        Projected 2026 ratings for every player on every roster, each with the reasoning
+        behind it; projected team ratings; the full FBS schedule; and EA CFB 27 alongside
+        for comparison — all reachable from the
         <a href="teams.html" style="color:var(--accent);font-weight:700">team pages</a>.
       </div>
     </div>
     <div class="home-panel-card">
       <div class="home-panel-hdr"><span class="home-panel-title">Coming — honestly labeled</span></div>
       <div style="padding:0.9rem 1rem;font-size:var(--fs-sm);line-height:1.7;color:var(--text-muted)">
-        Projected 2026 player and team ratings (always wearing
-        <span class="badge-proj">PROJ</span>), then game-by-game win probabilities and
-        playoff odds — published only alongside their backtest against the 2024 and
-        2025 seasons. A model that can't show its backtest doesn't ship.
+        Game-by-game win probabilities and playoff odds — published only alongside their
+        backtest against the 2024 and 2025 seasons. A model that can't show its backtest
+        doesn't ship.
         <a href="info.html" style="color:var(--accent);font-weight:700">How the numbers work →</a>
       </div>
     </div>
@@ -79,9 +106,16 @@
 </section>
 
 <!-- ==================== SCRIPTS ==================== -->
+<!-- Player detail modal — projected players link to their reasoning, same as
+     every other page. -->
+<div class="modal" id="player-modal">
+  <div class="modal-inner"></div>
+</div>
+
 <script src="js/dataLoader.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/dataTable.js"></script>
+<script src="js/playerSearch.js"></script>
 <script src="js/season2026.js"></script>
 <script>
   initSeason2026();

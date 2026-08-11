@@ -35,6 +35,7 @@ async function initTeamsPage() {
   buildConfFilter();
   renderTeamList();
   bindSidebarEvents();
+  bindPickerToggle();
 
   // OVR pills / position badges are theme-computed — repaint list and the open
   // team from cached data on theme switch.
@@ -101,24 +102,59 @@ function renderTeamList() {
 
   const list = document.getElementById("team-list");
   if (!filtered.length) { list.innerHTML = emptyState("No teams match."); return; }
-  list.innerHTML = filtered.map(t => `
-    <div class="team-list-item" data-id="${t.id}">
-      ${t.logo_url ? `<img src="${_esc(t.logo_url)}" class="team-list-logo" alt="" onerror="this.style.display='none'">` : `<span class="team-list-logo-placeholder"></span>`}
-      <div class="team-list-info">
-        <span class="team-list-name">${_esc(t.school)}</span>
-        <span class="team-list-conf">${_esc(t.conference || "Ind")}</span>
-      </div>
-      ${ovrPill(t.overall_rating || t.avg_rating, { label: `Team OVR, ${_currentSeason}` })}
-    </div>`).join("");
 
-  list.querySelectorAll(".team-list-item").forEach(el => {
+  // A wall of team marks rather than 136 full-width rows. The old list was one
+  // column ~6,000px tall inside a 285px rail — you scrolled past 130 teams to
+  // reach the one you wanted. Tiles flow into as many columns as fit, so the
+  // same information takes a fraction of the height and reads like a sports
+  // app rather than a directory.
+  list.innerHTML = filtered.map(t => {
+    const ovr = t.overall_rating || t.avg_rating;
+    const label = t.abbreviation || t.school.slice(0, 4).toUpperCase();
+    return `
+      <button class="team-tile" data-id="${t.id}" type="button"
+              title="${_esc(t.school)}${t.conference ? ` · ${_esc(t.conference)}` : ""}">
+        ${t.logo_url
+          ? `<img src="${_esc(t.logo_url)}" class="team-tile-logo" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
+          : `<span class="team-tile-logo"></span>`}
+        <span class="team-tile-abbr">${_esc(label)}</span>
+        ${ovr ? `<span class="team-tile-ovr" style="background:${ratingColor(Math.round(ovr))};color:${ratingTextColor(ratingColor(Math.round(ovr)))}">${Math.round(ovr)}</span>` : ""}
+      </button>`;
+  }).join("");
+
+  list.querySelectorAll(".team-tile").forEach(el => {
     el.addEventListener("click", () => {
-      list.querySelectorAll(".team-list-item").forEach(x => x.classList.remove("active"));
+      list.querySelectorAll(".team-tile").forEach(x => x.classList.remove("active"));
       el.classList.add("active");
       const team = _allTeams.find(t => t.id === parseInt(el.dataset.id));
-      if (team) showTeam(team);
+      if (team) {
+        showTeam(team);
+        // On phones the picker is an overlay — close it once a team is chosen,
+        // otherwise the user has to dismiss it manually to see what they picked.
+        document.querySelector(".teams-layout")?.classList.remove("picker-open");
+      }
     });
   });
+}
+
+// Phone/tablet: the detail pane is the page and the picker is summoned.
+// Spending 320px of a phone screen on a permanently-open team list meant the
+// team you selected started below the fold.
+//
+// Delegated, because showTeam() replaces the whole detail pane on every
+// selection — a handler bound to the button itself would be discarded with it.
+function bindPickerToggle() {
+  document.addEventListener("click", ev => {
+    if (!ev.target.closest(".picker-toggle")) return;
+    document.querySelector(".teams-layout")?.classList.toggle("picker-open");
+  });
+}
+
+// Re-rendered with the detail pane so it survives team selection.
+function pickerToggleHtml(team) {
+  return `<button class="picker-toggle" type="button">
+      <span>${team ? _esc(team.school) : "Choose a team"}</span><span aria-hidden="true">▾</span>
+    </button>`;
 }
 
 function bindSidebarEvents() {
@@ -163,6 +199,8 @@ async function showTeam(team) {
   const rCol = team.avg_rating ? ratingColor(team.avg_rating) : "var(--text-muted)";
 
   main.innerHTML = `
+    ${pickerToggleHtml(team)}
+    ${projectedSeasonNotice(_currentSeason)}
     <div class="d-team-hero" style="--d-team-color:${_esc(teamColor)};border-top-color:${_esc(teamColor)}">
       ${team.logo_url ? `<img class="d-hero-logo" src="${_esc(team.logo_url)}" alt="${_esc(team.school)}" onerror="this.style.display='none'">` : "<div style='width:84px'></div>"}
       <div class="d-hero-info">
@@ -356,7 +394,7 @@ function buildTopPerformers(team) {
     <div class="tperf-row" data-player-id="${p.player_id ?? p.id}">
       ${posBadge(p.position_group || p.position)}
       <span class="tperf-name">${_esc(p.name || "—")}</span>
-      ${ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}` })}
+      ${ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}
     </div>`).join("");
   return `
     <div class="tr-perf-section">
@@ -368,6 +406,34 @@ function buildTopPerformers(team) {
 // ── Roster ─────────────────────────────────────────────────────────────────
 const OFF_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
 const DEF_FILTERS = ["EDGE", "DL", "LB", "CB", "S", "DB", "K", "P"];
+
+// EA CFB 27's own overall, beside ours. Shown with the gap when they disagree —
+// the disagreement is the interesting part, and it is honest about the fact
+// that two reasonable systems can look at the same player and differ.
+function eaCell(p) {
+  if (p.ea_ovr == null) return '<span class="text-muted">—</span>';
+  const ours = p.overall_rating != null ? Math.round(p.overall_rating) : null;
+  const gap  = ours != null ? Math.round(p.ea_ovr) - ours : null;
+  const title = gap == null ? "EA CFB 27 overall"
+    : `EA CFB 27 rates him ${Math.round(p.ea_ovr)}; we project ${ours} (${gap > 0 ? "+" : ""}${gap})`;
+  return `<span title="${_esc(title)}">${Math.round(p.ea_ovr)}</span>`;
+}
+
+// Where a projected number came from, as a two-letter code with the full
+// explanation on hover. Confidence is not uniform and the roster should say so.
+const _SOURCE_CODES = {
+  engine_d:   ["CV", "Career curve — projected from his own production history"],
+  carry:      ["CF", "Carried forward — last season's rating moved along his cohort's development curve"],
+  recruiting: ["RC", "Recruiting grade — no college production yet"],
+  ea_cfb27:   ["EA", "EA CFB 27's overall — we had no signal of our own for him"],
+};
+
+function sourceCell(p) {
+  const s = _SOURCE_CODES[p.projection_source];
+  if (!s) return '<span class="text-muted">—</span>';
+  const dim = p.projection_confidence === "low" ? ";opacity:0.65" : "";
+  return `<span class="proj-source-code" style="${dim}" title="${_esc(s[1])}">${s[0]}</span>`;
+}
 
 async function buildRosterHTML(team) {
   // Prime the caches the row renderer reads synchronously: Engine D projections
@@ -405,12 +471,25 @@ function renderRosterCards(players) {
       <div class="d-roster-filter-row">${DEF_FILTERS.map(makeChip).join("")}</div>
     </div>`;
 
+  // The last two columns carry different information depending on whether the
+  // season has been played. On a projected season "Proj" is meaningless — the
+  // OVR already IS the projection — and there is no EDGE production yet. So
+  // they become the EA CFB 27 cross-check and where our number came from.
+  // Column COUNT stays at 11 either way, because the responsive collapse rules
+  // hide cells by position.
+  const proj = isProjectedSeason(_currentSeason);
   const header = `<div class="draft-board-header">
     <span>#</span><span>POS</span><span>Player</span>
     <span style="text-align:center">Yr</span><span style="text-align:center">Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
     <span>Hometown</span>
-    <span style="text-align:center">OVR</span><span style="text-align:center" title="Engine D projected change in OVR next season">Proj</span><span style="text-align:center" title="EDGE percentile within position group — raw EDGE is not comparable across positions">EDGE %</span>
+    <span style="text-align:center">${proj ? "PROJ" : "OVR"}</span>
+    <span style="text-align:center" title="${proj
+      ? "EA Sports CFB 27's own overall — an independent opinion, shown for comparison. It is never an input to our rating unless we had no signal at all."
+      : "Engine D projected change in OVR next season"}">${proj ? "EA 27" : "Proj"}</span>
+    <span style="text-align:center" title="${proj
+      ? "How this projection was built"
+      : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>
   </div>`;
 
   const pctMap = _edgePctBySeason[_currentSeason] || {};
@@ -436,9 +515,9 @@ function renderRosterCards(players) {
         <div class="draft-ht">${ht}</div>
         <div class="draft-wt">${wt}</div>
         <div class="draft-team" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(hometown)}</div>
-        <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}` })}</div>
-        <div class="draft-traj">${projHtml(p.player_season_id)}</div>
-        <div class="draft-edge">${oap}</div>
+        <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}</div>
+        <div class="draft-traj">${proj ? eaCell(p) : projHtml(p.player_season_id)}</div>
+        <div class="draft-edge">${proj ? sourceCell(p) : oap}</div>
       </div>`;
   }).join("");
 
@@ -572,7 +651,7 @@ async function buildTeamHistoryHTML(team) {
       <td class="hist-record">${rec}</td>
       <td>${_esc(r.conference ?? "—")}</td>
       <td class="hist-sp">${r.sp_overall != null ? parseFloat(r.sp_overall).toFixed(1) : "—"}</td>
-      <td>${ovrPill(r.overall_rating, { label: `Team OVR, ${r.season}` })}</td>
+      <td>${ovrPill(r.overall_rating, { label: `Team OVR, ${r.season}`, season: r.season })}</td>
     </tr>`;
   }).join("");
 

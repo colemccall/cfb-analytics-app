@@ -15,6 +15,40 @@ async function _load(file) {
 }
 
 // ---------------------------------------------------------------------------
+// Projections (Engine D)
+//
+// trajectory.json is {_meta, predictions}: _meta carries the model's own
+// accuracy (naive_mae vs model_mae, interval coverage) so the UI can state the
+// error rather than imply precision it doesn't have.
+//
+// The per-player explanation, drivers and comparables live in a SEPARATE file
+// (~5.5 MB) fetched only when the modal opens. The list file stays under 2 MB
+// so the home page isn't paying for prose nobody is reading yet.
+// ---------------------------------------------------------------------------
+async function fetchTrajectory() {
+  const d = await _load("trajectory.json");
+  if (!d) return { meta: {}, rows: [] };
+  // Tolerates the pre-v3.2 bare-array shape.
+  if (Array.isArray(d)) return { meta: {}, rows: d };
+  return { meta: d._meta || {}, rows: d.predictions || [] };
+}
+
+// { [player_season_id]: {explanation, drivers, comparables, edge_pct_path} }
+async function fetchTrajectoryDetail(playerSeasonId) {
+  const d = await _load("trajectory_detail.json");
+  if (!d) return null;
+  return d[String(playerSeasonId)] || null;
+}
+
+// EA CFB 27 overalls, indexed by our player_id — the cross-check column.
+async function fetchEaRatings(season = CONFIG.CURRENT_SEASON) {
+  const rows = await _load(`ea_ratings_${season}.json`);
+  const byPlayer = {};
+  for (const r of rows || []) if (r.player_id != null) byPlayer[r.player_id] = r;
+  return byPlayer;
+}
+
+// ---------------------------------------------------------------------------
 // Players — full list with ratings joined (for players.html grid and scatter)
 // Returns rows shaped like: { id, name, position, position_group, year,
 //   height_in, weight_lbs, hometown_state, overall_rating, position_rating,

@@ -29,27 +29,36 @@ async function loadPlayerTransfers() {
   return _playerTransfersCache;
 }
 
-// Engine D trajectory predictions — loaded lazily from data/trajectory.json
-// Indexed by player_season_id (string) for O(1) modal lookup
+// Engine D projections, indexed by player_season_id for O(1) modal lookup.
+// Goes through dataLoader's fetchTrajectory so the {_meta, predictions} shape
+// is unwrapped in exactly one place.
 let _trajectoryCache = null;
+let _trajectoryByPlayer = null;
+let _trajectoryMeta  = {};
 
 async function loadTrajectory() {
   if (_trajectoryCache) return _trajectoryCache;
-  try {
-    const res = await fetch("data/trajectory.json");
-    if (res.ok) {
-      const arr = await res.json();
-      _trajectoryCache = {};
-      for (const item of arr) {
-        _trajectoryCache[String(item.player_season_id)] = item;
-      }
-    } else {
-      _trajectoryCache = {};
-    }
-  } catch (e) {
-    _trajectoryCache = {};
+  const { meta, rows } = await fetchTrajectory();
+  _trajectoryMeta = meta || {};
+  _trajectoryCache = {};
+  _trajectoryByPlayer = {};
+  for (const item of rows) {
+    _trajectoryCache[String(item.player_season_id)] = item;
+    _trajectoryByPlayer[String(item.player_id)] = item;
   }
   return _trajectoryCache;
+}
+
+// A projection is made FROM one season FOR the next, so its player_season_id is
+// the source season's — 2025 — while a 2026 modal holds the 2026 id. Looking up
+// by player_season_id alone silently found nothing on exactly the season where
+// the projection matters most, so fall back to player_id.
+function trajectoryFor(playerSeasonId, playerId) {
+  if (playerSeasonId != null && _trajectoryCache?.[String(playerSeasonId)]) {
+    return _trajectoryCache[String(playerSeasonId)];
+  }
+  if (playerId != null) return _trajectoryByPlayer?.[String(playerId)] || null;
+  return null;
 }
 
 async function loadSimilarPlayers(season) {
@@ -90,6 +99,7 @@ const CAREER_FIELDS = {
 async function initPlayerSearch() {
   buildPosChips();
   fillSeasonSelect(document.getElementById("filter-season"), _activeFilters.season);
+  renderSeasonProvenance(_activeFilters.season);
   await populateConferenceOptions();
   bindFilterEvents();
   await fetchAndRender();
@@ -265,6 +275,7 @@ function bindFilterEvents() {
   });
   document.getElementById("filter-season")?.addEventListener("change", async e => {
     _activeFilters.season = parseInt(e.target.value);
+    renderSeasonProvenance(_activeFilters.season);
     // Conference membership is season-specific, so rebuild the list before rendering.
     await populateConferenceOptions(_activeFilters.season);
     fetchAndRender();
@@ -283,11 +294,20 @@ function renderGrid() {
     grid.innerHTML = '<p class="empty-state">No players match your filters.</p>';
     return;
   }
+  // Last two columns change meaning on a projected season — see gridEaCell /
+  // gridSourceCell. Column count stays at 11 so the responsive collapse holds.
+  const proj = isProjectedSeason(_activeFilters.season);
   grid.innerHTML = `<div class="draft-board-header animate-pop">
     <span>#</span><span>POS</span><span>Player</span>
     <span>Team</span><span>Yr / Conf</span><span>Stars</span>
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
-    <span style="text-align:center">OVR</span><span style="text-align:center" title="Engine D projected change in OVR next season">Proj</span><span style="text-align:center" title="EDGE percentile within position group — raw EDGE is not comparable across positions">EDGE %</span>
+    <span style="text-align:center">${proj ? "PROJ" : "OVR"}</span>
+    <span style="text-align:center" title="${proj
+      ? "EA Sports CFB 27's own overall, shown for comparison — never an input to ours unless we had no signal at all"
+      : "Engine D projected change in OVR next season"}">${proj ? "EA 27" : "Proj"}</span>
+    <span style="text-align:center" title="${proj
+      ? "How this projection was built"
+      : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>
   </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Sortable column headers
@@ -337,10 +357,36 @@ function playerRowHtml(p, rank) {
       <div class="draft-stars">${starsStr}</div>
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
-      <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${p.season}` })}</div>
-      <div class="draft-traj">${projHtml(p.player_season_id)}</div>
-      <div class="draft-edge">${oap}</div>
+      <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${p.season}`, season: p.season, source: p.projection_source })}</div>
+      <div class="draft-traj">${isProjectedSeason(p.season) ? gridEaCell(p) : projHtml(p.player_season_id)}</div>
+      <div class="draft-edge">${isProjectedSeason(p.season) ? gridSourceCell(p) : oap}</div>
     </div>`;
+}
+
+// On a projected season the "Proj" and "EDGE %" columns have nothing to say —
+// the OVR already is the projection and no snaps have been played. They carry
+// the EA CFB 27 cross-check and the provenance code instead, matching the
+// roster grid on the teams page so the two boards read identically.
+function gridEaCell(p) {
+  if (p.ea_ovr == null) return '<span class="text-muted">—</span>';
+  const ours = p.overall_rating != null ? Math.round(p.overall_rating) : null;
+  const gap = ours != null ? Math.round(p.ea_ovr) - ours : null;
+  return `<span title="EA CFB 27 rates him ${Math.round(p.ea_ovr)}${gap != null
+    ? `; we project ${ours} (${gap > 0 ? "+" : ""}${gap})` : ""}">${Math.round(p.ea_ovr)}</span>`;
+}
+
+const _GRID_SOURCE_CODES = {
+  engine_d:   ["CV", "Career curve — projected from his own production history"],
+  carry:      ["CF", "Carried forward — last season's rating along his cohort's development curve"],
+  recruiting: ["RC", "Recruiting grade — no college production yet"],
+  ea_cfb27:   ["EA", "EA CFB 27's overall — we had no signal of our own"],
+};
+
+function gridSourceCell(p) {
+  const s = _GRID_SOURCE_CODES[p.projection_source];
+  if (!s) return '<span class="text-muted">—</span>';
+  const dim = p.projection_confidence === "low" ? "opacity:0.65" : "";
+  return `<span class="proj-source-code" style="${dim}" title="${_esc(s[1])}">${s[0]}</span>`;
 }
 
 function yearLabel(yr) {
@@ -420,9 +466,64 @@ async function openPlayerModal(playerId, seasonOverride) {
   const transferHistory = player.id && transfersMap
     ? (transfersMap[String(player.id)] || []) : [];
   // Look up Engine D trajectory prediction by player_season_id
-  const trajectory = psId && trajectoryMap ? (trajectoryMap[String(psId)] || null) : null;
+  const trajectory = trajectoryFor(psId, player.id);
   modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory, trajectory);
   bindModalClose(modal);
+
+  // The reasoning lives in a 5.5 MB detail file that only this view needs, so
+  // it is fetched after the modal is already on screen rather than blocking it.
+  // Keyed by the projection's OWN player_season_id, not the modal's.
+  if (trajectory) renderProjectionReasoning(trajectory.player_season_id);
+}
+
+// Why the model landed where it did: prose, signed driver bars, and the
+// historical players whose careers looked like this one at the same stage.
+async function renderProjectionReasoning(playerSeasonId) {
+  const host = document.getElementById("proj-reasoning");
+  if (!host) return;
+  let d = null;
+  try {
+    d = await fetchTrajectoryDetail(playerSeasonId);
+  } catch (_) { /* fall through to the empty state below */ }
+  if (!host.isConnected) return;          // modal closed while fetching
+  if (!d) { host.innerHTML = ""; return; }
+
+  // Bars are scaled to the largest absolute effect so the comparison is visual,
+  // not just numeric.
+  const max = Math.max(...(d.drivers || []).map(x => Math.abs(x.effect)), 0.1);
+  const drivers = (d.drivers || []).map(x => {
+    const pct = Math.min(100, Math.abs(x.effect) / max * 100);
+    const pos = x.effect >= 0;
+    return `
+      <div class="driver-row">
+        <span class="driver-label">${_esc(x.label)}</span>
+        <span class="driver-track">
+          <span class="driver-fill ${pos ? "pos" : "neg"}"
+                style="${pos ? "left:50%" : `right:50%`};width:${(pct / 2).toFixed(1)}%"></span>
+        </span>
+        <span class="driver-value" style="color:${pos ? "var(--positive)" : "var(--negative)"}">
+          ${pos ? "+" : ""}${x.effect.toFixed(1)}
+        </span>
+      </div>`;
+  }).join("");
+
+  const comps = (d.comparables || []).map(c => `
+    <div class="comparable-row">
+      ${playerLink(c.player_id, c.name, { season: c.season })}
+      <span class="text-muted">${_esc(String(c.season))} · ${c.ovr}</span>
+      <span class="comparable-outcome" style="color:${c.actual_delta >= 0 ? "var(--positive)" : "var(--negative)"}">
+        ${c.actual_delta >= 0 ? "+" : ""}${c.actual_delta} the next year
+      </span>
+    </div>`).join("");
+
+  host.innerHTML = `
+    ${d.explanation ? `<p class="proj-explanation">${_esc(d.explanation)}</p>` : ""}
+    ${drivers ? `<div class="proj-drivers">
+        <div class="modal-subsection-title">What moved the number</div>${drivers}
+      </div>` : ""}
+    ${comps ? `<div class="proj-comparables">
+        <div class="modal-subsection-title">Careers that looked like his</div>${comps}
+      </div>` : ""}`;
 }
 
 function modalLoadingHtml(player) {
@@ -452,9 +553,13 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
         <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
       </div>
-      <div class="modal-ovr-box" style="background:${color};color:${txtCol}">
+      <div class="modal-ovr-box${isProjectedSeason(player.season) ? " is-projected" : ""}"
+           style="background:${color};color:${txtCol}"
+           title="${isProjectedSeason(player.season)
+             ? _esc(`Projected ${player.season} rating — ${PROJECTION_SOURCE_LABELS[player.projection_source] || "model output"}`)
+             : `Earned rating, ${player.season}`}">
         <span class="modal-ovr-num">${ovr || "—"}</span>
-        <span class="modal-ovr-lbl">OVR</span>
+        <span class="modal-ovr-lbl">${isProjectedSeason(player.season) ? "PROJ OVR" : "OVR"}</span>
       </div>
       <button class="modal-close">✕</button>
     </div>`;
@@ -477,7 +582,14 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   const postData  = postseasonData || null;
   const hasPost = postData && Object.keys(postData).length > 0;
   const totalData = hasPost ? mergeStatTotals(stats, postData, pg) : null;
-  const statSectionHtml = `
+  // A season that hasn't been played has no stats — a grid of em-dashes reads
+  // as missing data rather than as a season that hasn't happened yet.
+  const statSectionHtml = isProjectedSeason(season) ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${_esc(String(season))} Stats</div>
+      <p class="breakdown-note">No games played yet. Career production through
+        ${CONFIG.LAST_PLAYED_SEASON} is below, and it is what the projection is built from.</p>
+    </div>` : `
     <div class="modal-section">
       <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON})</div>
       ${hasPost ? '<div class="stats-sub-label">Regular Season</div>' : ""}
@@ -612,33 +724,46 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       </div>`;
   }
 
-  // ── Engine D trajectory projection ──
+  // ── Projection: the number, its range, and WHY ──
+  // A score with no reasoning is what made the old projections feel arbitrary.
+  // The explanation, driver bars and historical comparables are the section;
+  // the number is just the headline.
   let trajectoryHtml = "";
   if (trajectory) {
-    const delta = trajectory.delta;
     const pred  = trajectory.predicted_ovr;
     const label = trajectory.trajectory_label;
-    const feat  = trajectory.shap_top_feature || "";
+    const forSeason = _trajectoryMeta.predicts_season || CONFIG.CURRENT_SEASON;
     const labelColors = { breakout: "var(--positive)", decline: "var(--negative)", steady: "var(--text-muted)" };
-    const labelIcons  = { breakout: "&#9650;", decline: "&#9660;", steady: "&mdash;" };
     const color = labelColors[label] || "var(--text-muted)";
-    const icon  = labelIcons[label] || "&mdash;";
-    const deltaStr = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+    const vs = trajectory.vs_cohort;
+    const vsStr = vs > 0 ? `+${vs.toFixed(1)}` : vs.toFixed(1);
+    const mae = _trajectoryMeta.model_mae;
+
     trajectoryHtml = `
       <div class="modal-section">
-        <div class="modal-section-title">Next Season Projection (Engine D) ${projBadge()}</div>
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-          <div style="text-align:center">
-            <div style="font-size:2rem;font-weight:900;color:${color}">${icon} ${Math.round(pred)}</div>
-            <div style="font-size:var(--fs-sm);color:var(--text-muted)">Predicted OVR</div>
+        <div class="modal-section-title">${forSeason} Projection ${projBadge()}</div>
+        <div class="proj-headline">
+          <div class="proj-headline-num">
+            <div style="font-size:2rem;font-weight:900;color:${color}">${Math.round(pred)}</div>
+            <div class="proj-headline-range">${projRange(trajectory.proj_low, trajectory.proj_high)}</div>
+            <div style="font-size:var(--fs-sm);color:var(--text-muted)">projected OVR</div>
           </div>
           <div>
-            <div style="font-size:1.1rem;font-weight:700;color:${color};text-transform:capitalize">${label}</div>
-            <div style="font-size:var(--fs-sm);color:var(--text-muted)">${deltaStr} from current</div>
-            ${feat ? `<div style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:4px">Key factor: <em>${feat}</em></div>` : ""}
+            <div style="font-size:1.1rem;font-weight:700;color:${color};text-transform:capitalize">${_esc(label)}</div>
+            <div style="font-size:var(--fs-sm);color:var(--text-muted)">
+              ${vsStr} vs a cohort expectation of ${trajectory.cohort_expected}
+            </div>
           </div>
         </div>
-        <p class="breakdown-note" style="margin-top:8px">XGBoost model trained on 2008–2022 player seasons. MAE ~9 OVR points.</p>
+        <div id="proj-reasoning" class="proj-reasoning">
+          ${skeletonRows(2)}
+        </div>
+        <p class="breakdown-note" style="margin-top:8px">
+          Projected from this player's whole career production curve against what players at
+          the same position and class year historically did next.${mae ? ` Typical error ±${mae} OVR.` : ""}
+          Players who leave for the NFL are absent from the history these curves are built on,
+          so decline at the very top is somewhat overstated.
+        </p>
       </div>`;
   }
 

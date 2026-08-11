@@ -241,12 +241,53 @@
   </p>
 
   <!-- ── Trajectory and breakout ── -->
-  <h2>Trajectory and Breakout</h2>
+  <h2 id="projections">Projections — how the 2026 numbers are built</h2>
   <p>
-    <strong>Trajectory (▲▼)</strong> is the change in overall rating from the prior season — positive = improved production relative to the same position threshold.
+    2026 has not been played. Every 2026 rating in this app is a projection, marked
+    <span class="badge-proj">PROJ</span> wherever it appears, and built from four sources in
+    order of how much we trust them. Each player's rating says which one produced it.
+  </p>
+  <table class="data-table">
+    <thead><tr><th>Source</th><th>Applies to</th><th>How it works</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Career curve</strong> <span class="proj-source-code">CV</span></td>
+          <td>Returning players with production history</td>
+          <td>Every season a player has played is converted to a percentile within his own season and position, giving a career curve. Its <em>shape</em> — slope, acceleration, distance from peak, consistency, availability — is what the model reads, not just where it currently sits.</td></tr>
+      <tr><td><strong>Carried forward</strong> <span class="proj-source-code">CF</span></td>
+          <td>Returners the model can't reach — OL, K, P, and players without EDGE data</td>
+          <td>Last season's earned rating, moved along the development curve for players at the same position, class year and production level.</td></tr>
+      <tr><td><strong>Recruiting grade</strong> <span class="proj-source-code">RC</span></td>
+          <td>True freshmen</td>
+          <td>Recruiting composite mapped through anchors calibrated on what true freshmen <em>actually</em> rate — a .94+ recruit averages 62.9 as a true freshman, not the 90 his ceiling might suggest. Adjusted for position, and slightly for schedule strength.</td></tr>
+      <tr><td><strong>EA CFB 27</strong> <span class="proj-source-code">EA</span></td>
+          <td>Players we have no signal for at all</td>
+          <td>Deliberately last. It is a third party's opinion, useful as a cross-check, not as our number. EA's rating is shown beside ours everywhere, whichever source won.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cohort development curves</h3>
+  <p>
+    The backbone of both the projection and its explanation. For every combination of position,
+    class year and production decile we compute what players like that historically did the next
+    season. That gives a baseline — <em>"juniors at this production level typically add 2.5"</em> —
+    and the projection is expressed as a distance from it. This is also why the
+    <strong>breakout / steady / decline</strong> call compares against the cohort rather than
+    against the player's own current rating: labelling by raw change just re-discovers who rated
+    lowest last year.
+  </p>
+
+  <h3>How accurate is it, honestly</h3>
+  <p>
+    Measured on 2023–24 seasons the model never trained on: typical error is
+    <strong>±8.3 OVR</strong>, against <strong>±9.3</strong> for simply assuming a player repeats
+    last season. So it earns about one rating point over doing nothing — real, but modest, and we
+    publish an <strong>80% range</strong> with every projection rather than a bare number. That
+    range contains the true outcome 80% of the time.
   </p>
   <p>
-    <strong>Breakout candidate 🔥</strong> flags players who are young (FR/SO), have a high recruiting composite (&gt;70/100), but are currently rated below the positional median — suggesting upside not yet reflected in production. This is a heuristic, not a model prediction.
+    One bias worth stating: these curves are built only from players who <em>have</em> a next
+    season. The best players leave for the NFL, so the historical record overstates how often
+    elite players decline. Read projections at the very top of the scale with that in mind.
   </p>
 
   <!-- ── Known limitations ── -->
@@ -327,19 +368,19 @@
       <tr><td>EDGE percentiles</td><td class="status-live">✓ Live</td><td>Raw EDGE is not comparable across positions (QBs accumulate ~1,600, linebackers ~65), so boards and the player modal show percentile within position group instead.</td></tr>
       <tr><td>Team Performance Evaluator</td><td class="status-live">✓ Live</td><td>Regresses SP+ on a 3-year recruiting-talent composite; the residual identifies programs beating or trailing the roster they recruited. Live table on the Research page.</td></tr>
       <tr><td>Recruiting Class ROI</td><td class="status-live">✓ Live</td><td>Per class, the share of recruits who became real contributors (peak OVR ≥ 75) — separating programs that recruit well from programs that develop well.</td></tr>
-      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>XGBoost regressor over lagged EDGE, trajectory, recruiting composite and usage predicts next-season OVR, with the top SHAP driver per call. Trained on 2008–2022, test MAE ≈ 9 OVR. Predictions are labeled <span class="badge-proj">PROJ</span> everywhere they appear — never mixed with earned ratings.</td></tr>
+      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>Rebuilt v3.2. Reads each player's whole career EDGE curve against cohort development curves, rather than a single season's level. Test MAE 8.3 vs 9.3 for naive carry-forward; every call ships an 80% range, signed driver contributions, a plain-English explanation and historical comparables.</td></tr>
       <tr><td>Position leaderboards</td><td class="status-live">✓ Live</td><td>Top 50 per position group per season, on the Ratings page.</td></tr>
-      <tr><td>'26 Season hub</td><td class="status-live">✓ Live</td><td>The full 2026 FBS schedule with matchup quality from final-2025 team ratings. The season hasn't been played, so nothing on that page is a projection yet.</td></tr>
+      <tr><td>'26 Season hub</td><td class="status-live">✓ Live</td><td>Projected top 25, biggest movers vs 2025, our projections against EA CFB 27, the games to circle, and a per-team preview with schedule and projected roster.</td></tr>
       <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite. Blocked: On3 blocks scraping, so the NIL table is currently empty and the engine runs recruiting-only.</td></tr>
-      <tr><td>Engine C (EA CFB 27)</td><td class="status-wip">In progress</td><td>9,013 EA Sports CFB 27 player ratings (54 attributes each) harvested and 81.6% matched to our player IDs. Not yet surfaced in the app.</td></tr>
-      <tr><td>Projected 2026 ratings</td><td class="status-planned">Planned</td><td>Player and team ratings for the season ahead, from Engine D predictions, carried-forward EDGE, and recruiting composites for true freshmen. Will always carry the <span class="badge-proj">PROJ</span> label.</td></tr>
+      <tr><td>Engine C (EA CFB 27)</td><td class="status-live">✓ Live</td><td>9,013 EA Sports CFB 27 ratings, 81.6% matched to our player IDs, shown beside our own on rosters, the players grid, and a dedicated comparison on the '26 hub. Never an input to our rating unless we have no signal at all.</td></tr>
+      <tr><td>Projected 2026 ratings</td><td class="status-live">✓ Live</td><td>11,583 projected players across 138 teams, plus projected team ratings. 2026 is the app's default season and every rating in it carries the <span class="badge-proj">PROJ</span> label. See <a href="#projections">how they are built</a>.</td></tr>
       <tr><td>Playoff prediction model</td><td class="status-planned">Planned</td><td>Game-level win probability → Monte Carlo season simulation → 12-team bracket odds. Ships only alongside its backtest against 2024 and 2025; a model that can't show its backtest doesn't ship.</td></tr>
       <tr><td>Transfer portal ROI</td><td class="status-planned">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>
     </tbody>
   </table>
 
   <p class="version-note">
-    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite. App: <strong>v3.1.0</strong>.
+    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite. App: <strong>v3.2.0</strong>.
   </p>
 
   <h2>What These Ratings Cannot See</h2>
