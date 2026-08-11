@@ -896,6 +896,8 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   .team-tile-logo { width: 24px; height: 24px; }
   .preview-grid { grid-template-columns: 1fr; }
   .rank-wall { grid-template-columns: 1fr; }
+  .finding-notes { grid-template-columns: 1fr; gap: 1rem; }
+  .finding-stats { grid-template-columns: repeat(2, 1fr); }
   /* Phone board keeps rank · pos · name · OVR · proj. Cells 4-8 (team,
      yr/conf, stars, ht, wt) and 11 (EDGE %) are hidden by position because
      both the players grid and the roster grid emit 11 cells in that order. */

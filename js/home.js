@@ -116,13 +116,15 @@ async function storyRiserAndSlider() {
       eyebrow: "PROJECTED TO RISE",
       headline: `${teamLink(up.team.school, { season: UPCOMING })} gains more from its ${UPCOMING} roster than anyone.`,
       evidence: `${ovrPill(up.now, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })} ${deltaChip(up.delta, { title: chipTitle })} <span class="evidence-note">${note}</span>`,
-      links: `<a href="${teamHref(up.team.school, UPCOMING)}">Program page →</a>`,
+      links: `<a href="${teamHref(up.team.school, UPCOMING)}">Program page →</a>
+        <a href="story-team-movement.html">Every program's move →</a>`,
     }),
     storyCard({
       eyebrow: "PROJECTED TO SLIDE",
       headline: `No program loses more going into ${UPCOMING} than ${teamLink(down.team.school, { season: UPCOMING })}.`,
       evidence: `${ovrPill(down.now, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })} ${deltaChip(down.delta, { title: chipTitle })} <span class="evidence-note">${note}</span>`,
-      links: `<a href="${teamHref(down.team.school, UPCOMING)}">Program page →</a>`,
+      links: `<a href="${teamHref(down.team.school, UPCOMING)}">Program page →</a>
+        <a href="story-team-movement.html">Every program's move →</a>`,
     }),
   ];
 }
@@ -140,7 +142,7 @@ async function storyOverachiever() {
     eyebrow: "OVER EXPECTATIONS",
     headline: `${teamLink(best.school, { season: cur })} played ${best.performance_residual.toFixed(1)} points better than its recruiting said it should.`,
     evidence: `${deltaChip(best.performance_residual, { title: "Actual SP+ minus SP+ expected from 3-year recruiting talent" })} <span class="evidence-note">SP+ vs talent expectation${pct}</span>`,
-    links: `<a href="research.html#team-perf-section">Every team graded →</a>`,
+    links: `<a href="research-team-performance.html">Every team graded →</a>`,
   })];
 }
 
@@ -169,7 +171,7 @@ async function storyBreakout() {
       ${deltaChip(top.vs_cohort, { title: "Projected OVR vs what his cohort typically does" })}
       <div class="evidence-note">${_esc(String(top.vs_cohort > 0 ? "+" : ""))}${top.vs_cohort} against the ${_esc(top.position_group || "")}s
         who were where he is now${mae ? ` · typical error ±${mae} OVR` : ""}.</div>`,
-    links: `<a href="research.html#breakout-section">All ${calls.length} breakout calls →</a>`,
+    links: `<a href="research-breakout.html">All ${calls.length} breakout calls →</a>`,
   })];
 }
 
@@ -186,7 +188,7 @@ async function storyHiddenGem() {
     eyebrow: "HIDDEN GEM",
     headline: `${playerLink(g.id, g.name, { season: g.season })} was a ${g.stars}-star recruit. The tape didn't care.`,
     evidence: `${ovrPill(g.overall_rating, { label: `Overall rating, ${g.season}` })} <span class="evidence-note">${_esc(g.position_group || "")} · ${teamLink(g.team, { season: g.season })} · ${"★".repeat(g.stars)} recruit</span>`,
-    links: `<a href="ratings.html">${gems.length} players rated 75+ from 2-star-or-lower classes →</a>`,
+    links: `<a href="story-hidden-gems.html">All ${gems.length} hidden gems →</a>`,
   })];
 }
 
@@ -202,7 +204,7 @@ async function storyClassThatHit() {
     eyebrow: "RECRUITING, GRADED",
     headline: `${teamLink(best.school, { season: best.recruit_year })}'s ${best.recruit_year} class is the best board we've graded.`,
     evidence: `<span class="evidence-big">${best.hit_rate_pct.toFixed(1)}%</span> <span class="evidence-note">of its ${best.n_recruits} rated recruits became real contributors (peak OVR ≥ 75)</span>`,
-    links: `<a href="research.html#rec-roi-section">Every class since 2008 →</a>`,
+    links: `<a href="research-recruiting-roi.html">Every class since 2008 →</a>`,
   })];
 }
 
@@ -301,7 +303,7 @@ async function buildResearchRail() {
       items.push({
         tag: "Team Performance",
         text: `Recruiting talent explains ${Math.round(r2 * 100)}% of team performance. The rest is what we grade.`,
-        href: "research.html#team-perf-section",
+        href: "research-team-performance.html",
       });
     }
   } catch (_) {}
@@ -312,7 +314,7 @@ async function buildResearchRail() {
       items.push({
         tag: "Recruiting ROI",
         text: `${roi.length.toLocaleString()} recruiting classes graded on what their players actually became.`,
-        href: "research.html#rec-roi-section",
+        href: "research-recruiting-roi.html",
       });
     }
   } catch (_) {}
@@ -328,7 +330,7 @@ async function buildResearchRail() {
       items.push({
         tag: "Breakout Predictor",
         text: `${breakouts} players projected to beat their cohort — each with the reason in plain English.${accuracy}`,
-        href: "research.html#breakout-section",
+        href: "research-breakout.html",
       });
     }
   } catch (_) {}

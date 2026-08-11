@@ -76,6 +76,16 @@
   </div>
 </div>
 
+<!-- Every storyline above leads with one row; each of these opens the full list.
+     Rendered from the same findings registry the research pages use. -->
+<section class="home-section">
+  <div class="section-rule">
+    <span class="eyebrow">OPEN THE FULL LISTS</span>
+    <span class="section-rule-sub">Every storyline above, in full</span>
+  </div>
+  <div id="storyline-index"></div>
+</section>
+
 <!-- Coverage strip: counted from the data, links to methodology -->
 <footer class="coverage-strip" id="coverage-strip"></footer>
 
@@ -88,7 +98,12 @@
 <script src="js/dataLoader.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/playerSearch.js"></script>
+<script src="js/findings.js"></script>
+<script src="js/findingPage.js"></script>
 <script src="js/home.js"></script>
+<script>
+  renderFindingIndex("storyline-index", "storyline");
+</script>
 </div><!-- /.main-content -->
 </body>
 </html>

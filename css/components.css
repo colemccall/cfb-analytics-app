@@ -534,6 +534,68 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .driver-fill.neg { background: var(--negative); }
 .driver-value { font-weight: 600; min-width: 42px; text-align: right; }
 
+/* ── Finding pages (js/findingPage.js) ──
+   One layout serves every research finding and storyline, so a new analysis is
+   a registry entry plus a shell — never new page CSS. */
+.finding-breadcrumb {
+  margin: 0.5rem 0 0; font-size: var(--fs-sm);
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.finding-breadcrumb a { color: var(--voice); font-weight: 600; }
+
+.finding-stats > .stagger-children,
+.finding-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem; margin-bottom: 1.25rem;
+}
+.finding-stat-tile {
+  padding: 0.9rem 1rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); border-left: 3px solid var(--voice);
+}
+
+/* Method and limitations sit under every finding. Not decoration — a claim
+   without a stated blind spot is a claim without a confidence interval. */
+.finding-notes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+  margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
+}
+.finding-note p {
+  margin: 0; font-size: var(--fs-sm); line-height: 1.65; color: var(--text-muted);
+}
+.finding-note code {
+  font-size: var(--fs-label); background: var(--surface-deep);
+  padding: 1px 4px; border-radius: var(--radius-sm);
+}
+
+.finding-upcoming { max-width: 62ch; }
+.finding-upcoming-lead {
+  font-size: var(--fs-lg); line-height: 1.55; color: var(--text); margin: 0 0 0.5rem;
+}
+.badge-upcoming {
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-muted); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); padding: 0 6px;
+}
+
+/* Index cards — research.html and the home page render the same component. */
+.finding-card {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 1rem 1.1rem; text-decoration: none; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--voice); border-radius: var(--radius);
+  transition: background 0.12s, border-color 0.12s;
+}
+.finding-card:hover { background: var(--surface-lift); border-color: var(--border-strong); }
+.finding-card h3 { margin: 0; font-size: var(--fs-lg); }
+.finding-card p { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
+.finding-card.is-upcoming { border-left-color: var(--border-strong); opacity: 0.86; }
+
+.section-lede {
+  margin: -0.25rem 0 1rem; font-size: var(--fs-sm); color: var(--text-muted); max-width: 70ch;
+}
+
 /* Projected top 25 — a wall of ranked programs, not a table. */
 .rank-wall {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px;

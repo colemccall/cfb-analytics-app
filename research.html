@@ -12,124 +12,76 @@
 <body data-page="research">
 <script src="js/config.js"></script>
 <script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ==================== -->
+<!-- ==================== MAIN CONTENT ====================
+     An index, not a dashboard. Every card below is generated from the findings
+     registry (js/findings.js) and links to that finding's own page. The three
+     stacked tables that used to live here now each have a page of their own. -->
 <div class="main-content">
 
 <header class="masthead masthead--page animate-pop">
   <div class="eyebrow">RESEARCH</div>
   <h1>Research Findings</h1>
-  <p class="masthead-sub">Data-driven answers to genuine questions about college football.</p>
+  <p class="masthead-sub">
+    Each finding is a claim with evidence you can open, filter, and argue with — plus an
+    honest statement of what it cannot see.
+  </p>
 </header>
 
 <div class="page-content">
-  <div id="published-findings"></div>
 
-  <h2 class="section-heading">Live Analysis</h2>
-  <p style="color:var(--text-muted);font-size:var(--fs-sm);margin:-0.25rem 0 1rem">
-    Three analyses run on every pipeline refresh. Each card links to its full table below.
+  <h2 class="section-heading">Findings</h2>
+  <p class="section-lede">
+    Live analyses, recomputed on every pipeline refresh. Each opens into its full table.
+  </p>
+  <div id="research-index"></div>
+
+  <h2 class="section-heading">Storylines</h2>
+  <p class="section-lede">
+    The claims the home page leads with, each opening into the complete ordered list behind it.
+  </p>
+  <div id="storyline-index"></div>
+
+  <h2 class="section-heading">Questions we haven't answered</h2>
+  <p class="section-lede">
+    Open questions with no analysis behind them yet. Listed because a research page that only
+    shows finished work hides how much is unfinished.
   </p>
   <div class="research-grid">
-    <a href="#team-perf-section" class="research-card research-card--live">
-      <span class="research-tag">Team Analysis</span>
-      <h3>Team Performance Evaluator</h3>
-      <p>Regresses SP+ on a 3-year recruiting-talent composite; the residual surfaces which programs beat or trail the roster they recruited. Coaching-change overlay planned.</p>
-      <div class="finding-stat">Live ↓</div>
-    </a>
-    <a href="#rec-roi-section" class="research-card research-card--live">
-      <span class="research-tag">Recruiting</span>
-      <h3>Recruiting Class ROI</h3>
-      <p>Per class, the share of recruits who became real contributors (peak OVR ≥ 75) — separating programs that recruit well from programs that develop well.</p>
-      <div class="finding-stat">Live ↓</div>
-    </a>
-    <a href="#breakout-section" class="research-card research-card--live">
-      <span class="research-tag">ML Prediction</span>
-      <h3>Breakout Predictor (Engine D)</h3>
-      <p>XGBoost regressor over lagged EDGE, trajectory, recruiting composite, and usage predicts next-season OVR, with the top SHAP driver per prediction.</p>
-      <div class="finding-stat">Live ↓</div>
-    </a>
-  </div>
-
-  <h2 class="section-heading">In Progress</h2>
-  <div class="research-grid">
-    <div class="research-card research-card--active">
-      <span class="research-tag research-tag--warning">Historical</span>
-      <h3>Cross-Era Leaderboards</h3>
-      <p>Season-by-season and era-bucketed top players across 2008–2025. Era-adjusted OVR anchors (classic / transition / modern) are live in the ratings engine — the leaderboard view itself is not built yet.</p>
-      <div class="finding-stat finding-stat--warning">Era anchors live ✓</div>
-    </div>
-    <div class="research-card research-card--active">
-      <span class="research-tag research-tag--warning">Roster Building</span>
-      <h3>Recruit vs. Portal vs. Develop</h3>
-      <p>How winning rosters actually get built: comparing talent acquired by recruiting, the transfer portal, and in-house development against team performance residual.</p>
-      <div class="finding-stat finding-stat--warning">Next up</div>
-    </div>
-  </div>
-
-  <!-- ── Team Performance Evaluator live table ── -->
-  <div id="team-perf-section" class="research-live-section">
-    <h2 class="section-heading">Team Performance Evaluator</h2>
-    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:0.75rem">
-      Residual = actual SP+ minus expected SP+ predicted from 3-year recruiting composite.
-      Positive = overachiever, negative = underachiever.
-    </p>
-    <div class="research-filter-bar"></div>
-    <div class="research-table-wrap"></div>
-  </div>
-
-  <!-- ── Recruiting Class ROI live table ── -->
-  <div id="rec-roi-section" class="research-live-section">
-    <h2 class="section-heading">Recruiting Class ROI</h2>
-    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:0.75rem">
-      Hit%/Rated = share of <em>rated</em> recruits who reached peak OVR &ge; 75.
-      Hit%/Class = same metric vs all recruits (exposes unrated player coverage gaps).
-    </p>
-    <div class="research-filter-bar"></div>
-    <div class="research-table-wrap"></div>
-  </div>
-
-  <!-- ── Engine D Breakout Candidates live table ── -->
-  <div id="breakout-section" class="research-live-section">
-    <h2 class="section-heading">Breakout Candidates (Engine D)</h2>
-    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:0.75rem">
-      XGBoost regressor trained on 2008&ndash;2022 player seasons predicts next-season OVR.
-      Breakout = predicted &ge; +5 OVR. Decline = predicted &le; &minus;5 OVR. Test MAE &asymp; 9 OVR points.
-    </p>
-    <div class="research-filter-bar"></div>
-    <div class="research-table-wrap"></div>
-  </div>
-
-  <h2 class="section-heading">Upcoming Research</h2>
-  <div class="research-grid">
     <div class="research-card coming-soon">
       <span class="research-tag">Transfer Portal</span>
-      <h3>G5 → P4 Transfer Success</h3>
-      <p>Which production profiles and competition contexts predict P4 success? Does EDGE trajectory matter more than raw yardage totals?</p>
+      <h3>G5 → P4 transfer success</h3>
+      <p>Which production profiles survive a jump in competition? Does EDGE trajectory predict it better than raw totals?</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">Transfer Portal</span>
-      <h3>Year 1 vs Year 2 Transfer Performance</h3>
-      <p>Do transfers underperform in Year 1 but peak in Year 2 if retained? How does the EDGE dip vary by position and conference jump?</p>
+      <h3>Year 1 vs Year 2 transfers</h3>
+      <p>Do transfers dip in year one and peak in year two if retained? How does that vary by position and conference jump?</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">NIL</span>
-      <h3>NIL Efficiency</h3>
-      <p>Which positions and program types deliver the best EDGE per NIL dollar? Does valuation predict production, or just recruiting hype?</p>
+      <h3>NIL efficiency</h3>
+      <p>Which positions and program types return the most production per NIL dollar? Blocked: no working data source.</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">Scheme</span>
-      <h3>Portable OC Schemes</h3>
-      <p>Do some coordinators produce elite EDGE players everywhere they go, or are they talent-dependent? Tracking OC moves and next-season player trajectory.</p>
+      <h3>Portable coordinators</h3>
+      <p>Do some coordinators produce elite players everywhere they go, or are they talent-dependent?</p>
     </div>
     <div class="research-card coming-soon">
       <span class="research-tag">Conference</span>
-      <h3>Realignment Impact</h3>
-      <p>How did 2024–2025 Big 12 / Pac-12 / SEC expansions affect recruiting footprint, talent composite, and ratings for affected programs?</p>
+      <h3>Realignment impact</h3>
+      <p>How did the 2024–25 realignment change recruiting footprints and talent composites for the programs that moved?</p>
+    </div>
+    <div class="research-card coming-soon">
+      <span class="research-tag">Historical</span>
+      <h3>Cross-era leaderboards</h3>
+      <p>Era-adjusted anchors are live in the ratings engine; the leaderboard view that would use them is not built.</p>
     </div>
   </div>
+
 </div>
 
 <!-- ==================== SCRIPTS ==================== -->
-<!-- Player detail modal — research tables link to players, same as every other page -->
 <div class="modal" id="player-modal">
   <div class="modal-inner"></div>
 </div>
@@ -138,37 +90,11 @@
 <script src="js/ui.js"></script>
 <script src="js/dataTable.js"></script>
 <script src="js/playerSearch.js"></script>
-<script src="js/researchDisplay.js"></script>
+<script src="js/findings.js"></script>
+<script src="js/findingPage.js"></script>
 <script>
-  // Load published research findings from static JSON
-  async function loadPublishedFindings() {
-    const container = document.getElementById("published-findings");
-    try {
-      const index = await fetch(CONFIG.DATA_BASE + "research/index.json");
-      if (!index.ok) throw new Error("No research published yet");
-      const findings = await index.json();
-      if (!findings.length) throw new Error("No findings");
-      container.innerHTML = `
-        <h2 class="section-heading">Published Findings</h2>
-        <div class="research-grid">${findings.map(f => `
-          <div class="research-card">
-            <span class="research-tag">${f.category}</span>
-            <h3>${f.title}</h3>
-            <p>${f.summary}</p>
-            <div class="finding-stat">${f.headline_stat}</div>
-          </div>`).join("")}
-        </div>`;
-    } catch {
-      // Nothing written up yet. Render nothing rather than an empty-state box —
-      // the live analysis sections below are the substance of this page.
-      container.innerHTML = "";
-    }
-  }
-
-  loadPublishedFindings();
-  initTeamPerformance();
-  initRecruitingRoi();
-  initBreakoutCandidates();
+  renderFindingIndex("research-index", "research");
+  renderFindingIndex("storyline-index", "storyline");
 </script>
 </div><!-- /.main-content -->
 </body>
