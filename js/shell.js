@@ -31,6 +31,7 @@
     { id: "players",  href: "players.html",    icon: "👤", label: "Players" },
     { id: "ratings",  href: "ratings.html",    icon: "📊", label: "Ratings" },
     { id: "research", href: "research.html",   icon: "🔬", label: "Research" },
+    { id: "methods",  href: "methods.html",    icon: "🧮", label: "Methods" },
     { id: "info",     href: "info.html",       icon: "ℹ",  label: "How It Works" },
   ];
   // Five slots on mobile — the core destinations.

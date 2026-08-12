@@ -787,3 +787,78 @@ a.research-card--live .finding-stat { color: var(--accent); }
   padding: 2px 4px; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text);
 }
+
+/* ── Methods page ───────────────────────────────────────────────────────────
+   methods.html publishes how every number is computed and what was considered
+   instead. Built from tokens only — no new colours, so the contrast gate holds
+   without adding entries to it. */
+.method-toc {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.1rem; margin-top: 0.75rem;
+}
+.method-toc a {
+  font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); text-decoration: none; border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.method-toc a:hover { color: var(--voice); border-bottom-color: var(--border-accent); }
+
+.method-group { margin-bottom: 2.5rem; }
+
+.method-entry {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.4rem 1.6rem; margin-bottom: 1.1rem;
+}
+.method-title {
+  font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700;
+  color: var(--text); margin: 0 0 0.5rem;
+}
+.method-summary { color: var(--text-muted); margin: 0 0 1rem; max-width: 78ch; }
+
+.method-block { margin-top: 1.1rem; }
+
+/* Formulas are the point of the page, so they get room to breathe and are
+   allowed to scroll sideways rather than wrap into nonsense. */
+.method-code {
+  background: var(--surface-deep); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin: 0.4rem 0 0;
+  overflow-x: auto; font-size: var(--fs-sm); line-height: 1.55; color: var(--text);
+}
+.method-code code { white-space: pre; }
+/* The "what the code actually does" block — flagged, because the gap between it
+   and the formula above is the finding. */
+.method-code-warn { border-left: 3px solid var(--voice); }
+
+.method-evidence th {
+  text-align: left; font-weight: 600; color: var(--text-muted);
+  width: 40%; vertical-align: top; white-space: normal;
+}
+.method-evidence td { color: var(--text); }
+
+.method-alts { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.method-alt {
+  border-top: 1px solid var(--border); padding: 0.7rem 0;
+}
+.method-alt:first-child { border-top: none; }
+.method-alt-head {
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+}
+.method-alt-label { font-weight: 600; color: var(--text); }
+.method-alt-basis, .method-alt-note {
+  font-size: var(--fs-sm); color: var(--text-muted); margin-top: 0.25rem;
+}
+
+.method-chip {
+  font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 1px 8px; border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong); color: var(--text-muted); white-space: nowrap;
+}
+.method-chip-recommended { border-color: var(--positive); color: var(--positive); }
+.method-chip-shipped     { border-color: var(--positive); color: var(--positive); }
+.method-chip-experiment  { border-color: var(--info);     color: var(--info); }
+.method-chip-rejected    { border-color: var(--negative); color: var(--negative); }
+.method-chip-blocked     { border-color: var(--border-strong); color: var(--text-muted); }
+
+.method-source {
+  font-size: var(--fs-sm); color: var(--text-muted); margin: 1rem 0 0;
+}
+.method-table-scroll { overflow-x: auto; }

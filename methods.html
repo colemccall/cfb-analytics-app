@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Methods — how every number is made — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="methods">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
+<!-- ==================== MAIN CONTENT ====================
+     A shell. Everything is rendered by methodsPage.js from the METHODS registry
+     in methods.js, plus the data-availability table which comes from
+     data/api_availability.json (written by the pipeline's explore_api.py).
+     Adding a method entry means adding a registry entry, never page code. -->
+<div class="main-content">
+  <div id="methods-root"></div>
+</div>
+
+<script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/methods.js"></script>
+<script src="js/methodsPage.js"></script>
+<script>
+  initMethods();
+</script>
+</body>
+</html>
