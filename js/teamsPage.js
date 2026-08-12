@@ -653,7 +653,8 @@ async function buildTeamHistoryHTML(team) {
       <td class="hist-record">${rec}</td>
       <td>${_esc(r.conference ?? "—")}</td>
       <td class="hist-sp">${r.sp_overall != null ? parseFloat(r.sp_overall).toFixed(1) : "—"}</td>
-      <td>${ovrPill(r.overall_rating, { label: `Team OVR, ${r.season}`, season: r.season })}</td>
+      <td>${ovrPill(r.overall_rating, { label: `Team OVR, ${r.season}`, season: r.season,
+             projected: isProjectedSeason(r.season) })}</td>
     </tr>`;
   }).join("");
 

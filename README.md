@@ -248,12 +248,17 @@ Precomputed cosine similarity across EDGE feature vectors (OVR ≥ 55 players on
 
 ## Version
 
-`v3.2.0` — branch: `main`.
+`v3.3.0` — branch: `main`.
 
-See [CHANGELOG_v3.1_redesign.md](CHANGELOG_v3.1_redesign.md) for the visual rebuild
-(two-theme token system, contrast gate, component consolidation) and the rules it set.
+See [CHANGELOG_v3.3_ratings.md](CHANGELOG_v3.3_ratings.md) for the rating and projection
+pass (position-family projections, OL no longer projected, the opportunity model, secondary
+archetypes, the v4.2 position calibration, and the players the ratings had been dropping).
 
-See [How It Works](info.html) for rating model version details (player model v5.0, team model v1.0).
+See [CHANGELOG_v3.2_projections.md](CHANGELOG_v3.2_projections.md) for 2026 as a real
+projected season, and [CHANGELOG_v3.1_redesign.md](CHANGELOG_v3.1_redesign.md) for the
+visual rebuild (two-theme token system, contrast gate, component consolidation).
+
+See [How It Works](info.html) for rating model version details (player model v4.2, team model v1.0).
 
 ---
 

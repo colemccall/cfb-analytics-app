@@ -26,17 +26,23 @@ function onThemeChange(render) {
 // ── Rating pill ─────────────────────────────────────────────────────────────
 // The single way an OVR appears.
 //
-// Provenance is derived from the season, not asked of the caller: pass
-// `season` and any projected season automatically renders the hatch + PROJ
-// badge. With 2026 as the app's default season, "the caller remembered to pass
+// Provenance is derived from the season, not asked of the caller: pass `season`
+// and a projected one always renders the hatch and a tooltip naming the source.
+// With 2026 as the app's default season, "the caller remembered to pass
 // projected: true" is not a strong enough guarantee — one missed call site
 // presents model output as an earned rating.
 //
-// `projected` remains as an explicit override for the rare case where the value
-// is projected but no season is in scope.
+// The PROJ badge on top of that is reserved for MIXED contexts. On a wholly
+// projected season all 12,000 numbers are projections, and a badge on each is
+// noise rather than provenance; the page says it once via
+// projectedSeasonNotice(). Pass `projected: true` where a projected number sits
+// beside an earned one — an evidence line comparing last season to next, or a
+// table spanning played and unplayed seasons — and where a value is projected
+// with no season in scope.
 function ovrPill(rating, { label = "", projected = false, season = null, source = "" } = {}) {
   if (rating == null) return '<span class="text-muted">—</span>';
-  const isProj = projected || (season != null && isProjectedSeason(season));
+  const fromSeason = season != null && isProjectedSeason(season);
+  const isProj = projected || fromSeason;
   const v = Math.round(rating);
   const c = ratingColor(v);
   const cls = isProj ? "ovr-badge is-projected" : "ovr-badge";
@@ -45,7 +51,13 @@ function ovrPill(rating, { label = "", projected = false, season = null, source 
     : label;
   const pill = `<span class="${cls}" style="background:${c};color:${ratingTextColor(c)}"
     title="${_esc(title)}">${v}</span>`;
-  return isProj ? `${pill} ${projBadge()}` : pill;
+  // On a wholly projected season every rating is a projection, so a badge on
+  // each one is noise — projectedSeasonNotice() states it once at the top of the
+  // page and the hatch plus tooltip keep provenance on the number itself. The
+  // badge is still rendered for an explicit `projected: true`, which is how a
+  // mixed context (a history chart spanning played and unplayed seasons) marks
+  // the odd row out.
+  return isProj && !fromSeason ? `${pill} ${projBadge()}` : pill;
 }
 
 // How each projected number was arrived at — shown in tooltips and the modal.

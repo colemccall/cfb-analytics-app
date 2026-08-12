@@ -166,7 +166,7 @@ async function storyBreakout() {
     headline: `The model's boldest call: ${playerLink(top.player_id, top.name, { season: UPCOMING })} (${_esc(top.position_group || "—")}).`,
     evidence: `${ovrPill(top.current_ovr, { label: `Earned OVR, ${PLAYED}` })}
       <span class="evidence-arrow">→</span>
-      ${ovrPill(top.predicted_ovr, { label: `Projected ${UPCOMING} OVR`, season: UPCOMING })}
+      ${ovrPill(top.predicted_ovr, { label: `Projected ${UPCOMING} OVR`, season: UPCOMING, projected: true })}
       ${projRange(top.proj_low, top.proj_high)}
       ${deltaChip(top.vs_cohort, { title: "Projected OVR vs what his cohort typically does" })}
       <div class="evidence-note">${_esc(String(top.vs_cohort > 0 ? "+" : ""))}${top.vs_cohort} against the ${_esc(top.position_group || "")}s

@@ -328,7 +328,7 @@
   <div class="limitations-box">
     <h3>Additional model limitations</h3>
     <ul>
-      <li><strong>Coverage snaps for CB/S</strong>: We still have no targets allowed or coverage yards — nobody publishes them. We now <em>partly</em> correct for it: a defensive back who is one of his secondary's five regulars is credited for how few passing yards his defense gave up, on top of his own interceptions and breakups. That credit is additive, so it survives the very suppression it exists to fix, and a player's modal shows what share of his rating came from it. It is still a team proxy standing in for an individual measurement, and it cannot tell you <em>which</em> corner earned the silence.</li>
+      <li><strong>Coverage snaps for CB/S</strong>: We still have no targets allowed or coverage yards — nobody publishes them. We now <em>partly</em> correct for it: a defensive back who is one of his secondary's five regulars is credited for how few passing yards his defense gave up, on top of his own interceptions and breakups. That credit is additive, so it survives the very suppression it exists to fix, and a player's modal shows what share of his rating came from it. The defense is judged against the offenses it actually faced — each game is compared to what that offense does in its other games — so a soft schedule no longer reads as good coverage. It is still a team proxy standing in for an individual measurement, and it cannot tell you <em>which</em> corner earned the silence.</li>
       <li><strong>Tackle quality beyond TFLs</strong>: We minimize raw tackle weight for this reason, but can't distinguish a broken-tackle stop from a gang-tackle pile-on with existing data.</li>
       <li><strong>Receiver targets for WR/TE</strong>: EDGE reflects production per game, but can't distinguish a receiver who ran perfect routes but was ignored by the QB from one who was targeted and dropped passes.</li>
       <li><strong>Transfer Year 1 context</strong>: The model doesn't yet adjust for first-year transfer learning curves. Research question RQ9 (Year 1 vs. Year 2 transfer performance) is planned.</li>
@@ -379,19 +379,19 @@
       <tr><td>EDGE percentiles</td><td class="status-live">✓ Live</td><td>Raw EDGE is not comparable across positions (QBs accumulate ~1,600, linebackers ~65), so boards and the player modal show percentile within position group instead.</td></tr>
       <tr><td>Team Performance Evaluator</td><td class="status-live">✓ Live</td><td>Regresses SP+ on a 3-year recruiting-talent composite; the residual identifies programs beating or trailing the roster they recruited. Live table on the Research page.</td></tr>
       <tr><td>Recruiting Class ROI</td><td class="status-live">✓ Live</td><td>Per class, the share of recruits who became real contributors (peak OVR ≥ 75) — separating programs that recruit well from programs that develop well.</td></tr>
-      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>Rebuilt v3.2. Reads each player's whole career EDGE curve against cohort development curves, rather than a single season's level. Test MAE 8.3 vs 9.3 for naive carry-forward; every call ships an 80% range, signed driver contributions, a plain-English explanation and historical comparables.</td></tr>
+      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>Rebuilt v3.2, split by position family in v3.3. Reads each player's whole career EDGE curve against cohort development curves, rather than a single season's level. Offensive skill adds an opportunity model — his share of the position room, his depth-chart rank on next season's roster, and how much production ahead of him is leaving — and holds out at MAE 8.17 against 9.10 for naive carry-forward, with its 80% range covering 80.6%. Defense has no touches to count, manages 8.45 against 9.63 (coverage 78.8%), and ships marked <em>low confidence</em>. Specialists are carried forward. Offensive linemen are <strong>not projected at all</strong>: the earned OL number is 77% recruiting, and forecasting it would be forecasting a recruiting ranking. Every call ships an 80% range, signed driver contributions, a plain-English explanation and historical comparables.</td></tr>
       <tr><td>Position leaderboards</td><td class="status-live">✓ Live</td><td>Top 50 per position group per season, on the Ratings page.</td></tr>
       <tr><td>'26 Season hub</td><td class="status-live">✓ Live</td><td>Projected top 25, biggest movers vs 2025, our projections against EA CFB 27, the games to circle, and a per-team preview with schedule and projected roster.</td></tr>
       <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite. Blocked: On3 blocks scraping, so the NIL table is currently empty and the engine runs recruiting-only.</td></tr>
       <tr><td>Engine C (EA CFB 27)</td><td class="status-live">✓ Live</td><td>9,013 EA Sports CFB 27 ratings, 81.6% matched to our player IDs, shown beside our own on rosters, the players grid, and a dedicated comparison on the '26 hub. Never an input to our rating unless we have no signal at all.</td></tr>
-      <tr><td>Projected 2026 ratings</td><td class="status-live">✓ Live</td><td>11,583 projected players across 138 teams, plus projected team ratings. 2026 is the app's default season and every rating in it carries the <span class="badge-proj">PROJ</span> label. See <a href="#projections">how they are built</a>.</td></tr>
+      <tr><td>Projected 2026 ratings</td><td class="status-live">✓ Live</td><td>9,527 projected players across 138 teams, plus projected team ratings. A further 2,902 offensive linemen are listed with EA's opinion and <em>no rating of ours</em>. 2026 is the app's default season; because every rating in it is a projection, the page says so once at the top rather than badging all 9,527. See <a href="#projections">how they are built</a>.</td></tr>
       <tr><td>Playoff prediction model</td><td class="status-planned">Planned</td><td>Game-level win probability → Monte Carlo season simulation → 12-team bracket odds. Ships only alongside its backtest against 2024 and 2025; a model that can't show its backtest doesn't ship.</td></tr>
       <tr><td>Transfer portal ROI</td><td class="status-planned">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>
     </tbody>
   </table>
 
   <p class="version-note">
-    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v5.0</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025). Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite. App: <strong>v3.2.0</strong>.
+    Data sources: <a href="https://collegefootballdata.com" target="_blank">CFB Data API</a> (stats, games, SP+, teams, transfers) · 247Sports (recruiting composite). Player model: <strong>v4.2</strong> — 12 position groups, per-game opponent-adjusted EDGE (2016–2025) + CLASSIC INT/recruiting system for pre-2016 defenders, fixed EDGE→OVR anchor mapping, 4-tier playing-time system, era-bucketed anchors (2008–2025), position-by-position calibration against EA CFB 27 as an external reference, additive coverage denial measured against the offenses actually faced, and defensive-back archetypes. Team model: <strong>v1.0</strong> — SP+ + roster quality + recruiting composite. App: <strong>v3.3.0</strong>.
   </p>
 
   <h2>What These Ratings Cannot See</h2>
@@ -406,8 +406,12 @@
     <li><strong>Coaching.</strong> The coaching-change table is 22 seeded rows — far too thin to be a model input.</li>
   </ul>
   <p class="version-note">
-    Where a number is a model projection rather than something earned on the field, it carries a
-    <span class="badge-proj">PROJ</span> badge. That distinction is deliberate and is never blurred.
+    A number that is a model projection rather than something earned on the field always says so.
+    On a season that has not been played, every rating is a projection and the page says it once
+    at the top — repeating a <span class="badge-proj">PROJ</span> badge on each of 12,000 numbers
+    is noise, not provenance. The badge marks the odd one out wherever earned and projected
+    numbers sit side by side, and every projected pill keeps its hatched fill and a tooltip
+    naming the source. The distinction is deliberate and is never blurred.
   </p>
 
 </div>

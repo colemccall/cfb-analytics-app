@@ -484,7 +484,11 @@ async function openPlayerModal(playerId, seasonOverride) {
   // The reasoning lives in a 5.5 MB detail file that only this view needs, so
   // it is fetched after the modal is already on screen rather than blocking it.
   // Keyed by the projection's OWN player_season_id, not the modal's.
-  if (trajectory) renderProjectionReasoning(trajectory.player_season_id);
+  // Gated the same way the section is — otherwise this fetches 6 MB of prose to
+  // fill a container that was never rendered.
+  if (trajectory && Number(season) === Number(_trajectoryMeta.predicts_season ?? CONFIG.CURRENT_SEASON)) {
+    renderProjectionReasoning(trajectory.player_season_id);
+  }
 }
 
 // Why the model landed where it did: prose, signed driver bars, and the
@@ -740,7 +744,14 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   // The explanation, driver bars and historical comparables are the section;
   // the number is just the headline.
   let trajectoryHtml = "";
-  if (trajectory) {
+  // Only on the season the projection is actually about. Engine D predicts one
+  // season ahead of the career it reads, so a record built from 2025 is a 2026
+  // number — showing it on the 2025 page put a projection next to an earned
+  // rating for a season already played, which reads as a contradiction rather
+  // than a forecast. Matching on the predicted season keeps this correct once
+  // earlier seasons carry projections of their own.
+  const _predicts = Number(_trajectoryMeta.predicts_season ?? CONFIG.CURRENT_SEASON);
+  if (trajectory && Number(season) === _predicts) {
     const pred  = trajectory.predicted_ovr;
     const label = trajectory.trajectory_label;
     const forSeason = _trajectoryMeta.predicts_season || CONFIG.CURRENT_SEASON;
