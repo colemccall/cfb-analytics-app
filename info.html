@@ -99,11 +99,11 @@
     Nth-best player at that position in a typical season over the last five. What has to be
     <em>chosen</em> is only what a given standing is worth, and for that we check ourselves against
     EA Sports CFB 27 — not to copy its numbers, but to answer whether we are handing out too many
-    85s, too few, and whether the top of the scale sits in the right place. Two positions are
-    deliberately narrower than the rest: <strong>offensive line</strong> stops at 88 because its
-    inputs are team proxies, and <strong>kickers and punters</strong> stop near 90 because the gap
-    between the best specialist in the country and an average one changes far fewer games than the
-    same gap at receiver.
+    85s, too few, and whether the top of the scale sits in the right place. One position is
+    deliberately narrower than the rest: <strong>kickers and punters</strong> stop near 90, because
+    the gap between the best specialist in the country and an average one changes far fewer games
+    than the same gap at receiver. And one position has no rating at all — see
+    <a href="#ol">the offensive line</a>.
   </p>
 
   <!-- ── Per-position weights ── -->
@@ -151,12 +151,16 @@
 
     <div class="pos-card">
       <div class="pos-card-name">OL</div>
+      <p class="pos-card-note">
+        <strong>Not rated individually.</strong> The line is rated as a
+        <a href="#ol">unit</a> on each team page:
+      </p>
       <ul>
-        <li>Team rush YPA — 30%</li>
-        <li>Team sack rate (inverted) — 25%</li>
-        <li>Recruiting composite — 30%</li>
-        <li>Experience — 10%</li>
-        <li>Award tier — 5%</li>
+        <li>Line yards — 30%</li>
+        <li>Sack rate allowed — 25%</li>
+        <li>Stuff rate (inverted) — 20%</li>
+        <li>Short-yardage success — 15%</li>
+        <li>Second-level yards — 10%</li>
       </ul>
     </div>
 
@@ -312,12 +316,47 @@
   <!-- ── Known limitations ── -->
   <h2>Known Limitations</h2>
 
-  <h3>OL — Stat Deficit Across the Board</h3>
+  <h3 id="ol">OL — we removed the rating rather than keep faking it</h3>
   <p>
-    No individual offensive lineman statistics exist in any publicly available college football data source. There are no personal blocking grades, pressure rates allowed, or run-block efficiency numbers tracked at the player level. As a result, <strong>every OL rating is a team-level proxy</strong> — rush yards per attempt and sack rate allowed are averaged across the entire offensive line and distributed evenly. An elite LT and a mediocre RT at the same school will receive identical ratings. This is a structural limitation of the data ecosystem, not a modeling choice.
+    No individual offensive lineman statistics exist in any publicly available college football
+    data source. No personal blocking grades, no pressure rates allowed, no sacks allowed per
+    player. We verified this by scanning every field of all 74 endpoints the data provider
+    exposes, and recorded the absence with its evidence so nobody has to go looking again.
   </p>
   <p>
-    Because of that, <strong>OL ratings are capped at 88</strong> rather than the 99 available to skill positions. A proxy built from team rushing numbers cannot distinguish an All-American from a solid starter on the same line, so rating a lineman 99 would claim a precision the underlying data does not support.
+    Until v4.3 we published a number anyway, built from team proxies. It was worse than that
+    sounds. Two of its five inputs read keys that <em>are never written into the payload the code
+    reads them from</em>, so 55% of the formula silently collapsed — one term to zero, the other
+    to a constant. What actually shipped was a recruiting ranking plus a fixed number. The
+    evidence:
+  </p>
+  <ul>
+    <li>correlation with the recruiting composite: <strong>0.877</strong>, where every other
+      position sits under 9%</li>
+    <li><strong>59 of 293</strong> rated linemen (20%) landed on exactly 80.0</li>
+    <li>agreement with EA Sports CFB 27's ordering: <strong>−0.274</strong> — negative, meaning it
+      ranked linemen slightly worse than random against an independent scouting opinion</li>
+    <li>only <strong>280 of 2,952</strong> linemen were rated at all, because a lineman gets a
+      stats payload only if he happens to record a tackle</li>
+  </ul>
+  <p>
+    So <strong>no offensive lineman carries a rating.</strong> Every lineman still has a page, a
+    roster spot and a recruiting profile — the rating field says <em>not rated</em> and tells you
+    why, because a blank reads as a bug and a stated refusal reads as a judgement.
+  </p>
+  <p>
+    <strong>What we publish instead:</strong> a rating of the <em>line</em>, on each team page,
+    from five standard measurements that do exist — line yards, sack rate allowed per dropback,
+    stuff rate, short-yardage conversion and second-level yards. It is a team number and is
+    labelled as one. Allocating it back to five individuals by snap count was considered and
+    rejected: that would invent per-player variance that does not exist and would look exactly
+    like a measurement.
+  </p>
+  <p>
+    It is checked against the only external evidence available — whether a program's linemen get
+    drafted. Rank correlation <strong>+0.179</strong>, with the mean line rating climbing 65.2 →
+    70.8 → 77.1 as zero, one, or two linemen are drafted off that season. Weak, real, and pointing
+    the right way, against a withdrawn rating that pointed the wrong way.
   </p>
 
   <h3>Pre-2016 Defense — Severely Stat-Limited</h3>
@@ -387,12 +426,12 @@
       <tr><td>EDGE percentiles</td><td class="status-live">✓ Live</td><td>Raw EDGE is not comparable across positions (QBs accumulate ~1,600, linebackers ~65), so boards and the player modal show percentile within position group instead.</td></tr>
       <tr><td>Team Performance Evaluator</td><td class="status-live">✓ Live</td><td>Regresses SP+ on a 3-year recruiting-talent composite; the residual identifies programs beating or trailing the roster they recruited. Live table on the Research page.</td></tr>
       <tr><td>Recruiting Class ROI</td><td class="status-live">✓ Live</td><td>Per class, the share of recruits who became real contributors (peak OVR ≥ 75) — separating programs that recruit well from programs that develop well.</td></tr>
-      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>Rebuilt v3.2, split by position family in v3.3. Reads each player's whole career EDGE curve against cohort development curves, rather than a single season's level. Offensive skill adds an opportunity model — his share of the position room, his depth-chart rank on next season's roster, and how much production ahead of him is leaving — and holds out at MAE 8.17 against 9.10 for naive carry-forward, with its 80% range covering 80.6%. Defense has no touches to count, manages 8.45 against 9.63 (coverage 78.8%), and ships marked <em>low confidence</em>. Specialists are carried forward. Offensive linemen are <strong>not projected at all</strong>: the earned OL number is 77% recruiting, and forecasting it would be forecasting a recruiting ranking. Every call ships an 80% range, signed driver contributions, a plain-English explanation and historical comparables.</td></tr>
+      <tr><td>ML Breakout Engine (D)</td><td class="status-live">✓ Live</td><td>Rebuilt v3.2, split by position family in v3.3. Reads each player's whole career EDGE curve against cohort development curves, rather than a single season's level. Offensive skill adds an opportunity model — his share of the position room, his depth-chart rank on next season's roster, and how much production ahead of him is leaving — and holds out at MAE 8.22 against 9.10 for naive carry-forward, with its 80% range covering 80.5%. Defense has no touches to count, manages 8.44 against 9.62 (coverage 79.4%), and ships marked <em>low confidence</em>. Specialists are carried forward. Offensive linemen are <strong>not projected at all</strong>, and from v4.3 are not rated at all either. v4.3 also feeds the model how often players at each career stage leave for the NFL — 22.1% of the top production decile against 0.7% of the bottom half — because the development curves are built only from players who came back. It does not improve the error; it replaces a disclosed blind spot with a measured one. Every call ships an 80% range, signed driver contributions, a plain-English explanation and historical comparables.</td></tr>
       <tr><td>Position leaderboards</td><td class="status-live">✓ Live</td><td>Top 50 per position group per season, on the Ratings page.</td></tr>
       <tr><td>'26 Season hub</td><td class="status-live">✓ Live</td><td>Projected top 25, biggest movers vs 2025, our projections against EA CFB 27, the games to circle, and a per-team preview with schedule and projected roster.</td></tr>
       <tr><td>Engine B (NIL)</td><td class="status-wip">In progress</td><td>60% recruiting OVR + 40% NIL valuation composite. Blocked: On3 blocks scraping, so the NIL table is currently empty and the engine runs recruiting-only.</td></tr>
       <tr><td>Engine C (EA CFB 27)</td><td class="status-live">✓ Live</td><td>9,013 EA Sports CFB 27 ratings, 81.6% matched to our player IDs, shown beside our own on rosters, the players grid, and a dedicated comparison on the '26 hub. Never an input to our rating unless we have no signal at all.</td></tr>
-      <tr><td>Projected 2026 ratings</td><td class="status-live">✓ Live</td><td>9,527 projected players across 138 teams, plus projected team ratings. A further 2,902 offensive linemen are listed with EA's opinion and <em>no rating of ours</em>. 2026 is the app's default season; because every rating in it is a projection, the page says so once at the top rather than badging all 9,527. See <a href="#projections">how they are built</a>.</td></tr>
+      <tr><td>Projected 2026 ratings</td><td class="status-live">✓ Live</td><td>9,526 projected players across 138 teams, plus projected team ratings. A further 2,902 offensive linemen are listed with <em>no rating of ours</em> — 1,312 of them carry EA's opinion as a cross-check, and the rest carry nothing, which is the honest answer. 2026 is the app's default season; because every rating in it is a projection, the page says so once at the top rather than badging all 9,526. See <a href="#projections">how they are built</a>.</td></tr>
       <tr><td>Playoff prediction model</td><td class="status-planned">Planned</td><td>Game-level win probability → Monte Carlo season simulation → 12-team bracket odds. Ships only alongside its backtest against 2024 and 2025; a model that can't show its backtest doesn't ship.</td></tr>
       <tr><td>Transfer portal ROI</td><td class="status-planned">Planned</td><td>Which transfer types (conference jump, role type, EDGE trajectory) produce above-expected Year 1 ratings?</td></tr>
     </tbody>
@@ -409,7 +448,9 @@
   <ul>
     <li><strong>Injuries and availability.</strong> A player who misses half a season is rated on the games he played, and a team's rating says nothing about who was healthy for them.</li>
     <li><strong>Individual defensive stats before 2016.</strong> The API doesn't carry them, so pre-2016 DL/EDGE ratings are recruiting-anchored estimates, not production grades.</li>
-    <li><strong>Offensive line play directly.</strong> OL ratings are built from team proxies (team rush YPA, sack rate allowed) plus recruiting, and are deliberately <strong>capped at 88</strong> — the inputs don't support claiming one lineman is a 99.</li>
+    <li><strong>Tell you which lineman is good.</strong> No individual blocking data exists
+      anywhere, so we rate the line as a unit and decline to rate the players —
+      <a href="#ol">the reasoning, and what we removed</a>.</li>
     <li><strong>Scheme, usage and role.</strong> A back-up quarterback in a run-heavy offense and a starter in an air raid are measured by the same yardstick, with only opponent quality adjusted for.</li>
     <li><strong>Coaching.</strong> The coaching-change table is 22 seeded rows — far too thin to be a model input.</li>
   </ul>

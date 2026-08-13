@@ -162,11 +162,14 @@ async function buildEaComparison() {
   const shown = [...sorted.slice(0, 10), ...sorted.slice(-10)];
 
   // Where the two systems disagree is patterned, not random, and saying so is
-  // more useful than a mysterious table. Two patterns dominate and both are
-  // explicable: offensive line (we grade linemen through team proxies — team
-  // rush yards, sacks allowed — while EA grades the individual), and players
-  // whose last season was mostly bench time (our rating measures production, so
-  // a backup rates low no matter how highly he is thought of).
+  // more useful than a mysterious table. One pattern dominates: players whose
+  // last season was mostly bench time, because our rating measures production
+  // and a backup rates low no matter how highly he is thought of.
+  //
+  // Offensive linemen used to be the other half of this and are now absent
+  // entirely — from v4.3 we do not rate them, so they have nothing to compare.
+  // olShare should be 0; a nonzero value would mean OL ratings came back without
+  // anyone revisiting this copy, so the footnote below says so out loud.
   const olShare = Math.round(shown.filter(r => r.position_group === "OL").length / shown.length * 100);
 
   const table = createDataTable(el.querySelector(".ea-table-wrap") || el, {
@@ -176,12 +179,12 @@ async function buildEaComparison() {
       overall, and the two agree within 3 points on ${Math.round(agree / rows.length * 100)}% of them.
       EA is never an input to our number here — these are independent opinions, which is what makes
       the disagreements worth reading. Positive gap = we are higher.
-      <strong>The disagreements are patterned.</strong> ${olShare}% of the extremes here are offensive
-      linemen, because we grade them through team proxies (team rush yards, sack rate allowed) while
-      EA grades the individual — the one position where we openly cap ourselves at 88.
-      Most of the other direction is players who barely played in ${PRIOR}: our rating measures
-      production, so a backup rates low however highly he is regarded. The <em>From</em> column says
-      which of those you are looking at.`,
+      <strong>The disagreements are patterned.</strong> Most of them are players who barely played
+      in ${PRIOR}: our rating measures production, so a backup rates low however highly he is
+      regarded. Offensive linemen used to dominate the other direction — we graded them through
+      team proxies while EA grades the individual — but we no longer rate linemen at all, so they
+      cannot appear here${olShare ? ` (they are ${olShare}% of this table, which should not happen)` : ""}.
+      The <em>From</em> column says which of those you are looking at.`,
     columns: [
       { key: "name", label: "Player", fmt: (v, r) => playerLink(r.player_id, v, { season: SEASON }) },
       { key: "position_group", label: "Pos", fmt: v => posBadge(v) },

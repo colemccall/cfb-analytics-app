@@ -414,10 +414,11 @@ const FINDINGS = {
       curve and cohort only; there is no meaningful notion of touches or depth chart, so those
       projections are marked low confidence. Both are variance-inflated 50% toward the realised
       distribution. Click any player for drivers, reasoning and historical comparables.`,
-    limitations: `<strong>Offensive linemen are not projected at all.</strong> No individual
-      blocking data exists in any public source, so an OL rating is 77% recruiting composite and
-      anti-correlates with the one independent assessment available — carrying that forward would
-      publish a recruiting ranking wearing the word "projection". Defensive and special-teams
+    limitations: `<strong>Offensive linemen are neither rated nor projected.</strong> No
+      individual blocking data exists in any public source. The rating that used to be here was a
+      recruiting ranking plus a constant — it correlated 0.877 with the recruiting composite and
+      scored −0.274 against EA's ordering — and it was withdrawn in v4.3 rather than projected
+      forward. The line is rated as a unit on each team page instead. Defensive and special-teams
       projections are published but marked low confidence: their underlying ratings need reworking
       before the projections can be trusted. These curves are also built only from players who
       <em>have</em> a next season — the best leave for the NFL, so the record overstates elite
@@ -694,12 +695,12 @@ const FINDINGS = {
     method: `Every ${PROJ_SEASON} player who has both a projection of ours and an EA CFB 27
       overall. Players whose projection <em>came from</em> EA are excluded — there is nothing
       to compare. The <em>From</em> column says how our side of the comparison was built.`,
-    limitations: `The extremes are dominated by two known patterns rather than genuine
-      disagreement. Offensive linemen, because we grade them through team proxies — team rush
-      yards and sack rate allowed — while EA grades the individual; this is also why we cap OL
-      at 88. And players who barely played last season, because our rating measures production,
-      so a highly-regarded backup rates low. EA is a game's rating system with its own goals;
-      neither side is ground truth.`,
+    limitations: `The extremes are dominated by one known pattern rather than genuine
+      disagreement: players who barely played last season. Our rating measures production, so a
+      highly-regarded backup rates low however well EA thinks of him. Offensive linemen used to be
+      the other half of this table — we graded them through team proxies while EA grades the
+      individual — but from v4.3 we do not rate linemen at all, so they cannot appear here. EA is
+      a game's rating system with its own goals; neither side is ground truth.`,
   },
 
   // ── Upcoming — framework in place, analysis not built yet ────────────────
