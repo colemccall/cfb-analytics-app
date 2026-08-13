@@ -159,6 +159,39 @@ function renderSeasonProvenance(season, id = "season-provenance") {
   if (el) el.innerHTML = projectedSeasonNotice(season);
 }
 
+// ── Registry prose ──────────────────────────────────────────────────────────
+// The long-form fields in the METHODS and CHANGES registries (`why`, `limits`,
+// `summary`, `motivation`) are paragraphs, not labels, and are unreadable as one
+// undifferentiated block. This is the whole markdown vocabulary they get:
+// **bold**, `code`, and a blank line for a paragraph break — applied to text that
+// has already been escaped, so a registry entry can never inject markup.
+//
+// Lives here rather than in methodsPage.js because two registries render prose
+// and two copies would drift. Escaping itself is `_esc` from config.js.
+function prose(s) {
+  return _esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, " ")}</p>`).join("");
+}
+
+// The status chip shared by the METHODS `alternatives` array and the CHANGES
+// `tried` array. One chip system, per the build-log spec — a second one would be
+// a design change wearing a content change's clothes.
+const STATUS_CHIP_LABEL = {
+  recommended: "Recommended",
+  experiment:  "Worth an experiment",
+  rejected:    "Rejected",
+  blocked:     "Blocked on data",
+  shipped:     "Shipped",
+  withdrawn:   "Withdrawn",
+};
+
+function statusChip(status) {
+  const label = STATUS_CHIP_LABEL[status] || status;
+  return `<span class="method-chip method-chip-${_esc(status)}">${_esc(label)}</span>`;
+}
+
 // ── Position badge ──────────────────────────────────────────────────────────
 // Text color comes from the luminance guard, not a fixed value: light-theme
 // position colors are deep (readable with white), dark-theme ones are bright

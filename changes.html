@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build log — what changed and what it cost — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="changes">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
+<!-- ==================== MAIN CONTENT ====================
+     A shell. Everything is rendered by changesPage.js from the CHANGES registry
+     in changes.js. methods.js is loaded because an entry's `methods` ids are
+     validated against the METHODS registry at render time — an id with no entry
+     renders as plain text rather than a link to nowhere.
+     Adding a build-log entry means adding a registry entry, never page code. -->
+<div class="main-content">
+  <div id="changes-root"></div>
+</div>
+
+<script src="js/ui.js"></script>
+<script src="js/methods.js"></script>
+<script src="js/changes.js"></script>
+<script src="js/changesPage.js"></script>
+<script>
+  initChanges();
+</script>
+</body>
+</html>

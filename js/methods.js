@@ -38,20 +38,17 @@
 
 const METHOD_GROUPS = [
   { id: "ratings",     label: "Player ratings" },
+  { id: "foundation",  label: "How much of a rating is signal" },
   { id: "projections", label: "Projections" },
   { id: "team",        label: "Team ratings" },
   { id: "research",    label: "Research findings" },
   { id: "data",        label: "What data exists" },
 ];
 
-const STATUS_LABEL = {
-  recommended: "Recommended",
-  experiment:  "Worth an experiment",
-  rejected:    "Rejected",
-  blocked:     "Blocked on data",
-  shipped:     "Shipped",
-  withdrawn:   "Withdrawn",
-};
+// The chip vocabulary used by `alternatives` here and by `tried` in the CHANGES
+// registry now lives in js/ui.js as STATUS_CHIP_LABEL / statusChip(), because two
+// registries render it and two copies would drift. One chip system, per
+// docs/BUILD_LOG_SPEC.md.
 
 const METHODS = [
   // ── Player ratings ────────────────────────────────────────────────────────
@@ -69,9 +66,19 @@ const METHODS = [
       { name: "Opponent SP+ (offense and defense split)", source: "/ratings/sp", coverage: "2008–2026" },
       { name: "Games played", source: "derived from game rows", coverage: "2008–2026" },
     ],
-    formula: `per game:  stat_composite × opponent_multiplier      opponent_multiplier ∈ [0.55, 1.45]
+    formula: `per game:  stat_composite × opponent_multiplier
 season:    Σ(per-game) / √(games_played)          = edge_score
-rating:    edge_score → OVR via fixed position anchors (per era bucket)`,
+rating:    edge_score → OVR via fixed position anchors (per era bucket)
+
+opponent_multiplier, from the opponent's SP+ on the relevant side, z clipped to ±2:
+    z ≥ 0 (hard opponent):  1 + z × 0.35     up to 1.70
+    z < 0 (weak opponent):  1 + z × 0.12     down to 0.76`,
+    reality: `This page and three pipeline documents described the multiplier as a symmetric
+[0.55, 1.45] until August 2026. The code has always been ASYMMETRIC: a hard opponent is worth
+up to 1.70x, a weak one costs as little as 0.76x. Beating a top defence is rewarded roughly
+three times as hard as beating a bad one is punished — which is the intended behaviour, and
+was simply never what the documentation said. Corrected here, in docs/FORMULAS.md and in
+docs/RATING_AND_PROJECTION_MODEL.md on 2026-08-13.`,
     why: `Two decisions do most of the work here.
 
 √games rather than ÷games: a player who dominated four games has shown something a full-season
@@ -376,6 +383,199 @@ failure still fails: 24% of punters at 85+ puts p90 near 88, well outside the ne
         status: "experiment", note: "The real fix for the biggest confound. Needs a play-level harvest." },
     ],
     source: "docs/FORMULAS.md §5",
+  },
+
+  // ── How much of a rating is signal ────────────────────────────────────────
+  {
+    id: "reliability",
+    group: "foundation",
+    title: "How much of a rating is signal, and how much is one season of luck",
+    summary: `Everything downstream of a rating is bounded by a number that had never been
+      measured here: how well a rating agrees with itself. Build each player's season twice —
+      from his odd-numbered weeks and his even-numbered weeks — and correlate the halves. A
+      corner's two halves agree at 0.42. Not with EA, not with the draft; with himself.`,
+    inputs: [
+      { name: "Per-game box scores, split by week parity", source: "data/raw/stats.json", coverage: "2016–2025, 37,226 player-seasons" },
+      { name: "The same per-game weights the EDGE score uses", source: "scripts/06_compute_edge_scores.py", coverage: "all rated positions" },
+    ],
+    formula: `half A = mean composite over odd weeks      half B = mean composite over even weeks
+r_half  = spearman(A, B)
+reliability   = 2·r_half / (1 + r_half)        (Spearman-Brown, corrects to full length)
+noise ceiling = √reliability                   (the highest correlation this measurement
+                                                could have with ANY perfect truth)`,
+    why: `A projection cannot track next season better than the rating tracks its own other
+half, and a formula whose inputs disagree with themselves cannot be repaired by re-weighting
+them. Three separate v4.3 and v4.4 experiments discovered this the expensive way — havoc
+share, a per-game opportunity denominator, and a fitted defensive model all failed, and all
+three failed for the same reason nobody had measured.
+
+The number also separates two things that look identical on a player card. A low reliability
+means either the player genuinely varies week to week — real, and the rating should be humble
+about him — or the inputs are too thin to measure anyone at that position. Both say widen the
+interval rather than add machinery, but only the second is a defect we could ever fix, and
+fixing it needs a new measurement rather than a new formula.`,
+    evidence: [
+      { label: "QB", value: "reliability 0.876 · ceiling 0.936 (n=1,697)" },
+      { label: "RB", value: "reliability 0.883 · ceiling 0.940 (n=4,056)" },
+      { label: "WR", value: "reliability 0.840 · ceiling 0.917 (n=5,883)" },
+      { label: "LB", value: "reliability 0.786 · ceiling 0.887 (n=6,410)" },
+      { label: "TE", value: "reliability 0.750 · ceiling 0.866 (n=1,594)" },
+      { label: "S", value: "reliability 0.684 · ceiling 0.827 (n=2,590)" },
+      { label: "EDGE", value: "reliability 0.648 · ceiling 0.805 (n=1,981)" },
+      { label: "DL", value: "reliability 0.627 · ceiling 0.792 (n=6,187)" },
+      { label: "DB", value: "reliability 0.609 · ceiling 0.780 (n=4,755)" },
+      { label: "CB", value: "reliability 0.591 · ceiling 0.769 (n=2,073)" },
+      { label: "What the ceiling explains", value: "our CB agreement with EA is 0.571 against a ceiling of 0.769; DL is 0.485 against 0.792" },
+    ],
+    limits: `This is the reliability of the production composite, not of the published OVR.
+      The OVR additionally passes through anchors, playing-time tiers and a recruiting blend,
+      all of which shrink noisy players toward a prior and therefore make the shipped number
+      steadier than its inputs. Read it as the ceiling on the production signal, not as the
+      error bar on a player card.
+
+      Two halves of one season are also not two independent samples of the same player — an
+      injury or a coordinator change lands in one half and not the other. That makes the
+      number conservative rather than inflated.`,
+    changelog: [
+      { version: "v4.4", change: "Measured for the first time; scripts/validate_reliability.py, exported to data/reliability.json" },
+    ],
+    source: "docs/ARCHITECTURE_REVIEW_2026-08.md §1",
+  },
+
+  {
+    id: "headroom",
+    group: "foundation",
+    title: "Where the remaining accuracy actually is",
+    summary: `Put each position's year-over-year persistence beside its own noise ceiling and
+      the queue inverts. Defensive backs already extract 83–88% of the signal their measurement
+      allows. Quarterbacks extract 63%. The position everyone assumes is broken is close to
+      done; the position everyone assumes is solved has the most headroom left in the system.`,
+    inputs: [
+      { name: "Year-over-year rank persistence of the shipped OVR", source: "data/computed/ratings.json", coverage: "2008–2025, 54,199 season pairs" },
+      { name: "Noise ceiling per position", source: "scripts/validate_reliability.py", coverage: "2016–2025" },
+    ],
+    formula: `share of ceiling reached = spearman(OVR_t, OVR_t+1) / reliability(position)`,
+    why: `A position near 1.0 is already measured as well as this data allows: its remaining
+unpredictability is measurement noise, not player change, and no feature will recover it. A
+position well below 1.0 is genuinely changing year to year in ways the model has not learned,
+which is what modelling is for.
+
+This is why the defensive rating is not the next phase despite being the weakest number on
+the site, and why per-snap efficiency for quarterbacks and receivers is.`,
+    evidence: [
+      { label: "DB", value: "persistence 0.538 of a 0.609 ceiling — 88% extracted" },
+      { label: "CB", value: "0.491 of 0.591 — 83%" },
+      { label: "EDGE", value: "0.516 of 0.648 — 80%" },
+      { label: "DL", value: "0.473 of 0.627 — 75%" },
+      { label: "LB", value: "0.550 of 0.786 — 70%" },
+      { label: "WR", value: "0.551 of 0.840 — 66%" },
+      { label: "RB", value: "0.587 of 0.883 — 66%" },
+      { label: "QB", value: "0.555 of 0.876 — 63%, the largest headroom on the platform" },
+    ],
+    limits: `Persistence is not accuracy. A position could be perfectly measured and genuinely
+      volatile, and would look identical to one that is badly measured and stable. The ratio
+      says where modelling can still win, not how good any individual number is.`,
+    source: "docs/ARCHITECTURE_REVIEW_2026-08.md §1",
+  },
+
+  {
+    id: "denominator-pergame",
+    group: "foundation",
+    title: "A per-game denominator for defence — built, measured, rejected",
+    summary: `A tackle count is mostly opportunity, and the opportunity index we ship is one
+      clipped number per team-season. Per-game defensive play counts exist for all 35,422
+      team-games back to 2008, and 78% of the variance in plays faced is invisible to a
+      season-level index. The finer measurement turned out to be worse than the coarser one.`,
+    inputs: [
+      { name: "Defensive plays faced, per team-game", source: "data/raw/team_advanced_games.json", coverage: "2008–2025, 35,422 team-games, complete" },
+      { name: "Per-game defensive box scores", source: "data/raw/stats.json", coverage: "2024–2025 for this test" },
+      { name: "EA CFB 27, as the external reference", source: "data/raw/ea_ratings.json", coverage: "one season" },
+    ],
+    formula: `shipped   idx_season × Σ c_g / √G      one index per team-season
+proposed  Σ (c_g × idx_g) / √G        the index applied inside the sum
+where     idx = clip(median_plays_per_game / plays_faced, 0.85, 1.20)`,
+    evidence: [
+      { label: "No denominator at all", value: "mean within-position Spearman vs EA 0.5339" },
+      { label: "Season index (what ships)", value: "0.5448 — +0.0109" },
+      { label: "Per-game index (proposed)", value: "0.5417 — +0.0078, worse than the coarser version" },
+      { label: "Placebo, plays shuffled across teams", value: "0.5355 — +0.0016" },
+      { label: "Why it fails", value: "game-to-game play count is mostly tempo and game script; the season average is the part that carries information" },
+    ],
+    limits: `EA is a season-level scouting opinion, so a per-game re-weighting is being judged
+      by something that cannot see games. That caveat cuts both ways and it is why the result
+      is reported as "did not clear the bar we set for the season index", not as proof the idea
+      is worthless.`,
+    alternatives: [
+      { label: "Keep the season index", basis: "nothing new", status: "shipped", note: "It is the better of the two by its own test." },
+      { label: "Slim team_advanced_games.json to the columns a consumer names", basis: "110 MB on disk", status: "recommended", note: "It earned its size by settling this question. It does not need to keep it." },
+    ],
+    source: "docs/SUPPLEMENTAL_DATA.md",
+  },
+
+  {
+    id: "fitted-defense",
+    group: "foundation",
+    title: "Fitting the defensive weights to the draft — measured worse than hand-setting them",
+    summary: `The defensive multipliers (sacks 7.0, hurries 2.5, tackles 0.3 …) were chosen by
+      hand and have never been fitted to anything. The NFL draft is eighteen years deep and was
+      decided without seeing our numbers, so we fitted a model on the identical inputs and
+      scored it out of sample. The hand-set weights won at every position.`,
+    inputs: [
+      { name: "Defensive season box scores", source: "data/raw/stats.json", coverage: "2013–2025, 34,157 player-seasons with ≥3 games" },
+      { name: "Draft outcome within three seasons", source: "/draft/picks", coverage: "4,858 picks, 4,010 joined to our players" },
+    ],
+    formula: `train  logistic( per-game rates + games )  on seasons ≤ 2018
+test   AUC on 2019–2025, against the shipped rating on the same held-out rows`,
+    evidence: [
+      { label: "Fitted model", value: "mean AUC 0.785" },
+      { label: "Shipped OVR", value: "mean AUC 0.829" },
+      { label: "Raw edge_score", value: "mean AUC 0.836 — the best of the three" },
+      { label: "Biggest gap", value: "CB 0.745 fitted vs 0.833 edge_score" },
+      { label: "Strongest fitted feature", value: "games played, at almost every position — availability is most of what the draft rewards" },
+      { label: "The conclusion", value: "the weights are not the problem; the inputs are — which is what the reliability measurement says independently" },
+    ],
+    limits: `Two different draft numbers get quoted about defence and they support opposite
+      conclusions, so both belong here. Rank agreement AMONG DRAFTED PLAYERS is 0.13–0.25 for
+      defence against 0.42–0.49 for offence — that is the harsh one, and it is real. Separating
+      drafted from undrafted is AUC 0.83 — that is the plain question, and the defensive rating
+      answers it well.`,
+    source: "docs/ARCHITECTURE_REVIEW_2026-08.md §2b",
+  },
+
+  {
+    id: "usage-coverage",
+    group: "foundation",
+    title: "Snap share — it does not exist for defence, and it barely moves projections",
+    summary: `Snap share was the headline of the roadmap, on the grounds that a rating cannot
+      tell "improved" from "played more" and that this matters most for defenders. Measured over
+      rated players rather than over all stat rows, snap share reaches 88–99% of offensive
+      skill players and 15 defenders in a decade.`,
+    inputs: [
+      { name: "snap_pct, snap_pct_pass, snap_pct_rush, ppa", source: "inside the season_aggregate stats payload", coverage: "2013+, offence only" },
+      { name: "Team offensive plays, to turn a share into snaps", source: "data/raw/team_advanced_season.json", coverage: "2008–2025" },
+    ],
+    formula: `predict next season's OVR, offensive skill, train ≤2020, test 2021–24
+same 11,342 player-season pairs for every variant`,
+    evidence: [
+      { label: "Coverage, QB", value: "94–99% of rated player-seasons, every season 2013+" },
+      { label: "Coverage, RB / WR / TE", value: "88–96% / 87–93% / 81–93%" },
+      { label: "Coverage, all defence since 2016", value: "15 rows out of 43,008 — 0.03%" },
+      { label: "This season's OVR alone", value: "MAE 8.851 · Spearman 0.512" },
+      { label: "+ snap share", value: "MAE 8.853 · Spearman 0.518 — snap share alone buys nothing" },
+      { label: "+ per-snap efficiency", value: "MAE 8.813 · Spearman 0.521" },
+      { label: "+ both", value: "MAE 8.800 · Spearman 0.524 — QB −0.19 MAE, WR −0.14, RB −0.03, TE +0.18" },
+    ],
+    limits: `The 29.8% coverage figure previously recorded counts every stat row on disk, most
+      of which belong to players nobody rates. Neither number is wrong; they answer different
+      questions, and only the coverage among RATED players tells you whether a feature can be
+      used.`,
+    alternatives: [
+      { label: "Per-snap efficiency as a published sub-rating, beside the OVR", basis: "snap_pct, 2013+ offence",
+        status: "recommended", note: "Small, replicated at QB and WR, and honest about what it measures. Absent before 2013 — marked missing, never zero." },
+      { label: "Snap share folded into the OVR", basis: "same", status: "rejected", note: "Worth 0.002 MAE. It would change every offensive number for nothing." },
+      { label: "Snap share for the defensive rating", basis: "does not exist", status: "blocked", note: "15 defenders carry it in ten seasons." },
+    ],
+    source: "docs/ARCHITECTURE_REVIEW_2026-08.md §2c",
   },
 
   // ── Projections ───────────────────────────────────────────────────────────
@@ -777,5 +977,73 @@ confidence levels in the same product mean the reader has to remember which is w
         status: "shipped", note: "v4.3, utils/shrinkage.py." },
     ],
     source: "docs/RESEARCH_METHODS.md · utils/shrinkage.py",
+  },
+
+  // ── What data exists ──────────────────────────────────────────────────────
+  {
+    id: "supplemental-data",
+    group: "data",
+    title: "Seventeen datasets were harvested. Three are read by anything.",
+    summary: `The v4.3 harvest took everything the API survey found, on the principle that the
+      next question should not begin with a week of "can we even get that". A year later the
+      fair question is the opposite one: what is actually reading it? Three of seventeen. The
+      rest are inventoried here with either a use and the test it must pass, or a stated reason
+      they stay unread.`,
+    inputs: [
+      { name: "In use: team_advanced_season", source: "the opportunity index and the whole line-unit rating", coverage: "2,295 team-seasons, 2008–2025" },
+      { name: "In use: coaches", source: "the coaching event study", coverage: "2,584 coach-seasons, 2008–2026" },
+      { name: "In use: draft_picks", source: "external validation and departure modelling", coverage: "4,858 picks, 83.7% joined" },
+      { name: "Unread: betting_lines, pregame_wp", source: "the playoff model's benchmarks", coverage: "38,396 games with a spread 2013+; 10,126 win probabilities 2014+" },
+      { name: "Unread: returning_production", source: "the covariate the team-performance residual is missing", coverage: "1,691 team-seasons, 2014+" },
+      { name: "Unread: player_success, player_wepa", source: "per-player play counts and opponent-adjusted EPA", coverage: "offence only; 65.7% and 99.9% join rates" },
+      { name: "Unread: team_records, team_talent, team_ratings_external, game_weather, team_ats, team_havoc_games, venues, cfp_participants", source: "team and game level", coverage: "see the inventory" },
+    ],
+    why: `The shape of the gap matters more than its size. The unread datasets are almost all
+**team-and-game level**, which is the playoff model's raw material rather than the player
+rating's. The two player-level supplements are thin and offence-only: player_success carries
+passing and rushing plays with no receiving equivalent, and of player_wepa's 9,044 rows the
+1,734 kicking ones have a null value in every single one.
+
+That is why the adoption order below starts with a finding that already exists rather than a
+new one. returning_production makes the team-performance residual answer a sharper question;
+betting_lines and pregame_wp fix the playoff model's target before the model exists, which is
+the only order in which a benchmark means anything.
+
+**Nothing on that list changes a player's OVR**, and that is deliberate. After the reliability
+measurement, the case for adding inputs to the defensive rating is weak and the case for adding
+context to the team and game models is strong.`,
+    evidence: [
+      { label: "player_success vs our offensive rating", value: "Spearman 0.84 (QB) and 0.87 (RB) with raw PLAY COUNT; 0.52 and 0.30 with success rate — the rating is substantially a volume measure" },
+      { label: "player_wepa join rate", value: "99.9% of 7,846 player-seasons — but usable only for QB passing (2,322) and RB rushing (4,988)" },
+      { label: "returning production vs next-season SP+ change", value: "−0.136, which reads backwards until you see the confound: good teams lose more players to the NFL" },
+      { label: "returning production in a preseason game model", value: "AUC 0.706 → 0.710 and accuracy 65.0% → 66.6%, with Brier flat — it sharpens the ordering without improving calibration" },
+      { label: "Elo vs our team rating", value: "0.914, against SP+'s 0.939 — Elo mostly confirms our team rating is a re-expression of SP+" },
+      { label: "cfp_participants", value: "24 rows, 2024–2025 only. This is the playoff model's ground truth and it is two seasons deep." },
+      { label: "Datasets read by any script", value: "3 of 17" },
+    ],
+    limits: `An inventory is not an adoption plan and does not pretend to be one: every candidate
+      here carries a test it has not yet passed. Two entries are broken as harvested rather than
+      merely unused — player_wepa's kicking rows are null throughout, and venues has season=0
+      and team_id=null so it joins to nothing — and neither should be counted as data we hold
+      until re-harvested.`,
+    alternatives: [
+      { label: "returning_production as a covariate in the team-performance residual", basis: "on disk, 2014+",
+        status: "recommended", note: "Test: does residual SD fall below 9.82, and does the residual's year-over-year persistence of 0.607 drop — which would mean it was partly capturing roster continuity all along?" },
+      { label: "betting_lines + pregame_wp as a benchmark harness", basis: "on disk, 2013+",
+        status: "recommended", note: "Built BEFORE the playoff model, so the target is fixed before the result is seen. Preseason Brier to beat: 0.2136. Market ceiling: 0.1816." },
+      { label: "team_records as the Monte Carlo sanity check", basis: "6,773 team-seasons",
+        status: "recommended", note: "Simulated win totals must track expectedWins at r > 0.9 or the simulation is wrong before a bracket is ever built." },
+      { label: "player_success / player_wepa as published cross-checks on the offensive rating", basis: "offence only, 2014+",
+        status: "experiment", note: "An independent check, never an input. Two models sharing no code agreeing is worth more than either agreeing with itself." },
+      { label: "team_talent instead of our hand-rolled recruiting aggregate", basis: "2,278 team-seasons, 2015+",
+        status: "experiment", note: "Robustness check on the finding most exposed to 'you are just restating recruiting'." },
+      { label: "game_weather as a game-model covariate", basis: "24,001 games",
+        status: "experiment", note: "Also the third confound on kicker ratings, after distance and attempt selection. Only if the game model asks for it." },
+      { label: "team_advanced_games as a per-game defensive denominator", basis: "35,422 team-games",
+        status: "rejected", note: "Measured worse than the season index it would replace. See the foundation section." },
+      { label: "team_havoc_games", basis: "22,876 team-games",
+        status: "rejected", note: "Superseded by team_advanced_games for coverage, and havoc share itself scored zero in v4.3." },
+    ],
+    source: "docs/SUPPLEMENTAL_DATA.md",
   },
 ];
