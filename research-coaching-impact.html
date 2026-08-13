@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Does the coach move the needle, or the program? — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="research">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
+<!-- ==================== MAIN CONTENT ====================
+     This file is a shell. Everything on the page — masthead, hero stats,
+     filters, table, method and limitations — is rendered by findingPage.js
+     from the "coaching-impact" entry in findings.js. Adding an analysis means adding a
+     registry entry and a copy of this file, never new page code. -->
+<div class="main-content">
+  <div id="finding-root"></div>
+</div>
+
+<!-- Player detail modal — every finding that names players links into it. -->
+<div class="modal" id="player-modal">
+  <div class="modal-inner"></div>
+</div>
+
+<script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dataTable.js"></script>
+<script src="js/playerSearch.js"></script>
+<script src="js/findings.js"></script>
+<script src="js/findingPage.js"></script>
+<script>
+  initFinding("coaching-impact");
+</script>
+</body>
+</html>

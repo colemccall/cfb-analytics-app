@@ -852,11 +852,30 @@ a.research-card--live .finding-stat { color: var(--accent); }
   padding: 1px 8px; border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong); color: var(--text-muted); white-space: nowrap;
 }
+/* Shipped and recommended are deliberately the same colour: one is a decision
+   taken, the other the same decision not yet executed. Withdrawn is negative —
+   it marks a number we removed, which is a stronger claim than rejecting an idea
+   we never built. */
 .method-chip-recommended { border-color: var(--positive); color: var(--positive); }
 .method-chip-shipped     { border-color: var(--positive); color: var(--positive); }
 .method-chip-experiment  { border-color: var(--info);     color: var(--info); }
 .method-chip-rejected    { border-color: var(--negative); color: var(--negative); }
+.method-chip-withdrawn   { border-color: var(--negative); color: var(--negative); }
 .method-chip-blocked     { border-color: var(--border-strong); color: var(--text-muted); }
+
+/* Long-form reasoning. Measured column width, because the "why" blocks are the
+   part of this page meant to be read rather than scanned. */
+.method-prose { max-width: 78ch; color: var(--text-muted); }
+.method-prose p { margin: 0 0 0.7rem; line-height: 1.65; }
+.method-prose p:last-child { margin-bottom: 0; }
+.method-prose strong { color: var(--text); font-weight: 600; }
+.method-prose code {
+  background: var(--surface-deep); border-radius: var(--radius-sm);
+  padding: 0 4px; font-size: 0.95em;
+}
+/* What a number cannot support sits behind the same rule as the "what the code
+   actually does" block — it is a caveat, and caveats should look like one. */
+.method-limits { border-left: 3px solid var(--border-strong); padding-left: 0.9rem; }
 
 .method-source {
   font-size: var(--fs-sm); color: var(--text-muted); margin: 1rem 0 0;

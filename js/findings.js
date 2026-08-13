@@ -109,12 +109,103 @@ const FINDINGS = {
       { key: "coaching_change_flag", label: "New HC", fmt: v => v ? "✓" : "" },
     ],
     method: `Actual SP+ is regressed on a 3-year rolling recruiting-talent composite plus a
-      conference tier. The residual — actual minus expected — is what the table ranks.
-      A positive residual means the program played better than the roster it signed.`,
+      conference tier (R² 0.474 over 2,310 team-seasons, residual SD 9.91). The residual —
+      actual minus expected — is what the table ranks. A positive residual means the program
+      played better than the roster it signed.`,
     limitations: `SP+ already contains the result, so this measures over-performance, not its
       cause. Coaching, development, scheme, health and luck all land in the same residual and
-      we cannot separate them. Teams marked <span class="badge-imputed">est</span> had their
-      talent estimated from the conference median because we lack their recruiting data.`,
+      we cannot separate them here — but we can now test one of them directly: see
+      <a href="research.html#coaching-impact">does the coach move the needle</a>. The residual
+      is persistent (r = 0.607 year over year), which proves it is real and proves nothing
+      about what causes it — talent-proxy error is persistent by team too. With a residual SD
+      of 9.9 points, the difference between rank 1 and rank 20 in a single season is mostly
+      noise. Teams marked <span class="badge-imputed">est</span> had their talent estimated
+      from the conference median because we lack their recruiting data.`,
+  },
+
+  // ── Research: the coaching event study (script 13) ───────────────────────
+  // This is the test the finding above has needed since it shipped, and it was
+  // written down as "blocked" for months because the coaching table was 20
+  // hand-seeded rows. It was never blocked — /coaches carries full tenure back
+  // to 2008, and nobody had asked.
+  "coaching-impact": {
+    id: "coaching-impact",
+    kind: "research",
+    status: "live",
+    page: "research-coaching-impact.html",
+    eyebrow: "COACHING",
+    title: "Does the coach move the needle, or the program?",
+    claim: "Beating your recruiting is durable — the same programs do it year after year. The " +
+           "obvious explanation is coaching. This tests that directly, by looking at what " +
+           "happens to the number when the coach changes, and whether it follows him.",
+    question: "When a program changes head coach, does its performance residual change with him?",
+
+    async load() {
+      const rows = await _load("coaching_impact.json") || [];
+      const summary = rows.find(r => r._summary) || {};
+      return { rows: rows.filter(r => !r._summary), meta: summary };
+    },
+    headline(rows, meta) {
+      if (!rows.length) return null;
+      if (meta.coach_carryover_r == null) {
+        return `${meta.n_events} coaching changes measured against the performance residual.`;
+      }
+      return `A coach carries about a third of his performance residual to his next job ` +
+             `(r = ${meta.coach_carryover_r.toFixed(2)} across ${meta.n_coaches_with_two_stints} ` +
+             `coaches with two measurable stints). Not nothing — and not most of it.`;
+    },
+    stats(rows, meta) {
+      if (!rows.length) return [];
+      return [
+        { value: `${meta.median_step > 0 ? "+" : ""}${_fx(meta.median_step, 1)}`,
+          label: `median change in the residual after a new head coach (${meta.n_events} changes)` },
+        { value: `${_fx(meta.pct_improved, 0)}%`,
+          label: "of coaching changes improved the residual at all" },
+        { value: _fx(meta.step_sd, 1),
+          label: `spread of those changes, against a residual SD of ${_fx(meta.residual_sd, 1)}` },
+        { value: meta.coach_carryover_r != null ? `${meta.coach_carryover_r > 0 ? "+" : ""}${meta.coach_carryover_r.toFixed(2)}` : "—",
+          label: "correlation between a coach's first job and his second" },
+      ];
+    },
+    sort: { key: "step", asc: false },
+    maxRows: 300,
+    rowClass: r => (r.step > 8 ? "row-over" : r.step < -8 ? "row-under" : ""),
+    filters(rows) {
+      const seasons = [...new Set(rows.map(r => r.change_season))].sort((a, b) => b - a);
+      return [
+        { id: "season", type: "select", value: "ALL",
+          options: [{ value: "ALL", label: "All Changes" }, ...seasons.map(s => ({ value: s, label: s }))] },
+        { id: "minSeasons", type: "number", label: "Min seasons each side:", value: 2, min: 2, max: 8 },
+      ];
+    },
+    apply: (rows, v) => rows.filter(r =>
+      (v.season === "ALL" || String(r.change_season) === String(v.season)) &&
+      Math.min(r.seasons_before, r.seasons_after) >= (v.minSeasons || 2)),
+    columns: [
+      { key: "school", label: "School", fmt: (v, r) => teamLink(v, { season: r.change_season }) },
+      { key: "change_season", label: "Season", num: true },
+      { key: "outgoing", label: "Outgoing", fmt: v => _esc(v || "—") },
+      { key: "incoming", label: "Incoming", fmt: v => _esc(v || "—") },
+      { key: "residual_before", label: "Before", num: true, fmt: v => _fx(v) },
+      { key: "residual_after", label: "After", num: true, fmt: v => _fx(v) },
+      { key: "step", label: "Change", num: true,
+        title: "Mean residual under the new coach minus mean under the old one",
+        fmt: v => v != null ? deltaChip(v, { title: "SP+ residual, before vs after" }) : "—" },
+      { key: "seasons_before", label: "Yrs before", num: true },
+      { key: "seasons_after", label: "Yrs after", num: true },
+    ],
+    method: `Head coach of record for a team-season is whoever coached the most games, from the
+      2,584 coach-seasons on file (2008–2026). Consecutive stints of at least two rated seasons
+      each are compared on their mean performance residual. The carry-over figure takes every
+      coach with two such stints at different schools and correlates the first with the second.`,
+    limitations: `This is not a causal estimate for any single hire. Programs fire coaches after
+      bad seasons, so the "before" is selected for being low and mean reversion alone predicts
+      improvement — which makes the negative median genuinely surprising and worth treating
+      cautiously rather than as proof that firing coaches backfires. A new coach also inherits
+      the previous staff's roster for two or three years, so the early residual is not really
+      his. Interim coaches who never coached a plurality of a season are invisible. And the
+      spread of the changes is about the same as the residual's own SD, which is the honest
+      summary: at the level of one hire, this measurement cannot tell you much.`,
   },
 
   // ── Research: recruiting class ROI (script 14) ───────────────────────────
@@ -125,33 +216,47 @@ const FINDINGS = {
     page: "research-recruiting-roi.html",
     eyebrow: "RECRUITING",
     title: "What recruiting classes actually became",
-    claim: "A signing-day ranking is a prediction. This is the result — the share of each class " +
-           "that turned into a real contributor, which separates programs that recruit well " +
-           "from programs that develop well.",
-    question: "Which programs turn recruits into contributors, and which just sign them?",
+    claim: "A signing-day ranking is a prediction. This grades the result — but a raw hit rate " +
+           "just restates the rankings, so the number that leads here is how far each class " +
+           "outran what players with those exact rankings normally become.",
+    question: "Which programs develop recruits beyond their ranking, and which just sign good ones?",
 
     async load() {
       const rows = await _load("recruiting_roi.json");
       return { rows: rows || [], meta: {} };
     },
     headline(rows) {
-      return rows.length
-        ? `${rows.length.toLocaleString()} recruiting classes graded on what their players actually became.`
-        : null;
+      if (!rows.length) return null;
+      const best = rows
+        .filter(r => !r.maturing && (r.n_rated || 0) >= 10 && r.ovr_over_expected_shrunk != null)
+        .reduce((a, b) => (!a || b.ovr_over_expected_shrunk > a.ovr_over_expected_shrunk ? b : a), null);
+      if (!best) {
+        return `${rows.length.toLocaleString()} recruiting classes graded on what their players actually became.`;
+      }
+      return `${best.school}'s ${best.recruit_year} class beat its own recruiting rankings by ` +
+             `${best.ovr_over_expected_shrunk.toFixed(1)} rating points a player — the largest ` +
+             `development edge in ${rows.length.toLocaleString()} graded classes.`;
     },
     stats(rows) {
-      const mature = rows.filter(r => !r.maturing && (r.n_recruits || 0) >= 15 && r.hit_rate_pct != null);
+      const mature = rows.filter(r => !r.maturing && (r.n_rated || 0) >= 10
+                                      && r.ovr_over_expected_shrunk != null);
       if (!mature.length) return [];
-      const best = mature.reduce((a, b) => (b.hit_rate_pct > a.hit_rate_pct ? b : a));
-      const avg = mature.reduce((s, r) => s + r.hit_rate_pct, 0) / mature.length;
+      const best = mature.reduce((a, b) =>
+        (b.ovr_over_expected_shrunk > a.ovr_over_expected_shrunk ? b : a));
+      const worst = mature.reduce((a, b) =>
+        (b.ovr_over_expected_shrunk < a.ovr_over_expected_shrunk ? b : a));
       return [
-        { value: _pct(best.hit_rate_pct), label: `${best.school} ${best.recruit_year} — best class graded` },
-        { value: _pct(avg), label: "average hit rate across mature classes" },
-        { value: mature.length.toLocaleString(), label: "classes with 3+ development seasons" },
-        { value: rows.length.toLocaleString(), label: "classes graded in total" },
+        { value: _fx(best.ovr_over_expected_shrunk, 1),
+          label: `${best.school} ${best.recruit_year} — most development above expectation` },
+        { value: _fx(worst.ovr_over_expected_shrunk, 1),
+          label: `${worst.school} ${worst.recruit_year} — least` },
+        { value: "−0.03",
+          label: "correlation between the development score and class recruiting strength" },
+        { value: "+0.25",
+          label: "…what the raw hit rate correlates at. That gap is the whole point." },
       ];
     },
-    sort: { key: "hit_rate_pct", asc: false },
+    sort: { key: "ovr_over_expected_shrunk", asc: false },
     maxRows: 300,
     filters(rows) {
       const confs = [...new Set(rows.map(r => r.conference).filter(Boolean))].sort();
@@ -174,26 +279,46 @@ const FINDINGS = {
           ? `${v} <span class="badge-maturing" title="Class still developing (< 3 seasons)">dev</span>` : String(v) },
       { key: "conference", label: "Conf", fmt: v => _esc(v || "—") },
       { key: "n_recruits", label: "Recruits", num: true },
-      { key: "hit_rate_pct", label: "Hit%/Rated", num: true,
-        title: "Contributors as a share of recruits who ever got a rating",
+      { key: "ovr_over_expected_shrunk", label: "Dev +/−", num: true,
+        title: "Mean peak rating above what recruits with these exact rankings normally reach. " +
+               "Shrunk toward zero for small classes; the range is 80%.",
+        fmt: (v, r) => v == null ? "—"
+          : `<strong>${v > 0 ? "+" : ""}${v.toFixed(1)}</strong>` +
+            (r.ovr_over_expected_low != null
+              ? ` <span class="text-muted" style="font-size:.85em">${r.ovr_over_expected_low.toFixed(1)} to ${r.ovr_over_expected_high.toFixed(1)}</span>`
+              : "") },
+      { key: "hits_over_expected", label: "Hits +/−", num: true,
+        title: "Contributors above the number expected from this class's recruiting profile",
+        fmt: v => v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)}` },
+      { key: "hit_rate_pct", label: "Hit%", num: true,
+        title: "Raw: contributors as a share of recruits who ever got a rating. " +
+               "Correlates +0.25 with class recruiting strength, so read it as recruiting.",
         fmt: v => _hitCell(v) },
-      { key: "hit_rate_class_pct", label: "Hit%/Class", num: true,
-        title: "Contributors as a share of ALL recruits, including those who never rated",
-        fmt: v => _hitCell(v) },
+      { key: "expected_hit_rate_pct", label: "Exp Hit%", num: true,
+        title: "What this class's recruiting profile predicted",
+        fmt: v => v != null ? _pct(v) : "—" },
       { key: "avg_peak_ovr", label: "Avg Peak", num: true, fmt: v => _fx(v) },
       { key: "n_bluechip", label: "BC", num: true, title: "4★+ recruits in the class" },
-      { key: "bc_hit_rate_pct", label: "BC Hit%", num: true, fmt: v => v != null ? _pct(v) : "—" },
       { key: "avg_stars", label: "Avg ★", num: true, fmt: v => _fx(v, 2) },
     ],
-    method: `A "hit" is a recruit who reached a peak overall rating of 75 or better in any
-      season. Hit%/Rated counts them against recruits who ever received a rating; Hit%/Class
-      counts them against every signee, which exposes classes where large numbers never
-      played. Classes with fewer than three development seasons are marked
+    method: `A "hit" is a recruit who reached a peak overall rating of 75 or better in any season.
+      <strong>Dev +/−</strong> is the number to read: expected peak rating is fitted per RECRUIT
+      from his own 247Sports composite over all 37,462 graded-and-rated recruits in the archive,
+      and the class is scored on the average residual. Expected hit rate comes from the observed
+      rate within composite bands — 27.9% below 0.80 rising to 61.9% above 0.97. Both are shrunk
+      toward the population with a prior worth 25 recruits, so a five-man class cannot top the
+      table on one lucky signee, and the 80% range is shown beside the value. Classes with fewer
+      than three development seasons are marked
       <span class="badge-maturing">dev</span> — they are not finished.`,
-    limitations: `Peak OVR ≥ 75 is a threshold, not a truth: a 74 and a 76 are not different
-      players. Transfers out still count toward the class that signed them, so this measures
-      the board, not the roster. Blue-chip hit rate is suppressed below three such recruits
-      because it is meaningless at that sample size.`,
+    limitations: `The raw hit rate correlates +0.25 with the class's own recruiting composite —
+      it substantially restates the star ratings, which is why it no longer leads. The
+      residualized version correlates −0.03, so it has genuinely removed recruiting, but
+      "development" is still the residual of a weak model: peak rating on composite explains only
+      6% of the variance between recruits, so most of what is left is the player, not the
+      program. Peak OVR ≥ 75 is a threshold, not a truth: a 74 and a 76 are not different players.
+      Transfers out still count toward the class that signed them, so this measures the board,
+      not the roster. Offensive linemen have no rating at all from v4.3 and are absent from every
+      denominator here.`,
   },
 
   // ── Research: the projection model itself (script 15) ────────────────────
@@ -256,7 +381,7 @@ const FINDINGS = {
     },
     apply: (rows, v) => rows.filter(r =>
       (v.family === "ALL" || r.family === v.family) &&
-      (v.pos === "ALL" || r.position_group === v.pos) &&
+      (v.pos === "ALL" || matchesPosition(r.position_group, v.pos)) &&
       (v.label === "ALL" || r.trajectory_label === v.label) &&
       (r.current_ovr || 0) >= (v.minOvr || 0)),
     columns: [
@@ -312,28 +437,47 @@ const FINDINGS = {
     question: "Which lightly-recruited players turned into real contributors?",
 
     async load() {
-      const rows = await fetchAllPlayers(PLAYED_SEASON);
+      const all = await fetchAllPlayers(PLAYED_SEASON) || [];
+      // The base rate, which this finding shipped without. Selecting on the
+      // outcome and never saying how many players were in the pool means a
+      // reader cannot tell whether the list is remarkable or arithmetic: if 5%
+      // of two-stars and 35% of five-stars reach 70, the list is exactly what
+      // you would expect and the headline was overselling it.
+      const rate = (min, max) => {
+        const pool = all.filter(p => (p.stars || 0) >= min && (p.stars || 0) <= max);
+        const hits = pool.filter(p => (p.overall_rating || 0) >= 70);
+        return { n: pool.length, hits: hits.length,
+                 pct: pool.length ? (100 * hits.length / pool.length) : null };
+      };
       return {
-        rows: (rows || []).filter(p => (p.stars || 0) >= 1 && p.stars <= 2 && (p.overall_rating || 0) >= 70),
-        meta: { season: PLAYED_SEASON },
+        rows: all.filter(p => (p.stars || 0) >= 1 && p.stars <= 2 && (p.overall_rating || 0) >= 70),
+        meta: {
+          season: PLAYED_SEASON,
+          low:  rate(1, 2),   // the players this finding is about
+          mid:  rate(3, 3),
+          high: rate(4, 5),   // what a blue-chip does with the same threshold
+        },
       };
     },
-    headline(rows) {
-      return rows.length
-        ? `${rows.length} players rated 70+ in ${PLAYED_SEASON} came out of two-star-or-lower classes.`
-        : null;
+    headline(rows, meta) {
+      if (!rows.length) return null;
+      const lo = meta?.low, hi = meta?.high;
+      if (!lo || !hi || lo.pct == null || hi.pct == null) {
+        return `${rows.length} players rated 70+ in ${PLAYED_SEASON} came out of two-star-or-lower classes.`;
+      }
+      return `${rows.length} two-star-or-lower recruits reached a 70 rating in ${PLAYED_SEASON} — ` +
+             `${lo.pct.toFixed(0)}% of the ${lo.n} in that pool, against ${hi.pct.toFixed(0)}% of blue-chips.`;
     },
-    stats(rows) {
+    stats(rows, meta) {
       if (!rows.length) return [];
-      const elite = rows.filter(r => r.overall_rating >= 85).length;
       const top = rows.reduce((a, b) => (b.overall_rating > a.overall_rating ? b : a));
-      const byPos = rows.reduce((a, r) => (a[r.position_group] = (a[r.position_group] || 0) + 1, a), {});
-      const commonest = Object.entries(byPos).sort((a, b) => b[1] - a[1])[0];
+      const lo = meta?.low, mid = meta?.mid, hi = meta?.high;
+      const pct = (x) => (x && x.pct != null ? `${x.pct.toFixed(0)}%` : "—");
       return [
-        { value: String(rows.length), label: `rated 70+ from 2★-or-lower classes, ${PLAYED_SEASON}` },
-        { value: String(elite), label: "of those rated 85 or better" },
-        { value: `${Math.round(top.overall_rating)}`, label: `${top.name} — highest-rated of them` },
-        { value: commonest ? commonest[0] : "—", label: `most common position (${commonest ? commonest[1] : 0} players)` },
+        { value: pct(lo),  label: `of ${lo ? lo.n : 0} two-star-or-lower recruits reached 70+` },
+        { value: pct(mid), label: `of three-stars did — the middle of the distribution` },
+        { value: pct(hi),  label: `of four- and five-stars did. The gap is what stars buy.` },
+        { value: `${Math.round(top.overall_rating)}`, label: `${top.name} — highest-rated of the two-stars` },
       ];
     },
     sort: { key: "overall_rating", asc: false },
@@ -350,7 +494,7 @@ const FINDINGS = {
       ];
     },
     apply: (rows, v) => rows.filter(r =>
-      (v.pos === "ALL" || r.position_group === v.pos) &&
+      (v.pos === "ALL" || matchesPosition(r.position_group, v.pos)) &&
       (v.conf === "ALL" || r.conference === v.conf) &&
       (r.overall_rating || 0) >= (v.minOvr || 0)),
     columns: [
@@ -370,10 +514,18 @@ const FINDINGS = {
     ],
     method: `Every rated player from the ${PLAYED_SEASON} season whose recruiting profile was
       one or two stars, ranked by what they actually produced. Recruiting stars come from the
-      247Sports composite; the rating comes from opponent-adjusted per-game production.`,
-    limitations: `Unrated recruits — walk-ons, JUCO arrivals, international players — have no
-      star rating at all and are excluded rather than counted as zero-star. Some two-star
-      ratings are simply thin coverage of a player nobody evaluated, not a scouting miss.`,
+      247Sports composite; the rating comes from opponent-adjusted per-game production. The
+      three percentages above are the base rates — the share of EVERY recruit at that star
+      level who reached 70 — so the list can be read against what is normal rather than in
+      isolation.`,
+    limitations: `This selects on the outcome. Without the base rates beside it the list would
+      be unreadable: a long list of successful two-stars proves nothing if two-stars succeed
+      at the same rate as everyone else. They do not — but the gap, not the list length, is
+      the finding. Unrated recruits (walk-ons, JUCO arrivals, international players) have no
+      star rating and are excluded rather than counted as zero-star, which drops the most
+      extreme version of the story this finding is about. Some two-star ratings are thin
+      coverage of a player nobody evaluated, not a scouting miss. And it is a single season:
+      a player who peaked in 2021 is invisible here.`,
   },
 
   // ── Storyline: team movement ─────────────────────────────────────────────
@@ -525,7 +677,7 @@ const FINDINGS = {
       ];
     },
     apply: (rows, v) => rows.filter(r =>
-      (v.pos === "ALL" || r.position_group === v.pos) &&
+      (v.pos === "ALL" || matchesPosition(r.position_group, v.pos)) &&
       (v.source === "ALL" || r.source === v.source) &&
       Math.abs(r.gap) >= (v.minGap || 0)),
     columns: [

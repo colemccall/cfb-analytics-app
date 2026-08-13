@@ -39,7 +39,14 @@ function onThemeChange(render) {
 // beside an earned one — an evidence line comparing last season to next, or a
 // table spanning played and unplayed seasons — and where a value is projected
 // with no season in scope.
-function ovrPill(rating, { label = "", projected = false, season = null, source = "" } = {}) {
+function ovrPill(rating, { label = "", projected = false, season = null, source = "",
+                          pos = "" } = {}) {
+  // A withheld rating is not a missing one, and the two must not look alike. A
+  // blank reads as a bug or a data gap; "not rated" with the reason attached
+  // reads as the judgement it is. Derived from the position rather than asked of
+  // the caller, for the same reason provenance is derived from the season — one
+  // forgotten argument would silently present a refusal as an absence.
+  if (rating == null && NOT_RATED_POSITIONS[pos]) return notRatedNote(pos);
   if (rating == null) return '<span class="text-muted">—</span>';
   const fromSeason = season != null && isProjectedSeason(season);
   const isProj = projected || fromSeason;
@@ -78,6 +85,38 @@ const UNPROJECTED_POSITIONS = {
 function unprojectedNote(pg) {
   const why = UNPROJECTED_POSITIONS[pg];
   return why ? `<span class="unprojected" title="${_esc(why)}">not projected</span>` : "";
+}
+
+// Positions with no EARNED rating either — a stronger statement than "not
+// projected", and new in rating v4.3. The offensive line used to carry a number
+// that was recruiting rank plus a constant: it correlated 0.877 with the
+// recruiting composite, 20% of rated linemen landed on exactly 80.0, and it
+// disagreed with external scouting (Spearman −0.274 against EA CFB 27). It is
+// withdrawn. The line is now rated as a unit on the team page, from metrics that
+// exist.
+const NOT_RATED_POSITIONS = {
+  OL: "No individual offensive-line production exists in any available source — no " +
+      "pancakes, no sacks allowed, no pressures allowed. The number that used to be " +
+      "here was a recruiting ranking in costume. The line is rated as a unit on the " +
+      "team page instead.",
+};
+
+function notRatedNote(pg) {
+  const why = NOT_RATED_POSITIONS[pg];
+  return why
+    ? `<span class="unprojected" title="${_esc(why)}">not rated</span>`
+    : '<span class="text-muted">—</span>';
+}
+
+// The line-unit rating, rendered like an OVR pill but labelled as a team number.
+// It must never be mistaken for a player's rating — that confusion is the exact
+// thing withdrawing the OL number was meant to end.
+function lineUnitPill(rating) {
+  if (rating == null) return '<span class="text-muted">—</span>';
+  const v = Math.round(rating);
+  const c = ratingColor(v);
+  return `<span class="ovr-badge" style="background:${c};color:${ratingTextColor(c)}"
+    title="Offensive line, rated as a unit: line yards, stuff rate, power success, second-level yards and sack rate allowed. Not a per-player rating.">${v}</span>`;
 }
 
 // Confidence is a property of the position family as much as the player: an

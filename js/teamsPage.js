@@ -297,6 +297,13 @@ async function buildTeamRatingsHTML(team) {
       </div>`;
   }).join("");
 
+  // The offensive line, rated as a unit. It sits apart from the five bars above
+  // because it is a different kind of number: those are roster ratings blended
+  // toward SP+, this is a direct measurement of five standard line metrics.
+  // Showing it here is the whole justification for withdrawing the per-lineman
+  // rating — the answer to "so how good is their line" has to live somewhere.
+  const lineHtml = buildLineUnitHTML(tr);
+
   const ovr = tr.overall_rating != null ? Math.round(tr.overall_rating) : "—";
   const ovrColor = tr.overall_rating ? ratingColor(tr.overall_rating) : "var(--text-muted)";
   const off = tr.offense_rating != null ? Math.round(tr.offense_rating) : "—";
@@ -335,11 +342,74 @@ async function buildTeamRatingsHTML(team) {
         <div class="tr-sub-heading">Rating Breakdown</div>
         ${subBars}
       </div>
+      ${lineHtml}
       ${statsPanel}
       ${performers}
       <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:1rem">
         OVR is anchored to SP+ (schedule-adjusted scoring margin) blended with roster talent,
         so a 2019 LSU compares directly to any other season. POWER is the raw SP+ margin.
+      </p>
+    </div>`;
+}
+
+// ── The offensive line, rated as a unit ────────────────────────────────────
+//
+// This panel is the constructive half of a deletion. From rating v4.3 no
+// offensive lineman carries a rating, because no individual blocking data exists
+// anywhere — the number that used to be there was a recruiting rank plus a
+// constant, and it disagreed with external scouting. What the data DOES support
+// is a measurement of the line as a unit, and that is here.
+//
+// The five inputs are shown as normalised bars rather than raw values, because
+// "line yards 3.12" means nothing to a reader and "82nd percentile of the range
+// we calibrated against" does.
+const LINE_INPUT_LABELS = {
+  line_yards:            ["Line Yards", "Rushing yards credited to the line rather than the back"],
+  sack_rate_allowed_inv: ["Pass Protection", "Sacks allowed per dropback, inverted"],
+  stuff_rate_inv:        ["Stuff Rate", "Runs stopped at or behind the line, inverted"],
+  power_success:         ["Short Yardage", "Conversion rate on 3rd/4th and 2 or less"],
+  second_level_yards:    ["Second Level", "Yards earned 5–10 past the line"],
+};
+
+function buildLineUnitHTML(tr) {
+  const rating = tr.line_unit;
+  if (rating == null) {
+    // Explicit, not blank. On a projected season this is the correct answer —
+    // the line metrics are measurements of games that have not been played.
+    return `
+      <div class="tr-sub-section">
+        <div class="tr-sub-heading">Offensive Line</div>
+        <p class="text-muted" style="font-size:var(--fs-sm)">
+          ${isProjectedSeason(tr.season ?? _currentSeason)
+            ? "Not rated for an unplayed season — the line metrics measure games that have not happened."
+            : "No line metrics on file for this season."}
+        </p>
+      </div>`;
+  }
+
+  const inputs = tr.line_unit_inputs || {};
+  const bars = Object.entries(LINE_INPUT_LABELS).map(([key, [label, why]]) => {
+    const v = inputs[key];
+    if (v == null) return "";
+    const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
+    const col = ratingColor(30 + v * 65);
+    return `
+      <div class="tr-sub-row">
+        <span class="tr-sub-label" title="${_esc(why)}">${_esc(label)}</span>
+        <div class="tr-bar-wrap"><div class="tr-bar" style="width:${pct}%;background:${col}"></div></div>
+        <span class="tr-sub-val" style="color:${col}">${pct}</span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="tr-sub-section">
+      <div class="tr-sub-heading">Offensive Line ${lineUnitPill(rating)}</div>
+      ${bars}
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:.5rem">
+        A <strong>unit</strong> rating, not a player one. No individual blocking data exists in
+        any public source, so we don't rate linemen individually —
+        <a href="methods.html#ol">why, and what we do instead</a>. Bars are each input's
+        position in the range calibrated over 2,295 team-seasons.
       </p>
     </div>`;
 }
@@ -458,7 +528,8 @@ function renderRosterCards(players) {
   const yearLabels = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" };
   const filtered = _rosterPosFilter === "ALL"
     ? players
-    : players.filter(p => p.position_group === _rosterPosFilter || p.position === _rosterPosFilter);
+    : players.filter(p => matchesPosition(p.position_group, _rosterPosFilter)
+                          || p.position === _rosterPosFilter);
 
   filtered.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
 

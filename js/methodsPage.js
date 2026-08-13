@@ -51,11 +51,60 @@ function _evidence(rows) {
     </div>`;
 }
 
+// Inputs table: what goes in, from which endpoint, and over what seasons.
+// Coverage is the column that matters — "the endpoint exists" and "the endpoint
+// has 2009 data" are different claims and conflating them has cost us twice.
+function _inputs(rows) {
+  if (!rows || !rows.length) return "";
+  return `
+    <div class="method-block">
+      <div class="modal-subsection-title">What goes in</div>
+      <div class="method-table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Input</th><th>Source</th><th>Coverage</th></tr></thead>
+          <tbody>
+            ${rows.map(i => `
+              <tr>
+                <td>${_mEsc(i.name)}</td>
+                <td><code>${_mEsc(i.source)}</code></td>
+                <td>${_mEsc(i.coverage || "—")}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Light markdown: **bold** and `code`, on already-escaped text. The `why` and
+// `limits` fields are long-form prose and unreadable as one undifferentiated
+// block without at least emphasis.
+function _prose(s) {
+  return _mEsc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, " ")}</p>`).join("");
+}
+
+function _changelog(rows) {
+  if (!rows || !rows.length) return "";
+  return `
+    <div class="method-block">
+      <div class="modal-subsection-title">What changed</div>
+      <table class="data-table method-evidence">
+        <tbody>
+          ${rows.map(c => `
+            <tr><th scope="row">${_mEsc(c.version)}</th><td>${_mEsc(c.change)}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 function _entry(m) {
   return `
     <article class="method-entry animate-up" id="${_mEsc(m.id)}">
       <h3 class="method-title">${_mEsc(m.title)}</h3>
       <p class="method-summary">${_mEsc(m.summary)}</p>
+      ${_inputs(m.inputs)}
       ${m.formula ? `
         <div class="method-block">
           <div class="modal-subsection-title">As computed</div>
@@ -66,8 +115,19 @@ function _entry(m) {
           <div class="modal-subsection-title">What the code actually does</div>
           <pre class="method-code method-code-warn"><code>${_mEsc(m.reality)}</code></pre>
         </div>` : ""}
+      ${m.why ? `
+        <div class="method-block">
+          <div class="modal-subsection-title">Why it is built this way</div>
+          <div class="method-prose">${_prose(m.why)}</div>
+        </div>` : ""}
       ${_evidence(m.evidence)}
+      ${m.limits ? `
+        <div class="method-block">
+          <div class="modal-subsection-title">What this cannot support</div>
+          <div class="method-prose method-limits">${_prose(m.limits)}</div>
+        </div>` : ""}
       ${_alternatives(m.alternatives)}
+      ${_changelog(m.changelog)}
       ${m.source ? `<p class="method-source">Written up in <code>${_mEsc(m.source)}</code></p>` : ""}
     </article>`;
 }

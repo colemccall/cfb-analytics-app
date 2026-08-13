@@ -57,7 +57,9 @@ function buildFilters() {
   if (!posBar || !teamSel) return;
 
   // Position chips
-  const positions = ["ALL", ...CONFIG.POSITIONS];
+  // FILTER_POSITIONS, not POSITIONS: one "DB" option covers CB/S/DB, the 48%
+  // of the secondary the API labels generically included.
+  const positions = ["ALL", ...CONFIG.FILTER_POSITIONS];
   posBar.innerHTML = positions.map(p =>
     `<button class="pos-chip${p === _filterPos ? " active" : ""}" data-pos="${p}">${p}</button>`
   ).join("");
@@ -84,7 +86,7 @@ function buildFilters() {
 function applyFilters() {
   let players = _ratingsAllPlayers;
   if (_filterPos !== "ALL") {
-    players = players.filter(p => p.position_group === _filterPos);
+    players = players.filter(p => matchesPosition(p.position_group, _filterPos));
   }
   if (_filterTeam !== "ALL") {
     players = players.filter(p => p.team === _filterTeam);
@@ -222,7 +224,7 @@ async function initPositionBoard(season) {
     return;
   }
 
-  const positions = CONFIG.POSITIONS.filter(p => (_boardData[p] || []).length);
+  const positions = CONFIG.FILTER_POSITIONS.filter(p => _boardRows(p).length);
   if (!positions.includes(_boardPos)) _boardPos = positions[0];
 
   tabsEl.innerHTML = positions.map(p =>
@@ -239,8 +241,19 @@ async function initPositionBoard(season) {
   _renderPositionBoard(container);
 }
 
+// The export is keyed by position GROUP; a filter option can span several of
+// them. Merging here (rather than in the export) keeps one row per player in the
+// data and lets the board re-rank the merged pool, which is what a "DB" board
+// should show — corners, safeties and the generically-labelled together.
+function _boardRows(pos) {
+  const group = CONFIG.POSITION_FILTER_GROUPS[pos];
+  if (!group) return _boardData[pos] || [];
+  const merged = group.flatMap(g => _boardData[g] || []);
+  return merged.sort((a, b) => (b.overall_rating ?? 0) - (a.overall_rating ?? 0));
+}
+
 function _renderPositionBoard(container) {
-  const rows = (_boardData[_boardPos] || []).map((r, i) => ({ ...r, rank: i + 1 }));
+  const rows = _boardRows(_boardPos).map((r, i) => ({ ...r, rank: i + 1 }));
   const yearLabels = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" };
 
   createDataTable(container, {

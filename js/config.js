@@ -25,6 +25,26 @@ const CONFIG = {
   // 12-group position system
   POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "CB", "S", "K", "P"],
 
+  // What a position FILTER selects, which is not always one group.
+  //
+  // The API labels 1,397 of 2,889 secondary players with a bare "DB" — 48%, and
+  // that is upstream of us, not a parsing failure. CONFIG.POSITIONS above omits
+  // DB entirely, so every one of those players was invisible to every position
+  // filter on the site. That was a live bug, not a grouping preference.
+  //
+  // One "DB" filter option now selects CB ∪ S ∪ DB. Each row still shows its own
+  // badge, because a corner and a safety are different jobs and the archetype
+  // weights treat them differently (SECONDARY_ARCHETYPE_WEIGHTS in script 06).
+  // Grouping the filter and keeping the badge is the honest combination: it
+  // admits the source data is coarse without pretending we resolved it.
+  POSITION_FILTER_GROUPS: {
+    DB: ["CB", "S", "DB"],
+  },
+
+  // The order filters are offered in. DB replaces the separate CB/S entries;
+  // "ATH" and other stragglers fall through to exact matching.
+  FILTER_POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "DB", "K", "P"],
+
   // ── Domain palettes — the SINGLE source of position/tier/rating color.
   // Theme-keyed: light mode uses deepened variants so fills and text stay
   // readable on paper. There is deliberately no CSS copy of these values.
@@ -76,7 +96,11 @@ const CONFIG = {
     RB:   [["yards_per_carry","YPC"],["yards_total","Total Yds"],["rec_versatility","Receiving"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
     WR:   [["td_score","TD Impact"],["yards_per_rec","Yds/Rec"],["yards_total","Total Yards"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
     TE:   [["td_score","TD Impact"],["yards_per_rec","Yds/Rec"],["yards_total","Total Yards"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    OL:   [["team_rush_ypa","Team Rush YPA"],["team_sack_rate_inv","Pass Pro"],["recruit_composite","Recruiting"],["experience","Experience"],["award_tier","Awards"]],
+    // OL carries no earned player rating from v4.3 — see NOT_RATED_POSITIONS in
+    // ui.js. These are the LINE-UNIT inputs, shown on the team page. The old
+    // entries here ("Team Rush YPA", "Pass Pro", "Experience") named features
+    // that either never had a value or never changed.
+    OL:   [["line_yards","Line Yards"],["sack_rate_allowed_inv","Pass Pro"],["stuff_rate_inv","Stuff Rate"],["power_success","Short Yardage"],["second_level_yards","2nd Level"]],
     EDGE: [["pass_rush_score","Pass Rush"],["disruption_rate","Disruption"],["run_stop_score","Run Stop"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
     DL:   [["pass_rush_score","Pass Rush"],["run_stop_score","Run Stop"],["disruption_rate","Disruption"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
     LB:   [["tackling_score","Tackling"],["coverage_score","Coverage"],["pass_rush_score","Pass Rush"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
@@ -87,6 +111,17 @@ const CONFIG = {
     P:    [["avg_yards","Avg Yds"],["inside_20_pct","Inside 20 %"]],
   },
 };
+
+// Does a row's position group satisfy a position filter?
+//
+// The single place the DB grouping is applied. Every filter call site routes
+// through it, so adding a future group (merging DL and EDGE, say) is one edit
+// here rather than a hunt through five page scripts.
+function matchesPosition(rowPos, filterPos) {
+  if (!filterPos) return true;
+  const group = CONFIG.POSITION_FILTER_GROUPS[filterPos];
+  return group ? group.includes(rowPos) : rowPos === filterPos;
+}
 
 // Is this season's rating model output rather than earned production?
 // Every rating render path routes through this, so provenance is a property of
