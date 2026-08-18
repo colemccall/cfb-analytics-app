@@ -33,6 +33,129 @@
 
 const CHANGES = [
   {
+    id: "v4.5-basis",
+    version: "v4.5",
+    date: "2026-08-13",
+    title: "Spending the measurement: what a rating is built from, and one position that was never tiered",
+    summary: `v4.4 measured the foundation and deliberately changed no rating. This pass spends
+      that measurement — and starts by correcting it twice, because the reliability figure it
+      published was computed on the production composite and then used to draw conclusions about
+      the published number, which is a different quantity.`,
+    motivation: `Phase 0 of the architecture review: make the foundation legible before building
+      anything on it. Two corrections to the measurement had to land first, and looking for the
+      second one turned up a defect nobody was looking for — the playing-time tier table had no
+      entry for DB, so every defensive back in the archive had been rated as a starter.`,
+    did: [
+      { what: "Reliability is now measured on BOTH the composite and the shipped OVR",
+        why: "The v4.4 number was the composite's. Feeding that into interval widths would have over-widened exactly the positions the tiers already shrink most, and using it as a ceiling for persistence overstated how close defensive backs are to their limit. The gap between the two is itself the measurement of how much work the tiers and the recruiting blend do: +0.126 at S, +0.115 at DB, +0.108 at CB, against +0.044 at QB.",
+        cost: "The headline headroom claim weakens. Against the right ceiling the spread is 58–73%, not 63–88%. The ordering survives; the size of the gap does not." },
+      { what: "DB added to PLAYTIME_TIERS",
+        why: "It was missing entirely, the lookup returned None, and the code read that as 'no thresholds, treat as starter'. All 23,353 DB player-seasons were rated on the full production formula with no recruiting anchor. The 2025 split was 919 starters and nothing else, against CB's 245/70/123.",
+        cost: "7,138 DB ratings moved, mean −5.19. This is the one rating change in the pass and it is the point of it." },
+      { what: "rating_basis on every rating row: production / blended / recruiting / withheld",
+        why: "Two thirds of a roster has no production to measure and for those players the rating IS position average plus a stars delta — a six-valued step function. FORMULAS.md §7 always said so; the site published both kinds of number identically.",
+        cost: "None to any number. A chip on the rows that need it; production is unchipped because it is the default a reader assumes." },
+      { what: "A defender's zero tackles no longer reads as one",
+        why: "Defensive features divide by tackles so volume_score is max(TOT, 1), and the tier lookup read that floored value against a reserve threshold of exactly 1. The bench tier was unreachable at CB, DL and EDGE — zero bench rows at all three in 2025." },
+      { what: "The no-EDGE fallback maps through fixed anchors instead of pool percentiles",
+        why: "It was the one surviving path with pool-relative scaling, which AUDIT_FINDINGS §9 forbids: the bottom of the pool became 30 and the top 78 every season regardless of absolute quality.",
+        cost: "3,468 rows moved by ≤0.02 OVR — interpolation error, which is what 'calibrated to reproduce today's output' should look like." },
+      { what: "Intervals are per position rather than per family",
+        why: "One band per family gave a corner and a linebacker the same interval. Coverage ran 72.8% (CB) to 84.6% (DL) against an 80% target that held only in aggregate.",
+        cost: "Defence mean |coverage − 80| falls 4.2 → 2.3 points; offence is unchanged at 1.7, which is correct — it was already calibrated." },
+      { what: "rate_position() computes each position's cross-season pool once",
+        why: "It rated every season of a position to return one, and main() looped seasons outside that — 228 rebuilds of a frame assembled by a Python loop over a quarter of a million rows, plus 19 rewrites of a 112 MB file.",
+        cost: "None to output; the ratings diff is the check that says so." },
+    ],
+    tried: [
+      { what: "Scaling interval width per position by sqrt(1 − reliability)",
+        result: `The brief's own proposal, and the obvious way to make a corner's interval
+          wider than a quarterback's. It failed its gate: CB 72.8% → 80.1% and DB 76.1% → 80.8%,
+          but S 75.5% → 68.8%, LB 84.0% → 72.6%, TE 83.1% → 93.5%, QB 77.1% → 73.7%. Mean
+          |coverage − 80| went **3.2 → 5.9 points**. Reliability bounds what a rating can *know*;
+          it does not describe how a projection of it *errs*. Replaced by residual quantiles
+          measured per position, which ask the data the question directly and pass.`,
+        verdict: "rejected" },
+      { what: "Explaining the reliability spread by how often each position is observed",
+        result: `The brief's third hypothesis: a corner records 3.6 countable events a game
+          against a running back's 8.4, so some of the spread should be observation count rather
+          than a property of the position. Measured, it is not. Reliability against event-count
+          decile is **U-shaped** — the least-observed decile is the *most* repeatable, because a
+          player with 1.4 events a game reliably produces nothing — and across positions the
+          correlation is only +0.44, with TE the least-observed position and the fourth most
+          reliable. The original framing survives, which is worth as much as the correction
+          would have been.`,
+        verdict: "rejected" },
+      { what: "Tiering pre-2016 defenders on production, once the tackle floor was removed",
+        result: `Removing the floor moved every pre-2016 CB, DL and EDGE with no recorded tackle
+          from reserve to bench, which replaced the CLASSIC interceptions-and-recruiting rating
+          with a pure recruiting grade. Tiering them properly instead revealed the real defect —
+          **the CLASSIC rating is largely inoperative**, discarded or diluted by the tier blend
+          for every pre-2016 defender — and moves 3,900 ratings by a mean of +9.0 (EDGE) to
+          +16.5 (LB). Held at the pre-v4.5 behaviour on purpose: that is a rating change for an
+          era with no external check, and this is a labelling pass.`,
+        verdict: "experiment" },
+      { what: "The career blend, re-run on the composite instead of the OVR",
+        result: `v4.4 measured the benefit at **−0.67** against reliability — the opposite of the
+          theory — and left it inconclusive. It was run on the shipped OVR, which the tiers have
+          already shrunk toward a recruiting prior, so it was blending a number toward a prior it
+          partly contains. On the unshrunk composite the sign flips to **+0.385** and it helps at
+          every position, most where reliability is lowest: CB −0.0264 MAE, DB −0.0263,
+          S −0.0228, against RB −0.0055. Alive, and belongs in Phase 1.`,
+        verdict: "experiment" },
+    ],
+    measured: [
+      { label: "DB agreement with EA CFB 27", before: "0.6132", after: "0.6497" },
+      { label: "Pooled agreement, all positions", before: "0.6137", after: "0.6185" },
+      { label: "Mean DB rating, 2025", before: "65.7 (above CB and S)", after: "63.9 (between them)" },
+      { label: "DB tier split, 2025", before: "919 starters, 0 anything else", after: "tiered like every other position" },
+      { label: "Rated rows whose OVR moved", before: "—", after: "7,138 DB (61% of DBs) + 13 others; 3,468 more by ≤0.02" },
+      { label: "Reliability of the shipped OVR, CB", before: "never measured (composite 0.591)", after: "0.700" },
+      { label: "Reliability of the shipped OVR, QB", before: "never measured (composite 0.876)", after: "0.919" },
+      { label: "Share of ceiling reached, DB", before: "88% (wrong ceiling)", after: "71%" },
+      { label: "Share of ceiling reached, QB", before: "63% (wrong ceiling)", after: "60%" },
+      { label: "Defence interval coverage spread", before: "72.8%–84.6%, mean 4.2 pts off target", after: "75.9%–82.7%, mean 2.3 pts off" },
+      { label: "--all-seasons rating computation", before: "405s, plus 19 rewrites of a 112 MB file (~100s)", after: "57s including one write" },
+      { label: "Tests", before: "283 passing", after: "300 passing" },
+    ],
+    gates: [
+      { check: "pytest tests/ -q", result: "300 passed" },
+      { check: "python scripts/validate_ratings.py --season 2025", result: "every position within bounds; OL withheld; DB mean 65.7 → 63.9" },
+      { check: "python scripts/validate_reliability.py --decompose", result: "GATE PASS — ovr_reliability ≥ composite reliability at all 10 positions" },
+      { check: "projection gates", result: "offence 8.18 vs naive 9.09, defence 8.38 vs naive 9.56; coverage 78.7% / 79.4%" },
+      { check: "ratings diff, before vs after", result: "attributable in full: 7,138 DB rows to the tier fix, 13 to the un-floored zero, 3,468 at ≤0.02 to the anchor swap" },
+      { check: "node --check js/*.js · contrast-check", result: "pass · green both themes" },
+      { check: "full recompute", result: "07 → 10 → 15 → 16 → 10 (projected) → 13 → 14 → 12" },
+    ],
+    unfixed: `**The CLASSIC pre-2016 defensive rating is still largely inoperative.** The tier
+      blend discards or dilutes it for every pre-2016 defender because they are tiered on a
+      tackle count that does not exist for them. Measured at a mean +9.0 to +16.5 across 3,900
+      ratings if fixed. Held constant deliberately; it needs its own pass and an argument about
+      what a pre-2016 defender's rating should even be.
+
+      **The career blend is measured and not implemented.** It belongs in the engine and is not
+      in it — this pass established the sign, not the fitted weights.
+
+      **A recruiting-based rating is still published, still ranked, and still feeds team
+      ratings.** The chip stops it being misread; it does not stop it being counted. Whether
+      those rows should be capped, hidden from boards, or split into Production and Talent is a
+      ranking decision and was deliberately not made here.
+
+      **EDGE_OVR_ANCHORS has no era buckets**, despite FORMULAS.md describing three, and
+      get_rating_era() is dead code with no call sites. Found while proving the pool cache safe;
+      not touched, because changing anchors moves every rating at once.
+
+      Nothing was done about the two-histories problem, the slim/detail export split, or
+      player_seasons.year still being exported as a class year it is not.`,
+    methods: ["rating-basis", "db-tiers", "reliability", "headroom", "projection", "edge-core"],
+    files: ["scripts/07_compute_player_ratings.py", "scripts/12_export_frontend_json.py",
+            "scripts/15_predict_trajectories.py", "scripts/validate_reliability.py",
+            "tests/test_playtime_tier.py", "tests/test_export_contract.py",
+            "js/ui.js", "js/playerSearch.js", "css/components.css",
+            "docs/FORMULAS.md", "docs/ALTERNATIVES.md", "CLAUDE.md"],
+  },
+
+  {
     id: "v4.4-build-log",
     version: "v4.4",
     date: "2026-08-13",

@@ -385,6 +385,103 @@ failure still fails: 24% of punters at 85+ puts p90 near 88, well outside the ne
     source: "docs/FORMULAS.md §5",
   },
 
+  {
+    id: "rating-basis",
+    group: "ratings",
+    title: "What a rating is built from, and why a backup's 54 is not a starter's 54",
+    summary: `Two thirds of any roster has no production worth measuring. For those players
+      the rating is not a measurement at all — it is the position average shifted by recruiting
+      stars, a six-valued step function. That has always been true and always been documented;
+      what was missing is that the site published both kinds of number identically, so a reader
+      could not tell which one he was looking at.`,
+    inputs: [
+      { name: "The playing-time tier", source: "PLAYTIME_TIERS, script 07", coverage: "every rated player-season" },
+      { name: "Which code path produced the value", source: "tracked as it is produced, not inferred afterwards", coverage: "every rated player-season" },
+    ],
+    formula: `production   the formula ran on real production          70,718 rows
+blended      formula and recruiting mixed (role 75/25,      4,456 rows
+             reserve 40/60, or the backup efficiency blend)
+recruiting   the number IS position_avg + stars_delta      29,427 rows
+withheld     OL — no individual data exists at all         47,958 rows`,
+    why: `This is the same category error as the offensive-line rating, differing only in
+degree. There the number was 77% recruiting and was withdrawn; here it is 100% recruiting for
+the bench tier and the honest fix is smaller, because the number is not *wrong* — a 3-star
+backup probably is around the position average minus fifteen. It is just not the same claim as
+"this linebacker made 94 tackles and graded out at 78".
+
+Derived from the tier that already existed rather than newly computed, so it adds a name for
+something the pipeline already knew and could not say. The chip appears only on the rows that
+need it: \`production\` is the default a reader assumes, and a chip on all 12,000 of them would
+be noise — the same rule the projection badge follows.`,
+    evidence: [
+      { label: "Rows that are pure recruiting", value: "29,427 of 105,174 rated (28%) — and 47,958 more are withheld outright" },
+      { label: "By position, share recruiting-based", value: "TE 38%, WR 30%, K 44%, QB 26%, LB 23%, DB 22%, CB 22%" },
+      { label: "Cost", value: "none — no OVR moved. This is a labelling change and the ratings diff was checked to confirm it." },
+    ],
+    limits: `A label is not a correction. A recruiting-based rating is still published, still
+      ranks in leaderboards, and still feeds team ratings — the chip only stops it being read
+      as something it is not. Whether those rows should be capped, hidden from boards, or
+      published as a separate "Talent" number beside "Production" is a design decision with its
+      own arguments, and deliberately not made here: burying a ranking change inside a
+      labelling change is how one gets shipped without being argued.`,
+    alternatives: [
+      { label: "Publish Production and Talent as two separate numbers", basis: "the same tier data",
+        status: "experiment", note: "The model doc's Option 3, and the natural end point. Worth the UI cost only once the two signals are shown to be distinct." },
+      { label: "Cap or hide recruiting-based ratings on leaderboards", basis: "nothing new",
+        status: "experiment", note: "A ranking change, not a labelling one. Separate argument, separate pass." },
+    ],
+    changelog: [
+      { version: "v4.5", change: "Added to every rating row, exported, chipped in the UI, and asserted by four tests in the contract suite." },
+    ],
+    source: "docs/FORMULAS.md §4",
+  },
+
+  {
+    id: "db-tiers",
+    group: "ratings",
+    title: "Every defensive back was a starter, because of a missing table entry",
+    summary: `The playing-time tier table had no entry for DB. The lookup returned nothing,
+      the code read that as "no thresholds, treat as a starter", and all 23,353 DB
+      player-seasons in the archive were rated on the full production formula with no
+      recruiting anchor — however little any of them played.`,
+    inputs: [
+      { name: "PLAYTIME_TIERS", source: "script 07", coverage: "12 of the 13 rated positions until v4.5" },
+      { name: "EA CFB 27, as the external check", source: "data/raw/ea_ratings.json", coverage: "592 matched DBs" },
+    ],
+    formula: `before   PLAYTIME_TIERS["DB"] -> None -> "starter", for everyone
+after    starter >= 15 tackles, role >= 7, reserve >= 1, else bench
+
+thresholds sit between CB (10/5/1) and S (20/10/2) because DB is the API's
+own generic label for both, and its tackle distribution sits between them:
+2025 p50 14 against CB 13 and S 14; p75 35 against 28 and 41`,
+    why: `The tell was visible in the distribution all along and nobody had looked for it: the
+2025 DB tier split was 919 starters and nothing else, against CB's 245 starters, 70 role, 123
+reserve. DB also carried the highest mean rating of any defensive position (65.7 against CB's
+62.6 and S's 62.9), which is not what one expects from the group the API labels generically —
+it is what one expects when a third of a position is being rated as though it started.`,
+    evidence: [
+      { label: "Ratings moved", value: "7,138 of 11,676 DB rows (61%), mean −5.19" },
+      { label: "Agreement with EA CFB 27", value: "0.6132 → 0.6497, the largest single-position gain in any recent pass" },
+      { label: "Mean DB rating, 2025", value: "65.7 → 63.9, now between CB 62.6 and S 62.9 instead of above both" },
+      { label: "Pooled agreement across all positions", value: "0.6137 → 0.6185" },
+      { label: "Where it came from", value: "a lookup table, not a formula change or any tuning" },
+    ],
+    limits: `This corrects who is rated on production, not how well the production is measured.
+      DB reliability is 0.723 on the published number — still among the lowest on the board —
+      and the archetype weighting it inherits is an even-thirds split chosen because the group
+      is genuinely mixed, not because that split was measured to be right.`,
+    alternatives: [
+      { label: "Resolve DB into CB or S per player, using EA's position", basis: "ea_ratings.json, 2026 only",
+        status: "experiment", note: "Exact where it applies, but one season only." },
+      { label: "Infer CB or S from box-score behaviour", basis: "on disk",
+        status: "rejected", note: "Circular — it would assign the archetype using the same statistics the archetype then judges." },
+    ],
+    changelog: [
+      { version: "v4.5", change: "DB added to PLAYTIME_TIERS; test_every_rated_position_has_tiers stops the next position group inheriting the same hole." },
+    ],
+    source: "docs/FORMULAS.md §4",
+  },
+
   // ── How much of a rating is signal ────────────────────────────────────────
   {
     id: "reliability",
@@ -397,12 +494,25 @@ failure still fails: 24% of punters at 85+ puts p90 near 88, well outside the ne
     inputs: [
       { name: "Per-game box scores, split by week parity", source: "data/raw/stats.json", coverage: "2016–2025, 37,226 player-seasons" },
       { name: "The same per-game weights the EDGE score uses", source: "scripts/06_compute_edge_scores.py", coverage: "all rated positions" },
+      { name: "Script 07's own mapping, for the published-number figure", source: "imported, not reimplemented", coverage: "anchors, games confidence, tier blend" },
     ],
     formula: `half A = mean composite over odd weeks      half B = mean composite over even weeks
 r_half  = spearman(A, B)
 reliability   = 2·r_half / (1 + r_half)        (Spearman-Brown, corrects to full length)
 noise ceiling = √reliability                   (the highest correlation this measurement
-                                                could have with ANY perfect truth)`,
+                                                could have with ANY perfect truth)
+
+TWO quantities, and they answer different questions (v4.5):
+  composite   can a player at this position be measured at all
+  ovr         how repeatable is the number printed on the card — the same halves
+              carried through the anchors, the games-confidence damping and the
+              playing-time tier blend`,
+    reality: `Reliability is REPEATABILITY, not truth. Blending a production number toward a
+recruiting grade — a constant that does not vary between halves — makes it more repeatable
+without making it more true. A rating that is 100% recruiting has reliability 1.0 and no
+information about the season it claims to describe. That is why bench-tier rows, whose OVR is
+a constant by construction, are excluded from the OVR figure rather than allowed to inflate
+it, and why the tier mix is published beside it.`,
     why: `A projection cannot track next season better than the rating tracks its own other
 half, and a formula whose inputs disagree with themselves cannot be repaired by re-weighting
 them. Three separate v4.3 and v4.4 experiments discovered this the expensive way — havoc
@@ -415,29 +525,34 @@ about him — or the inputs are too thin to measure anyone at that position. Bot
 interval rather than add machinery, but only the second is a defect we could ever fix, and
 fixing it needs a new measurement rather than a new formula.`,
     evidence: [
-      { label: "QB", value: "reliability 0.876 · ceiling 0.936 (n=1,697)" },
-      { label: "RB", value: "reliability 0.883 · ceiling 0.940 (n=4,056)" },
-      { label: "WR", value: "reliability 0.840 · ceiling 0.917 (n=5,883)" },
-      { label: "LB", value: "reliability 0.786 · ceiling 0.887 (n=6,410)" },
-      { label: "TE", value: "reliability 0.750 · ceiling 0.866 (n=1,594)" },
-      { label: "S", value: "reliability 0.684 · ceiling 0.827 (n=2,590)" },
-      { label: "EDGE", value: "reliability 0.648 · ceiling 0.805 (n=1,981)" },
-      { label: "DL", value: "reliability 0.627 · ceiling 0.792 (n=6,187)" },
-      { label: "DB", value: "reliability 0.609 · ceiling 0.780 (n=4,755)" },
-      { label: "CB", value: "reliability 0.591 · ceiling 0.769 (n=2,073)" },
-      { label: "What the ceiling explains", value: "our CB agreement with EA is 0.571 against a ceiling of 0.769; DL is 0.485 against 0.792" },
+      { label: "QB", value: "composite 0.876 → OVR 0.919 · ceiling 0.959 (n=1,697)" },
+      { label: "RB", value: "composite 0.883 → OVR 0.931 · ceiling 0.965 (n=4,056)" },
+      { label: "WR", value: "composite 0.840 → OVR 0.908 · ceiling 0.953 (n=5,883)" },
+      { label: "LB", value: "composite 0.786 → OVR 0.853 · ceiling 0.923 (n=6,410)" },
+      { label: "TE", value: "composite 0.750 → OVR 0.827 · ceiling 0.910 (n=1,594)" },
+      { label: "S", value: "composite 0.684 → OVR 0.810 · ceiling 0.900 (n=2,590)" },
+      { label: "EDGE", value: "composite 0.648 → OVR 0.709 · ceiling 0.842 (n=1,981)" },
+      { label: "DL", value: "composite 0.627 → OVR 0.700 · ceiling 0.837 (n=6,187)" },
+      { label: "DB", value: "composite 0.609 → OVR 0.723 · ceiling 0.851 (n=4,755)" },
+      { label: "CB", value: "composite 0.591 → OVR 0.700 · ceiling 0.837 (n=2,073)" },
+      { label: "The gap is largest where the measurement is worst", value: "S +0.126, DB +0.115, CB +0.108 against QB +0.044 and RB +0.048 — the tiers and the recruiting blend do most of their work exactly where production is least measurable" },
+      { label: "What the ceiling explains", value: "our CB agreement with EA is 0.571 against a composite ceiling of 0.769; DL is 0.485 against 0.792" },
+      { label: "Gate", value: "ovr_reliability ≥ composite reliability at every position — if the blend ever reduced repeatability it would mean the shrinkage is not doing what the model doc claims" },
     ],
-    limits: `This is the reliability of the production composite, not of the published OVR.
-      The OVR additionally passes through anchors, playing-time tiers and a recruiting blend,
-      all of which shrink noisy players toward a prior and therefore make the shipped number
-      steadier than its inputs. Read it as the ceiling on the production signal, not as the
-      error bar on a player card.
+    limits: `Two halves of one season are not two independent samples of the same player — an
+      injury, a coordinator change or a quarterback change lands in one half and not the other.
+      That makes the number conservative rather than inflated.
 
-      Two halves of one season are also not two independent samples of the same player — an
-      injury or a coordinator change lands in one half and not the other. That makes the
-      number conservative rather than inflated.`,
+      Neither figure is an error bar for an individual. They are position-level statements
+      about how much a rating repeats, and a specific player can be measured far better or
+      worse than his position's average.
+
+      **Use the right one.** The composite figure answers "can this position be measured";
+      the OVR figure answers "how steady is what we publish". v4.4 used the composite figure
+      for a conclusion about the published number and overstated it — see the headroom entry.`,
     changelog: [
       { version: "v4.4", change: "Measured for the first time; scripts/validate_reliability.py, exported to data/reliability.json" },
+      { version: "v4.5", change: "Both quantities measured, not just the composite. The gap between them is the shrinkage, and it is largest at CB, DB and S — the positions v4.4 drew its conclusions about." },
     ],
     source: "docs/ARCHITECTURE_REVIEW_2026-08.md §1",
   },
@@ -447,14 +562,23 @@ fixing it needs a new measurement rather than a new formula.`,
     group: "foundation",
     title: "Where the remaining accuracy actually is",
     summary: `Put each position's year-over-year persistence beside its own noise ceiling and
-      the queue inverts. Defensive backs already extract 83–88% of the signal their measurement
-      allows. Quarterbacks extract 63%. The position everyone assumes is broken is close to
-      done; the position everyone assumes is solved has the most headroom left in the system.`,
+      the queue inverts: corners and edge rushers already extract about 70% of the signal their
+      measurement allows, quarterbacks and receivers about 60%. The position assumed broken is
+      nearer its limit than the position assumed solved — though by less than this entry
+      claimed in v4.4, for a reason worth reading.`,
     inputs: [
       { name: "Year-over-year rank persistence of the shipped OVR", source: "data/computed/ratings.json", coverage: "2008–2025, 54,199 season pairs" },
-      { name: "Noise ceiling per position", source: "scripts/validate_reliability.py", coverage: "2016–2025" },
+      { name: "OVR noise ceiling per position", source: "scripts/validate_reliability.py", coverage: "2016–2025" },
     ],
-    formula: `share of ceiling reached = spearman(OVR_t, OVR_t+1) / reliability(position)`,
+    formula: `share of ceiling reached = spearman(OVR_t, OVR_t+1) / ovr_reliability(position)`,
+    reality: `v4.4 divided by the COMPOSITE's reliability instead — a ceiling measured on the
+unshrunk production number, applied to a persistence measured on the published one. Because the
+tiers and the recruiting blend shrink hardest exactly where production is least measurable, that
+overstated how close the defensive backs were to their limit and understated everyone else. It
+is the same mistake in reverse that the interval work then made: a bound on one quantity is not
+a bound on a different one, however closely related they sound.
+
+Corrected below. The ordering survived the correction; the size of the gap did not.`,
     why: `A position near 1.0 is already measured as well as this data allows: its remaining
 unpredictability is measurement noise, not player change, and no feature will recover it. A
 position well below 1.0 is genuinely changing year to year in ways the model has not learned,
@@ -463,18 +587,28 @@ which is what modelling is for.
 This is why the defensive rating is not the next phase despite being the weakest number on
 the site, and why per-snap efficiency for quarterbacks and receivers is.`,
     evidence: [
-      { label: "DB", value: "persistence 0.538 of a 0.609 ceiling — 88% extracted" },
-      { label: "CB", value: "0.491 of 0.591 — 83%" },
-      { label: "EDGE", value: "0.516 of 0.648 — 80%" },
-      { label: "DL", value: "0.473 of 0.627 — 75%" },
-      { label: "LB", value: "0.550 of 0.786 — 70%" },
-      { label: "WR", value: "0.551 of 0.840 — 66%" },
-      { label: "RB", value: "0.587 of 0.883 — 66%" },
-      { label: "QB", value: "0.555 of 0.876 — 63%, the largest headroom on the platform" },
+      { label: "EDGE", value: "persistence 0.516 of a 0.709 ceiling — 73% extracted (v4.4 said 80%)" },
+      { label: "DB", value: "0.515 of 0.723 — 71% (v4.4 said 88%)" },
+      { label: "CB", value: "0.491 of 0.700 — 70% (v4.4 said 83%)" },
+      { label: "DL", value: "0.473 of 0.700 — 68%" },
+      { label: "TE", value: "0.548 of 0.827 — 66%" },
+      { label: "LB", value: "0.550 of 0.853 — 64%" },
+      { label: "RB", value: "0.587 of 0.931 — 63%" },
+      { label: "WR", value: "0.551 of 0.908 — 61%" },
+      { label: "QB", value: "0.555 of 0.919 — 60%" },
+      { label: "S", value: "0.473 of 0.810 — 58%, the largest headroom on the platform" },
     ],
     limits: `Persistence is not accuracy. A position could be perfectly measured and genuinely
       volatile, and would look identical to one that is badly measured and stable. The ratio
-      says where modelling can still win, not how good any individual number is.`,
+      says where modelling can still win, not how good any individual number is.
+
+      The spread across positions is now 58–73%, not 63–88%. That is a much weaker claim than
+      v4.4 made, and it should be read as "defence is somewhat nearer its ceiling" rather than
+      "defence is nearly done".`,
+    alternatives: [
+      { label: "Explain the position spread by observation count instead", basis: "events per game, computed per player-season",
+        status: "rejected", note: "Tested in v4.5. Reliability against event-count decile is U-shaped, not increasing — the least-observed decile is the MOST repeatable, because a player with 1.4 events a game reliably produces nothing. Across positions the correlation is only +0.44, and TE has the fewest events of any position (2.0/game) with the fourth-highest reliability. Observation count does not explain the spread; it is a property of what each position's stats measure." },
+    ],
     source: "docs/ARCHITECTURE_REVIEW_2026-08.md §1",
   },
 
@@ -644,6 +778,15 @@ it lets the model see how selected its own training population is.`,
         status: "experiment", note: "The model currently has no idea who a player played for, or that he moved." },
       { label: "Raise VARIANCE_LAMBDA toward 1.0", basis: "would match the real spread",
         status: "experiment", note: "A genuine trade: calibration improves, MAE worsens, intervals need re-deriving." },
+      { label: "Residual quantiles per position, not per family", basis: "validation residuals already on hand",
+        status: "shipped", note: "v4.5. One band per family meant a corner and a linebacker got the same interval: coverage ran 72.8% (CB) to 84.6% (DL) against an 80% target that only held in aggregate. Per position, defence's mean |coverage − 80| falls 4.2 → 2.3 points and CB lands at 80.4%. Falls back to the family band below 60 rows in a cell." },
+      { label: "Scale interval width by position reliability instead", basis: "sqrt(1 − reliability), from validate_reliability.py",
+        status: "rejected", note: "The obvious way to do the above, and it failed: CB 72.8 → 80.1 and DB 76.1 → 80.8, but S 75.5 → 68.8, LB 84.0 → 72.6, TE 83.1 → 93.5. Mean |coverage − 80| went 3.2 → 5.9 points. Reliability bounds what a rating can KNOW; it does not describe how a projection of it ERRS." },
+      { label: "Blend a season with the player's own career, weighted by reliability", basis: "the composite, not the shipped OVR",
+        status: "recommended", note: "v4.4 tested this on the OVR — already shrunk toward a recruiting prior — and measured the benefit at −0.67 against reliability, the opposite of the theory. On the unshrunk composite the sign flips to +0.385 and it helps most where reliability is lowest: CB −0.026 MAE, DB −0.026, S −0.023, against QB −0.006. Not yet in the engine." },
+    ],
+    changelog: [
+      { version: "v4.5", change: "Intervals are per position rather than per family; the reliability-scaled version was built first and rejected on coverage." },
     ],
     source: "docs/HOW_PROJECTIONS_WORK.md",
   },

@@ -567,6 +567,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <h2>${player.name || "Unknown"}</h2>
         <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
         <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
+        ${basisChip(player.rating_basis)}
       </div>
       <div class="modal-ovr-box${isProjectedSeason(player.season) ? " is-projected" : ""}"
            style="background:${color};color:${txtCol}"

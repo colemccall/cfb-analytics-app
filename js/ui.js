@@ -133,6 +133,39 @@ function confidenceChip(level) {
   return `<span class="conf-chip conf-${_esc(level)}" title="${_esc(why)}">${_esc(label)}</span>`;
 }
 
+// ── What a rating is built from ─────────────────────────────────────────────
+// Two thirds of any roster has no production to measure, and for those players
+// the rating IS `position average + recruiting stars delta` — a six-valued step
+// function. It has always been published as the same kind of object as a
+// starter's production rating, and nothing on the page said otherwise.
+//
+// Derived in the pipeline from the playing-time tier that already existed, so
+// this adds a name for something rather than a new computation. Same idiom as
+// confidenceChip: small, uppercase, bordered, explains itself on hover.
+//
+// `production` is deliberately NOT chipped. It is the default a reader assumes,
+// and a chip on all 12,000 of them is noise — the same rule projBadge follows.
+const RATING_BASIS_LABEL = {
+  blended:     "Part recruiting",
+  recruiting:  "Recruiting only",
+  withheld:    "Not rated",
+};
+
+const RATING_BASIS_WHY = {
+  blended:     "He played, but below this position's starter threshold, so the rating mixes " +
+               "his production with his recruiting grade rather than trusting a small sample.",
+  recruiting:  "No meaningful production to measure. This number is the position average " +
+               "shifted by his recruiting stars — it says what was expected of him, not what he did.",
+  withheld:    "No individual production exists for this position in any available source, " +
+               "so no rating is published.",
+};
+
+function basisChip(basis) {
+  const label = RATING_BASIS_LABEL[basis];
+  if (!label) return "";           // production, or absent → no chip
+  return `<span class="basis-chip basis-${_esc(basis)}" title="${_esc(RATING_BASIS_WHY[basis] || "")}">${_esc(label)}</span>`;
+}
+
 // A projected value with its range. The interval is the honest part: the point
 // estimate alone implies a precision the model does not have.
 function projRange(low, high) {
