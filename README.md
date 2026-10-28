@@ -30,6 +30,10 @@ The app surfaces EDGE ratings — opponent-adjusted per-game production scores �
 
 ---
 
+## The Dynasty menu
+
+`menu.html` is a second front-end beside the site: team select, a hub, then roster, depth chart, player card, schedule, standings, rankings, recruiting and the transfer portal, one screen at a time. Mouse first, with keyboard and Gamepad API support. It has its own files (`css/menu.css`, `js/menu*.js`, token block `.menu-app`) and reads the same data through `dataLoader.js`; standings, the portal and the depth order share `js/leagueData.js` with the site. The layout follows the early-2010s console franchise menus from memory; art and copy are original. 2026 roster rows and cards show three ratings (last season, projection, earned to date), never merged. See the Guide ("The Dynasty menu") and Methods (`three-ratings`).
+
 ## Tech Stack
 
 - **HTML5** — semantic elements, no framework

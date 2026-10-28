@@ -33,6 +33,118 @@
 
 const CHANGES = [
   {
+    id: "v4.9-three-ratings-and-menu",
+    version: "v4.9",
+    date: "2026-10-28",
+    title: "Three ratings on every 2026 player, fresh 2026 data, and a separate Dynasty menu",
+    summary: `The 2026 data in the app was the August export: one number per player (the preseason projection),
+      1,711 rostered players missing, and no sign that eight weeks had been played. This pass brings the whole
+      season in and shows three ratings side by side on every 2026 roster row and player card (last season,
+      the projection, and earned to date), then builds a second front-end that follows the layout of the
+      early-2010s console football franchise menus.`,
+    motivation: `The owner called the three ratings critical: 2025, the 2026 projection and the 2026
+      in-progress calculation on every card and roster, with a missing one saying why. The menu was a separate
+      request: not a skin but a screen-to-screen menu, mouse first, with game-controller support.`,
+    did: [
+      { what: "2026 re-exported from fresh data, with the three ratings per player",
+        why: `Script 17 now writes a status for every rostered player (rated 5,468; too few games 2,115; no
+          games 6,108; offensive line, not rated, 3,191; total 16,882) and script 12 joins 2025 earned, the
+          projection and to-date into one row. players_2026.json grew by 1,199 rows to 13,354 and
+          rosters_2026.json to 16,882. The class year landed in the same export (year removed, class_year added),
+          which turned the three failing class-year contract tests green. An isolation diff against an export
+          from the last commit's code showed no existing rating value changed: 65 files identical, the 38 player
+          and roster files differ only by the added fields and rows.`,
+        cost: "The grid gives up its Range and From columns to make room; the range moved into the card's projection tile. A design change, stated here." },
+      { what: "Three-rating presentation: plain, hatched and accent-underlined pills",
+        why: `Earned is a plain pill, the projection is hatched, to-date carries an accent underline, each with its
+          own caption on the card and a stated reason when absent. The two change chips are labelled with what
+          they are gaps between. Roster, grid, team hero and card all use the same helpers in ui.js.`,
+        cost: "New markup and CSS (a trio strip and trio columns): a design change, stated here. The rating-history chart still shows only the projection point for 2026." },
+      { what: "The Dynasty menu: menu.html and eight screens",
+        why: `A separate app beside the site, not a replacement. Team select and a hub; roster, depth chart and
+          player card; schedule, standings, rankings and the transfer portal; recruiting. One input layer turns
+          mouse, keyboard and the Gamepad API into the same actions, with spatial focus, a prompt bar that
+          switches between key and pad labels, and a connect toast. Standings, the portal and the depth order
+          use the same functions as the existing pages (leagueData.js), so a record or a move is the same
+          wherever it is drawn. Reachable from the sidebar and back from the hub.`,
+        cost: "A large amount of new code. The layout is from memory of the style it follows, with original art and no assets, fonts or copy from any game." },
+      { what: "Recruiting export and class rank (script 18)",
+        why: `recruiting_{2020..2026}.json from data already on disk: the top 400 prospects per class and a class
+          rank per team. 2026: 3,279 matched recruits, 139 teams, 115 ranked. A roster position-group fallback took
+          null positions in the 2024 and 2026 boards from 392 of 400 to 0. A NaN that would have broken the
+          browser's JSON parse was caught by the contract suite and fixed.`,
+        cost: "About 20% of a class is unmatched and absent, and the rank is our own average, not a published ranking." },
+      { what: "Team colours and logos held at their committed values",
+        why: `The fresh team harvest returned the data provider's own colours and logo host: 95 teams' primary
+          colour changed (Arizona navy to red, Arizona State maroon to gold, Army gold to black) and every logo
+          moved from the ESPN host to the provider's. That would have recoloured the site unasked and moved the
+          images, so the raw teams file was restored to the committed colour and logo for every team and the
+          export re-run. Compared with the files in the app afterwards, 123 JSON files agree, and teams.json
+          no longer differs from the last commit.`,
+        cost: "The provider's current colours are not adopted; that is a separate, visible decision." },
+    ],
+    tried: [
+      { what: "One blended 2026 number",
+        result: "Rejected unbuilt: it would hide the disagreement the owner asked to see, and no backtest of a blend over half a season exists.",
+        verdict: "rejected" },
+      { what: "Leaving players with under three games out of the to-date file",
+        result: "A blank cannot say whether a player has not played, has played twice, or is unrated by design; the status field can.",
+        verdict: "rejected" },
+      { what: "Running scripts 07, 15 and 16 to land the class year with the rest of the export",
+        result: "Not run. Their class-year edits can move ratings, which is its own measured pass; script 12 derives the class year without touching a rating.",
+        verdict: "rejected" },
+      { what: "A phone rule written at the end of styles.css for the three-rating columns",
+        result: "It lost silently: components.css loads after styles.css, so the desktop grid won at equal specificity and the players page scrolled 537px wide on a 375px phone. Found by the smoke suite, fixed by prefixing the selectors, kept.",
+        verdict: "shipped" },
+    ],
+    measured: [
+      { label: "2026 roster player-seasons in the app", before: "15,171", after: "16,882" },
+      { label: "2026 players with any rating shown", before: "projection only", after: "13,354 rows, three ratings where they exist" },
+      { label: "Rostered players with a stated to-date status", before: "5,468 (rated only)", after: "16,882" },
+      { label: "Pipeline tests", before: "317 passed, 3 failed", after: "331 passed, 0 failed" },
+      { label: "UI smoke checks", before: "105 / 106", after: "114 / 115 on the full run; the one failure was fixed and the shell (34/34) and menu (6/6) checks rerun green" },
+      { label: "App functions documented", before: "148 / 148", after: "158 / 158" },
+      { label: "Teams whose colour or logo differs from the committed site", before: "95 colour, 138 logo (fresh harvest)", after: "0" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "331 passed" },
+      { check: "python scripts/validate_ratings.py --season 2025", result: "runs and prints the 2025 position distributions; ratings were not recomputed in this pass, and the isolation diff shows none moved" },
+      { check: "cd tools/ui-smoke && npm run smoke", result: "114 of 115 on the full run; the one failure (a sidebar link inserted ahead of the data credit) was fixed and the shell and menu checks rerun green" },
+      { check: "node tools/contrast-check.mjs", result: "all floors green: dark, light, retro and the menu's own token block" },
+      { check: "node tools/theme-check.mjs, doc-check, prose-check, node --check js/*.js", result: "PASS, 158/158, clean, clean" },
+      { check: "isolation diff of the export against the last commit's code", result: "no existing rating value changed" },
+    ],
+    unfixed: `**The menu's look is from memory.** I have not seen the game it follows; layout and interaction are my
+      recollection and need your eye. Art, fonts and copy are original.
+
+      **A real controller is untested.** The gamepad path is verified with a simulated pad that drives the whole
+      menu and switches the prompt glyphs. Button layouts and stick drift on real hardware are for you to check.
+
+      **Polls are not shown.** No poll data is on disk and fetching it needs a harvest that has not been approved.
+
+      **The to-date number is provisional.** It runs about 7% high in the one back-test, needs three games, and is
+      absent for offensive linemen, who have none of the three ratings.
+
+      **The 2026 transfer portal has no "Now" rating:** that column reads the earned frame, which does not exist for
+      2026 yet. The screen says so and points to the roster.
+
+      **The rating-history chart** shows only the projection point for 2026, with no to-date marker.
+
+      **Scripts 07, 15 and 16's class-year edits are still not run.** The exported class year is derived in script 12.
+
+      **Team colours and logos stay at their committed values;** the provider's current ones were not adopted.
+
+      **Everything is uncommitted** in both repositories.`,
+    methods: ["three-ratings", "live-season", "recruiting-class-rank"],
+    files: ["scripts/17_live_season.py", "scripts/12_export_frontend_json.py", "scripts/18_export_recruiting.py",
+            "tests/test_export_contract.py", "tests/test_frontend_config.py", "menu.html", "css/menu.css",
+            "js/menuInput.js", "js/menuFocus.js", "js/menuChrome.js", "js/menuRouter.js", "js/menuScreens.js",
+            "js/menuScreensTeam.js", "js/menuScreensLeague.js", "js/leagueData.js", "js/ui.js", "js/teamsPage.js",
+            "js/playerSearch.js", "js/dataLoader.js", "js/config.js", "js/guide.js", "css/components.css",
+            "css/styles.css", "tools/ui-smoke/smoke.mjs", "tools/contrast-check.mjs",
+            "data/recruiting_2026.json", "data/players_2026.json", "data/rosters_2026.json"],
+  },
+  {
     id: "v4.8-live-and-retro",
     version: "v4.8",
     date: "2026-10-27",

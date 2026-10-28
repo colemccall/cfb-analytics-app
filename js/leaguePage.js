@@ -87,38 +87,6 @@ function _leagueSeasonSelect(seasons, tag = y => (isProjectedSeason(y) ? " (proj
 
 // ── Standings ────────────────────────────────────────────────────────────────
 
-// Builds one standings row per team from its schedule. A game counts once it has
-// a result and is not postseason. It is a CONFERENCE game when the opponent is an
-// FBS team in the same conference that season; the schedule carries no conference
-// flag, so this is derived, and independents get no conference record.
-// Returns { team, w, l, cw, cl, pf, pa } keyed by team id.
-function computeStandings(schedules, teams) {
-  const byId = {};
-  for (const t of teams) byId[t.id] = t;
-  const out = {};
-  for (const [tid, games] of Object.entries(schedules || {})) {
-    const team = byId[tid];
-    if (!team) continue;
-    const r = out[tid] = { team, w: 0, l: 0, cw: 0, cl: 0, pf: 0, pa: 0 };
-    for (const g of games) {
-      if (g.season_type === "postseason" || (g.result !== "W" && g.result !== "L")) continue;
-      const win = g.result === "W";
-      r.w += win ? 1 : 0;  r.l += win ? 0 : 1;
-      r.pf += g.team_score || 0;  r.pa += g.opp_score || 0;
-      const oppId = String(g.home_team_id) === String(tid) ? g.away_team_id : g.home_team_id;
-      const opp = byId[oppId];
-      if (g.opp_is_fbs && opp && opp.conference && opp.conference === team.conference
-          && team.conference !== "FBS Independents") {
-        r.cw += win ? 1 : 0;  r.cl += win ? 0 : 1;
-      }
-    }
-  }
-  return out;
-}
-
-// Win percentage, 0 for a team with no games, so sorting never sees a NaN.
-function _pct(w, l) { return w + l ? w / (w + l) : 0; }
-
 // Draws every conference as its own banner and table, best record first. Teams
 // are ordered by conference record, then overall record, then team rating.
 async function renderStandings(body) {
@@ -159,9 +127,7 @@ async function renderStandings(body) {
   _bindLeagueSeason();
 
   confs.forEach((c, i) => {
-    const rows = byConf[c].slice().sort((a, b) =>
-      _pct(b.cw, b.cl) - _pct(a.cw, a.cl) || _pct(b.w, b.l) - _pct(a.w, a.l)
-      || (b.team.overall_rating || 0) - (a.team.overall_rating || 0));
+    const rows = byConf[c].slice().sort(standingsOrder);
     rows.forEach((r, k) => { r.rank = k + 1; });
     createDataTable(document.getElementById(`standings-${i}`), {
       rows,
@@ -183,18 +149,6 @@ async function renderStandings(body) {
 }
 
 // ── Transfer portal ─────────────────────────────────────────────────────────
-
-// Flattens a season's per-team transfer lists to one row per transfer. Every
-// move appears once as "in" for its destination and once as "out" for its origin,
-// so keeping only "in" counts each exactly once. Players leaving for no listed
-// school (to_school null) appear on the out side only and are dropped here.
-function leagueTransferRows(byTeam) {
-  const rows = [];
-  for (const list of Object.values(byTeam || {})) {
-    for (const t of list) if (t.direction === "in") rows.push(t);
-  }
-  return rows;
-}
 
 // Draws the league-wide portal: a position filter, a name/school search and one
 // sortable table of every move, with the rating before and after.

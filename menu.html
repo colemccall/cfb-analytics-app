@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="retro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynasty Menu — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/menu.css">
+</head>
+<body class="menu-body">
+<script src="js/config.js"></script>
+<!-- ==================== THE MENU ====================
+     A separate front end from the rest of the site: its own frame, screens and
+     navigation, driven by mouse, keyboard or a game controller. shell.js is NOT
+     loaded (no sidebar). The page is pinned to the retro palette, whose rating
+     colours are tuned for navy panels. Everything is drawn by menuChrome.js and the
+     menuScreens*.js files into #menu-root; this file is only the shell. -->
+<div id="menu-root" class="menu-app"></div>
+
+<script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/leagueData.js"></script>
+<script src="js/menuInput.js"></script>
+<script src="js/menuFocus.js"></script>
+<script src="js/menuChrome.js"></script>
+<script src="js/menuRouter.js"></script>
+<script src="js/menuScreens.js"></script>
+<script src="js/menuScreensTeam.js"></script>
+<script src="js/menuScreensLeague.js"></script>
+<script>
+  const root = document.getElementById("menu-root");
+  menuInput.start();
+  menuFocus.attach(root);
+  menuChrome.build(root);
+  menuRouter.start();
+</script>
+</body>
+</html>

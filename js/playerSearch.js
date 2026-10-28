@@ -349,17 +349,24 @@ function renderGrid() {
   // Last two columns change meaning on a projected season — see projectionRangeCell /
   // gridSourceCell. Column count stays at 11 so the responsive collapse holds.
   const proj = isProjectedSeason(_activeFilters.season);
-  grid.innerHTML = `<div class="draft-board-header animate-pop">
-    <span>#</span><span>POS</span><span>Player</span>
-    <span>Team</span><span>Yr / Conf</span><span>Stars</span>
-    <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
+  const trio = valid.some(hasTrio);
+  // A season with earned-to-date ratings: the last three columns are the three
+  // ratings (last season earned · projection · to date), same 11-column count.
+  const tail = trio ? `
+    <span style="text-align:center" title="Earned last season — a full season">${_activeFilters.season - 1}</span>
+    <span style="text-align:center" title="Preseason projection, made before a game was played">PROJ</span>
+    <span style="text-align:center" title="Earned so far this season, rescaled to full-season pace. Provisional.">LIVE</span>` : `
     <span style="text-align:center">${proj ? "PROJ" : "OVR"}</span>
     <span style="text-align:center" title="${proj
       ? "The model's 80% interval around the projection — where the rating should land four times out of five"
       : "Engine D projected change in OVR next season"}">${proj ? "Range" : "Proj"}</span>
     <span style="text-align:center" title="${proj
       ? "How this projection was built"
-      : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>
+      : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>`;
+  grid.innerHTML = `<div class="draft-board-header${trio ? " trio" : ""} animate-pop">
+    <span>#</span><span>POS</span><span>Player</span>
+    <span>Team</span><span>Yr / Conf</span><span>Stars</span>
+    <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>${tail}
   </div><div class="stagger-children" id="player-grid-rows">` + valid.map((p, i) => playerRowHtml(p, i)).join("") + `</div>`;
 
   // Sortable column headers
@@ -384,7 +391,10 @@ function renderGrid() {
 // (provenance derived from the season), then either projected change and
 // EDGE percentile (played season) or projection range and source code (projected).
 function playerRowHtml(p, rank) {
-  const ovr     = p.overall_rating ? Math.round(p.overall_rating) : null;
+  const trio    = hasTrio(p);
+  const lead    = trio ? (p.live_rating ?? p.overall_rating ?? p.rating_prev) : p.overall_rating;
+  const ovr     = lead ? Math.round(lead) : null;
+  const tc      = trio ? ratingTrioCells(p, p.season) : null;
   // Rows are flat surface — the tier-colored left border + OVR pill carry the
   // rating identity. (Full-row color washes were the old "murk".)
   const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
@@ -402,7 +412,7 @@ function playerRowHtml(p, rank) {
   const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
 
   return `
-    <div class="draft-row animate-up" data-id="${p.id}" data-season="${p.season || ''}" data-rating="${p.overall_rating || 0}"
+    <div class="draft-row${trio ? " trio" : ""} animate-up" data-id="${p.id}" data-season="${p.season || ''}" data-rating="${p.overall_rating || 0}"
          style="border-left-color:${ovrColor}">
       <div class="draft-rank rank-num ${rankCls}">${rank + 1}</div>
       <div class="draft-pos">${posBadge(pg)}</div>
@@ -414,9 +424,10 @@ function playerRowHtml(p, rank) {
       <div class="draft-stars">${starsStr}</div>
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
+      ${trio ? `<div class="draft-ovr">${tc[0]}</div><div class="draft-traj">${tc[1]}</div><div class="draft-edge">${tc[2]}</div>` : `
       <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${p.season}`, season: p.season, source: p.projection_source })}</div>
       <div class="draft-traj">${isProjectedSeason(p.season) ? projectionRangeCell(p) : projHtml(p.player_season_id)}</div>
-      <div class="draft-edge">${isProjectedSeason(p.season) ? gridSourceCell(p) : oap}</div>
+      <div class="draft-edge">${isProjectedSeason(p.season) ? gridSourceCell(p) : oap}</div>`}
     </div>`;
 }
 
@@ -597,6 +608,7 @@ async function renderProjectionReasoning(playerSeasonId) {
 // Any section without data is omitted rather than rendered empty.
 function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = [], trajectory = null) {
   const stats = statsData || {};
+  const trio  = hasTrio(player);
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
   const color = ovr ? ratingColor(ovr) : "var(--surface-lift)";
   const txtCol = ovr ? ratingTextColor(ovr) : "var(--text)";
@@ -614,14 +626,14 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
         ${basisChip(player.rating_basis)}
       </div>
-      <div class="modal-ovr-box${isProjectedSeason(player.season) ? " is-projected" : ""}"
+      ${trio ? "" : `<div class="modal-ovr-box${isProjectedSeason(player.season) ? " is-projected" : ""}"
            style="background:${color};color:${txtCol}"
            title="${isProjectedSeason(player.season)
              ? _esc(`Projected ${player.season} rating — ${PROJECTION_SOURCE_LABELS[player.projection_source] || "model output"}`)
              : `Earned rating, ${player.season}`}">
         <span class="modal-ovr-num">${ovr || "—"}</span>
         <span class="modal-ovr-lbl">${isProjectedSeason(player.season) ? "PROJ OVR" : "OVR"}</span>
-      </div>
+      </div>`}
       <button class="modal-close" aria-label="Close player details">✕</button>
     </div>`;
 
@@ -645,14 +657,14 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   const totalData = hasPost ? mergeStatTotals(stats, postData, pg) : null;
   // A season that hasn't been played has no stats — a grid of em-dashes reads
   // as missing data rather than as a season that hasn't happened yet.
-  const statSectionHtml = isProjectedSeason(season) ? `
+  const statSectionHtml = isProjectedSeason(season) && !trio ? `
     <div class="modal-section">
       <div class="modal-section-title">${_esc(String(season))} Stats</div>
       <p class="breakdown-note">No games played yet. Career production through
         ${CONFIG.LAST_PLAYED_SEASON} is below, and it is what the projection is built from.</p>
     </div>` : `
     <div class="modal-section">
-      <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON})</div>
+      <div class="modal-section-title">Season Stats (${season || CONFIG.CURRENT_SEASON}${trio ? ` · through week ${player.live_through_week}` : ""})</div>
       ${hasPost ? '<div class="stats-sub-label">Regular Season</div>' : ""}
       <div class="stats-grid">${renderStatBlocks(stats, pg)}</div>
       ${hasPost ? `
@@ -878,6 +890,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
 
   return `
     ${headerHtml}
+    ${trio ? ratingTrioStrip(player, player.season) : ""}
     <div class="modal-body">
       ${bioHtml}
       ${statSectionHtml}

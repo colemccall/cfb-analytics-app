@@ -232,8 +232,13 @@ async function showTeam(team) {
       <div class="d-hero-right">
         <div class="d-hero-ovr-box">
           <span class="d-hero-ovr-num" style="color:${rCol}">${avgR}</span>
-          <span class="d-hero-ovr-label">TEAM OVR</span>
+          <span class="d-hero-ovr-label">${team.live_overall_rating != null ? "PROJECTED" : "TEAM OVR"}</span>
         </div>
+        ${team.live_overall_rating != null ? `
+        <div class="d-hero-ovr-box is-live" title="Earned so far, through week ${team.live_through_week} — provisional">
+          <span class="d-hero-ovr-num" style="color:${ratingColor(team.live_overall_rating)}">${Math.round(team.live_overall_rating)}</span>
+          <span class="d-hero-ovr-label">TO DATE · WK ${team.live_through_week}</span>
+        </div>` : ""}
         <div class="hero-stat-row">
           <span class="hero-stat-sm">${team.player_count || "—"} players · ${_currentSeason} season</span>
         </div>
@@ -586,6 +591,18 @@ function renderRosterCards(players) {
   // Column COUNT stays at 11 either way, because the responsive collapse rules
   // hide cells by position.
   const proj = isProjectedSeason(_currentSeason);
+  // A season with earned-to-date ratings carries three per player (see ui.js
+  // hasTrio): the last three columns become 2025 · PROJ · LIVE.
+  const trio = players.some(hasTrio);
+  const trioHeader = `<div class="draft-board-header trio">
+    <span>#</span><span>POS</span><span>Player</span>
+    <span style="text-align:center">Yr</span><span style="text-align:center">Stars</span>
+    <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
+    <span title="Hometown state">ST</span>
+    <span title="Earned last season — a full season">${_currentSeason - 1}</span>
+    <span title="Preseason projection, made before a game was played">PROJ</span>
+    <span title="Earned so far this season, rescaled to full-season pace. Provisional.">LIVE</span>
+  </div>`;
   const header = `<div class="draft-board-header">
     <span>#</span><span>POS</span><span>Player</span>
     <span style="text-align:center">Yr</span><span style="text-align:center">Stars</span>
@@ -602,8 +619,10 @@ function renderRosterCards(players) {
 
   const pctMap = _edgePctBySeason[_currentSeason] || {};
   const cards = filtered.map((p, i) => {
-    const ovr      = p.overall_rating ? Math.round(p.overall_rating) : null;
+    const ovr      = (trio ? (p.live_rating ?? p.overall_rating ?? p.rating_prev) : p.overall_rating)
+      ? Math.round(trio ? (p.live_rating ?? p.overall_rating ?? p.rating_prev) : p.overall_rating) : null;
     const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
+    const tc       = trio ? ratingTrioCells(p, _currentSeason) : null;
     const yr       = classYearCell(p.class_year, p.class_year_basis);
     const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
     const edgePct  = pctMap[p.player_season_id];
@@ -614,7 +633,7 @@ function renderRosterCards(players) {
     const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
     const hometown = p.hometown_state || "—";
     return `
-      <div class="draft-row" data-player-id="${p.player_id ?? p.id}" style="border-left-color:${ovrColor}">
+      <div class="draft-row${trio ? " trio" : ""}" data-player-id="${p.player_id ?? p.id}" style="border-left-color:${ovrColor}">
         <div class="draft-rank">${i + 1}</div>
         <div class="draft-pos">${posBadge(p.position_group || p.position)}</div>
         <div class="draft-name"><span class="player-name-text">${_esc(p.name || "—")}</span></div>
@@ -623,17 +642,18 @@ function renderRosterCards(players) {
         <div class="draft-ht">${ht}</div>
         <div class="draft-wt">${wt}</div>
         <div class="draft-team" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(hometown)}</div>
+        ${trio ? `<div class="draft-ovr">${tc[0]}</div><div class="draft-traj">${tc[1]}</div><div class="draft-edge">${tc[2]}</div>` : `
         <div class="draft-ovr">${p.overall_rating == null && proj
           ? unprojectedNote(p.position_group || p.position) || '<span class="text-muted">—</span>'
           : ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}</div>
         <div class="draft-traj">${proj ? projectionRangeCell(p) : projHtml(p.player_season_id)}</div>
-        <div class="draft-edge">${proj ? sourceCell(p) : oap}</div>
+        <div class="draft-edge">${proj ? sourceCell(p) : oap}</div>`}
       </div>`;
   }).join("");
 
   return `${filterBar}
     <div class="roster-table" id="roster-cards">
-      ${header}${cards || emptyState("No players for this filter.")}
+      ${trio ? trioHeader : header}${cards || emptyState("No players for this filter.")}
     </div>
     <div class="roster-footer">${filtered.length} shown · ${players.length} total</div>`;
 }
@@ -669,23 +689,6 @@ function bindRosterEvents(team) {
 }
 
 // ── Depth chart ─────────────────────────────────────────────────────────────
-// Slots shown per position group, in the order a game-day depth chart lists
-// them: the starters plus the first reserves. A count, not a roster rule.
-const DEPTH_SLOTS = {
-  Offense:        [["QB", 2], ["RB", 3], ["WR", 5], ["TE", 3], ["OL", 7]],
-  Defense:        [["EDGE", 3], ["DL", 4], ["LB", 4], ["CB", 4], ["S", 3], ["DB", 3]],
-  "Special teams": [["K", 1], ["P", 1]],
-};
-
-// The order players are listed in within a group. Rated players go by rating;
-// a position we do not rate (OL) goes by recruiting grade, which is all there is,
-// and the group says so. Unrated players always come last.
-function _depthOrder(a, b) {
-  const ra = a.overall_rating, rb = b.overall_rating;
-  if (ra != null || rb != null) return (rb ?? -1) - (ra ?? -1);
-  return (b.stars || 0) - (a.stars || 0) || (b.composite_score || 0) - (a.composite_score || 0);
-}
-
 // Builds the Depth tab: three banners (offense, defense, special teams), each a
 // grid of position-group cards listing the top players in order. There is NO
 // depth data in any source we hold — this is the order the ratings imply, not a

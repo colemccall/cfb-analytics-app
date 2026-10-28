@@ -464,3 +464,118 @@ function projectionRangeCell(p) {
   if (p.projection_low == null || p.projection_high == null) return '<span class="text-muted">—</span>';
   return `<span title="The model's 80% interval around this projection">${Math.round(p.projection_low)}–${Math.round(p.projection_high)}</span>`;
 }
+
+// ── The three ratings of a season being played ──────────────────────────────
+// A player in a season that is under way has three numbers, and they answer three
+// different questions: what he EARNED last season (a full season, final), what the
+// model PROJECTED before a game was played, and what he has earned SO FAR this
+// season (part of a season, rescaled to full-season pace, provisional). They are
+// never averaged, merged or substituted for one another — a missing one is shown as
+// missing, with the reason, rather than quietly filled from another.
+//
+// The fields come from script 12, which writes them only for a season that has an
+// earned-to-date file (script 17): rating_prev(+_basis, _status), overall_rating
+// (the projection, unchanged), live_rating(+_basis, _games, _status,
+// _through_week). A season without them renders exactly as it always did.
+
+const PREV_STATUS_TEXT = {
+  not_rated: "not rated — offensive line",
+  unrated:   "no rating last season",
+  no_season: "not on an FBS roster last season",
+};
+
+// True for a roster or player row that carries the three-ratings fields.
+function hasTrio(p) {
+  return !!p && p.live_status !== undefined;
+}
+
+// Why a live rating is absent, in a phrase a reader can act on.
+function _liveWhy(p) {
+  if (p.live_status === "too_few_games") {
+    const g = p.live_games;
+    return `${g} game${g === 1 ? "" : "s"} so far — needs 3 for a rating`;
+  }
+  if (p.live_status === "no_games") return "no game on record yet this season";
+  if (p.live_status === "not_rated") return "not rated — offensive line";
+  return "not rated yet";
+}
+
+// The earned rating from the season before. Plain (an earned number has no hatch);
+// a dash with the reason in the tooltip when there is none.
+function prevPill(p, season) {
+  const y = (season ?? CONFIG.CURRENT_SEASON) - 1;
+  if (p.rating_prev != null) {
+    return ovrPill(p.rating_prev, { label: `Earned ${y} rating — a full season` });
+  }
+  return `<span class="trio-na" title="${_esc(PREV_STATUS_TEXT[p.rating_prev_status] || "no rating")}">—</span>`;
+}
+
+// The preseason projection. Hatched by ovrPill (provenance is derived from the
+// season), with the model's 80% range in the tooltip.
+function projPill(p, season) {
+  if (p.overall_rating == null) {
+    const why = p.position_group === "OL" ? "not projected — no individual blocking data exists" : "no projection";
+    return `<span class="trio-na" title="${_esc(why)}">—</span>`;
+  }
+  const range = p.projection_low != null && p.projection_high != null
+    ? `; 80% range ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : "";
+  return ovrPill(p.overall_rating, { label: `Preseason projection, ${season}${range}`, season, source: p.projection_source });
+}
+
+// What he has earned so far this season. A distinct pill (accent underline) so the
+// three kinds are told apart by shape, not by colour alone. A player with 1–2
+// games shows "(2 gm)" — in parentheses so a sort never reads it as a rating.
+function livePill(p) {
+  const wk = p.live_through_week;
+  if (p.live_rating != null) {
+    const v = Math.round(p.live_rating);
+    const c = ratingColor(v);
+    const g = p.live_games != null ? ` · ${p.live_games} games` : "";
+    return `<span class="ovr-badge is-live" style="background:${c};color:${ratingTextColor(c)}"
+      title="${_esc(`Earned so far, through week ${wk}${g} — rescaled to full-season pace. Provisional.`)}">${v}</span>`;
+  }
+  if (p.live_status === "too_few_games") {
+    return `<span class="trio-na" title="${_esc(_liveWhy(p))}">(${p.live_games} gm)</span>`;
+  }
+  return `<span class="trio-na" title="${_esc(_liveWhy(p))}">—</span>`;
+}
+
+// The three pills as table cells, in column order: [2025, PROJ, LIVE].
+function ratingTrioCells(p, season) {
+  return [prevPill(p, season), projPill(p, season), livePill(p)];
+}
+
+// Movement between the three, each with its number: projection against last
+// season, and to-date against projection. Null where either side is missing.
+function trioDeltas(p) {
+  const d = (a, b) => (a != null && b != null ? a - b : null);
+  return { proj: d(p.overall_rating, p.rating_prev), live: d(p.live_rating, p.overall_rating) };
+}
+
+// The big three-tile strip for a player card: 2025 earned → projection → to date,
+// each captioned with what it is, the movement from the one before, and the one
+// fact that qualifies it (a range, a games count).
+function ratingTrioStrip(p, season) {
+  const y = (season ?? CONFIG.CURRENT_SEASON);
+  const d = trioDeltas(p);
+  const wk = p.live_through_week;
+  const range = p.projection_low != null && p.projection_high != null
+    ? `range ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : "no range";
+  const liveSub = p.live_rating != null
+    ? `wk ${wk ?? "?"}${p.live_games != null ? ` · ${p.live_games} games` : ""} · provisional`
+    : _liveWhy(p);
+  const tile = (cls, cap, pill, chip, sub) => `
+    <div class="trio-tile ${cls}">
+      <div class="trio-cap">${cap}</div>
+      <div class="trio-num">${pill}</div>
+      <div class="trio-chip">${chip}</div>
+      <div class="trio-sub">${_esc(sub)}</div>
+    </div>`;
+  return `<div class="trio-strip" role="group" aria-label="Three ratings">
+    ${tile("is-prev", `${y - 1} · EARNED`, prevPill(p, y), "", p.rating_prev != null ? "a full season" : (PREV_STATUS_TEXT[p.rating_prev_status] || ""))}
+    <span class="trio-arrow" aria-hidden="true">→</span>
+    ${tile("is-proj", `${y} · PROJECTION`, projPill(p, y), d.proj != null ? deltaChip(d.proj, { title: `Projection minus ${y - 1} earned` }) : "", range)}
+    <span class="trio-arrow" aria-hidden="true">→</span>
+    ${tile("is-live", `${y} · TO DATE`, livePill(p), d.live != null ? deltaChip(d.live, { title: "To date minus projection" }) : "", liveSub)}
+  </div>`;
+}

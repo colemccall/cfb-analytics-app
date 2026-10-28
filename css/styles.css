@@ -1019,3 +1019,17 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
   }
   [data-theme="retro"] .draft-row:hover { background: var(--accent-dim); }
 }
+
+
+/* ── Three-ratings boards on a phone (kept at the end with the other media blocks) ──
+   Hide the bio columns, keep # · POS · name · and all three ratings. components.css loads after
+   this file, so the selectors carry a `body` prefix to win the equal-specificity tie. */
+@media (max-width: 640px) {
+  body .draft-row.trio, body .draft-board-header.trio { grid-template-columns: 26px 46px minmax(0, 1fr) 40px 40px 44px; padding: 8px; }
+  body .draft-row.trio > :nth-child(n+4):nth-child(-n+8),
+  body .draft-board-header.trio > :nth-child(n+4):nth-child(-n+8) { display: none; }
+  body .draft-row.trio > :nth-child(n+9),
+  body .draft-board-header.trio > :nth-child(n+9) { display: block; }
+  body .trio-strip { grid-template-columns: 1fr; }
+  body .trio-arrow { transform: rotate(90deg); }
+}

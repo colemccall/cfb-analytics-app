@@ -1200,6 +1200,106 @@ confidence levels in the same product mean the reader has to remember which is w
 
   // ── What data exists ──────────────────────────────────────────────────────
   {
+    id: "three-ratings",
+    group: "projections",
+    title: "Three ratings on a 2026 player: last season, the projection, and earned to date",
+    summary: `A 2026 player card and roster row carries three numbers side by side, and they are never merged.
+      2025 is what he earned over a finished season. PROJ is the preseason model's guess for 2026, made before a
+      game was played, with an 80% range. TO DATE is what he has earned in the 2026 games so far, rescaled to
+      full-season pace (see the live-season entry). They measure different things over different amounts of
+      football, so the site shows the three and the gaps between them, and never an average. When a number does
+      not exist, the cell says why instead of leaving a dash.`,
+    inputs: [
+      { name: "2025 earned rating", source: "ratings.json, engine=edge, season 2025, joined by player_id", coverage: "players with a rated 2025 FBS season; a transfer keeps his rating, and the better row is used if he had two teams" },
+      { name: "2026 preseason projection", source: "script 16, engine=projected", coverage: "unchanged by this pass" },
+      { name: "2026 earned to date", source: "script 17's live_roster_2026.json (computed) and live_2026.json (app)", coverage: "5,468 of 16,882 rostered player-seasons, through week 8" },
+    ],
+    formula: `rating_prev  = ratings[engine=edge, season=2025, player_id]          (null + status when absent)
+rating_proj  = the existing 2026 projection                           (unchanged)
+live_rating  = script 17 chain on 2026 games, pace-rescaled           (null + status unless "rated")
+live_status  in { rated, too_few_games, no_games, not_rated }
+rating_prev_status in { rated, not_rated, unrated, no_season }
+change chips = proj - prev, live - proj                               (shown only when both sides exist)`,
+    reality: `Every roster player gets a live_status, not only the rated ones, so a row can say "2 games, not yet
+      rated" or "no games" rather than being absent. The reconciliation is exact and is a contract test:
+      5,468 rated + 2,115 too_few_games + 6,108 no_games + 3,191 not_rated (offensive line) = 16,882. 259 of the
+      rated players have no known game count, which the card shows as unknown rather than zero. The export
+      widened players_2026.json by 1,199 rows (to 13,354): anyone with a live or 2025 rating but no projection
+      is listed, with provenance "not_projected".`,
+    why: `The owner asked for exactly this: last season, the projection and the in-progress number together on
+      every 2026 card and roster. The risk was that putting three numbers in one row invites a reader to average
+      them or read one as a correction of another. So each has its own visual kind (plain pill, hatched
+      projection pill, accent-underlined to-date pill), its own caption, and the change chips say what each
+      gap is a gap between. The grid keeps the three as columns and moves the projection's range into the
+      card, because eleven columns would not otherwise fit.`,
+    evidence: [
+      { label: "Roster reconciliation, 2026", value: "5,468 rated + 2,115 too_few_games (1 to 2 games) + 6,108 no_games + 3,191 not_rated (OL) = 16,882" },
+      { label: "Isolation of the export", value: "65 files byte-identical; 38 player and roster files differ only by class_year added, year removed, the new fields and +1,199 rows in players_2026; ratings_by_position differ only year to class_year; team_ratings.json only gained live_* fields. No existing rating value changed." },
+      { label: "A large disagreement, shown as it is", value: "Trey'Dez Green reads 91 in 2025, 97 projected (+6.7, range 87 to 99) and 77 to date over 4 games (-20.8): the three can disagree widely and the card does not reconcile them" },
+      { label: "Contract tests", value: "TestThreeRatings: fields present, status vocabularies closed, a number only where the status says so, counts reconcile with live_2026.json, played seasons gain no live or previous fields" },
+    ],
+    limits: `**The three are not on the same footing.** 2025 is a full season, PROJ is a model's guess with an 80%
+      interval, and TO DATE is a part-season rescaled by a constant back-tested on one season (about 7% high).
+      A fall from PROJ to TO DATE is not by itself evidence the projection was wrong.
+
+      **No number for players without the underlying data.** A player new to FBS in 2026 has no 2025 rating; a
+      player with fewer than three games has no to-date rating; offensive linemen have none of the three,
+      because the OL player rating is withdrawn. The cell states which.
+
+      **259 rated players have no known game count.** The card shows "unknown", not a number.
+
+      **The rating-history chart still shows only the projection point for 2026,** not a to-date marker.`,
+    alternatives: [
+      { label: "One blended 2026 number (projection updated by games played)", basis: "a Bayesian update of the projection on the to-date rating", status: "rejected", note: "Not built or measured. It would hide exactly the disagreement the owner wanted to see, and no backtest of such a blend exists for a half season." },
+      { label: "Show the to-date number only for players with 3+ games and leave the rest blank", basis: "the original live_2026.json, 5,468 players", status: "rejected", note: "A blank cannot say whether the player has not played, has played twice, or is unrated by design. The status field can." },
+    ],
+    changelog: [{ version: "v4.9", change: "Three ratings on every 2026 player; roster export widened to all 16,882 player-seasons; class year landed." }],
+    source: "scripts/17_live_season.py · scripts/12_export_frontend_json.py (season_trio) · tests/test_export_contract.py (TestThreeRatings)",
+  },
+  {
+    id: "recruiting-class-rank",
+    group: "data",
+    title: "Recruiting class rank: the average composite of a team's best 15 recruits",
+    summary: `The menu's Recruiting screen ranks each team's recruiting class and lists the top 400 prospects by
+      national rank. The class rank is deliberately simple: teams are ordered by the average composite score of
+      their best 15 matched commits, and a team with fewer than 15 matched commits is left unranked. It
+      summarises the data we hold. It is not a reproduction of any published class ranking.`,
+    inputs: [
+      { name: "Recruits", source: "data/raw recruiting (script 02), class years 2020 to 2026", coverage: "2026: 3,987 recruits harvested, 3,279 matched to a player record" },
+      { name: "Players and rosters", source: "raw players and player_seasons", coverage: "name, hometown state, and the position group of a roster he later appears on" },
+    ],
+    formula: `matched      = recruits whose player_id exists in the players table
+top_avg      = mean(composite of the team's best 15 matched commits)   (null if fewer than 15)
+class_rank   = rank of top_avg, descending, among teams with a top_avg
+prospects    = matched recruits sorted by national_rank, first 400`,
+    why: `A ranking has to be something the page can show its working for. Average of the best 15 is checkable
+      against the rows beside it, ignores a long tail of low-rated signees that inflates a count-based ranking,
+      and needs no weights. Teams with fewer than 15 matched commits are unranked because an average of a few
+      players is not comparable with an average of fifteen.`,
+    evidence: [
+      { label: "2026 class", value: "3,279 matched recruits; 139 teams with a commit; 115 ranked; top five Oregon, USC, Texas, Alabama, Ohio State" },
+      { label: "Position coverage of the top 400", value: "0 null positions in 2024 and 2026 after the roster position-group fallback (392 of 400 before it)" },
+      { label: "File integrity", value: "0 NaN tokens; contract tests: class ranks run 1..n, only full classes are ranked, a missing composite is null and never 0, prospects are in national-rank order" },
+    ],
+    limits: `**Only matched recruits are listed.** About 80% of a class matches a player record; the rest are absent
+      from the board and from the averages, not zero. A team whose recruits match poorly can drop out of the
+      ranking for that reason alone.
+
+      **Not an external ranking.** It will not agree with a published class ranking, which weights commits and
+      star counts differently, and it is not meant to.
+
+      **No 2027 class.** The data stops at the class entering in the latest harvested season.
+
+      **A recruit who has not signed shows no team.** Positions come from the players table or, failing that,
+      the roster group he later appears in; a recruit with neither shows a dash.`,
+    alternatives: [
+      { label: "Rank by the sum of all commits' composite", basis: "total class points", status: "rejected", note: "Rewards class size over quality; a 30-man class outranks a 20-man class with better players." },
+      { label: "Rank by average star rating", basis: "mean stars", status: "rejected", note: "Stars are five coarse buckets; the composite score separates a high four-star from a low one." },
+    ],
+    changelog: [{ version: "v4.9", change: "Recruiting export (script 18) and the menu's Recruiting screen." }],
+    source: "scripts/18_export_recruiting.py · tests/test_export_contract.py (TestRecruitingBoard)",
+  },
+  {
     id: "ea-removed",
     group: "data",
     title: "EA CFB 27 ratings were removed from the project",

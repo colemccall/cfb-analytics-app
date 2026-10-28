@@ -108,7 +108,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
         const subRatings = typeof teamRating.sub_ratings === "string"
           ? JSON.parse(teamRating.sub_ratings)
           : (teamRating.sub_ratings || {});
-        teamRatingsMap[teamRating.team_id] = { ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
+        teamRatingsMap[teamRating.team_id] = { live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
       }
     }
   }
@@ -119,6 +119,8 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
       ...t,
       conference:     confBySeason[String(t.id)] || t.conference,
       overall_rating: teamRating.ovr || null,
+      live_overall_rating: teamRating.live ?? null,   // earned so far, in a season being played
+      live_through_week:   teamRating.liveWeek ?? null,
       offense_rating: teamRating.off || null,
       defense_rating: teamRating.def || null,
       sub_ratings:    teamRating.sub || {},
@@ -144,6 +146,13 @@ async function fetchTeamSchedule(teamId, season = CONFIG.CURRENT_SEASON) {
   const schedules = await _load(`schedules_${season}.json`);
   if (!schedules) return [];
   return schedules[String(teamId)] || [];
+}
+
+// One recruiting class: { year, prospects: [...], teams: [...] } from script 18, or
+// null for a class year with no file (CONFIG.RECRUITING_SEASONS), without a request.
+async function fetchRecruiting(year) {
+  if (!CONFIG.RECRUITING_SEASONS.includes(Number(year))) return null;
+  return _load(`recruiting_${year}.json`);
 }
 
 // The season-in-progress file written by script 17: teams and players rated on the

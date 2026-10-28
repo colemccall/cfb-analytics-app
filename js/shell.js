@@ -23,7 +23,7 @@
   document.documentElement.setAttribute("data-theme", theme);
   if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v4.8.0";
+  const VERSION = "v4.9.0";
 
   // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
   // so anything longer than ~8 characters gets an abbreviation here.
@@ -62,6 +62,7 @@
         </div>
         <div class="sidebar-version">${VERSION}</div>
         <a class="sidebar-credit" href="https://collegefootballdata.com" target="_blank" rel="noopener">Data: CollegeFootballData.com</a>
+        <a class="sidebar-credit" href="menu.html">Dynasty menu →</a>
       </div>
     </aside>`;
 

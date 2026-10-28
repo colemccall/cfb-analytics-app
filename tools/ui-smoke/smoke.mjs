@@ -745,15 +745,17 @@ check("season2026: every panel renders", async ctx => {
   return page;
 });
 
-check("players: a projected season shows the model's range, and no EA column", async ctx => {
+check("players: a projected season shows the model's range on the card, and no EA column", async ctx => {
   const page = await openPage(ctx, "players.html");
   await waitCount(page, ROWS, 50);
   const header = (await page.locator(".draft-board-header").first().innerText()).toUpperCase();
-  assert(header.includes("RANGE"), `no Range column in: ${header}`);
-  assert(!/\bEA\b/.test(header), "an EA column is back");
-  const cells = await page.locator(`${ROWS} .draft-traj`).allInnerTexts();
-  const ranged = cells.filter(c => /^\d+–\d+$/.test(c.trim())).length;
-  assert(ranged > cells.length * 0.5, `only ${ranged} of ${cells.length} rows show a range`);
+  assert(header.includes("PROJ"), `no projection column in: ${header}`);
+  assert(!/EA/.test(header), "an EA column is back");
+  // The range moved from its own grid column into the projection tile on the card.
+  await page.locator(`${ROWS}.trio .draft-name`).first().click();
+  await page.waitForSelector("#player-modal.open .trio-strip", { timeout: 90000 });
+  const proj = await page.locator("#player-modal .trio-tile").nth(1).innerText();
+  assert(/range\s+\d+–\d+/i.test(proj), `no range in the projection tile: ${proj.split(String.fromCharCode(10)).join(" | ")}`);
   return page;
 });
 
@@ -1044,6 +1046,153 @@ check("links: every internal page link and #anchor resolves", async ctx => {
 const server = await startServer();
 BASE = `http://127.0.0.1:${server.address().port}/`;
 const browser = await chromium.launch({ channel: "chrome", headless: !HEADED });
+
+// ═══════════════════════════════════════════════════════════════
+// Three ratings on a season being played: last season earned, projection, to date
+// ═══════════════════════════════════════════════════════════════
+
+check("teams: a 2026 roster shows last season, projection and to-date, with the reason when one is missing", async ctx => {
+  const page = await openTeam(ctx, "?team=Georgia");
+  await waitCount(page, "#roster-cards .draft-row.trio", 40);
+  const header = (await text(page, "#roster-cards .draft-board-header")).toUpperCase();
+  assert(header.includes(String(CURRENT - 1)) && header.includes("PROJ") && header.includes("LIVE"), `header: ${header}`);
+  assert(await page.locator("#roster-cards .ovr-badge.is-live").count() > 5, "no to-date pill on any row");
+  assert(await page.locator("#roster-cards .ovr-badge.is-projected").count() > 5, "no hatched projection pill");
+  // a row without a number says why on hover
+  const reasons = await page.locator("#roster-cards .trio-na").evaluateAll(els => els.map(e => e.title).filter(Boolean));
+  assert(reasons.length > 0 && reasons.every(r => r.length > 3), "a missing rating has no stated reason");
+  return page;
+});
+
+check("players: the 2026 grid shows the three ratings and a played season does not", async ctx => {
+  const page = await openPage(ctx, "players.html");
+  await waitCount(page, `${ROWS}.trio`, 50);
+  const h = (await text(page, ".draft-board-header")).toUpperCase();
+  assert(h.includes("LIVE") && h.includes("PROJ"), `2026 header: ${h}`);
+  await page.selectOption("#filter-season", String(PLAYED));
+  await page.waitForFunction(() => !document.querySelector(".draft-row.trio") && document.querySelectorAll(".draft-row").length > 20, null, { timeout: 60000 });
+  const h2 = (await text(page, ".draft-board-header")).toUpperCase();
+  assert(!h2.includes("LIVE"), `a played season grew a LIVE column: ${h2}`);
+  return page;
+});
+
+check("players: the 2026 card shows three tiles, never one merged number", async ctx => {
+  const page = await openPage(ctx, "players.html");
+  await waitCount(page, `${ROWS}.trio`, 50);
+  await page.locator(`${ROWS}.trio .draft-name`).first().click();
+  await page.waitForSelector("#player-modal.open .trio-strip", { timeout: 90000 });
+  assert(await page.locator("#player-modal .trio-tile").count() === 3, "expected three rating tiles");
+  const caps = (await page.locator("#player-modal .trio-cap").allInnerTexts()).join(" | ").toUpperCase();
+  assert(/EARNED/.test(caps) && /PROJECTION/.test(caps) && /TO DATE/.test(caps), `captions: ${caps}`);
+  assert(await page.locator("#player-modal .modal-ovr-box").count() === 0, "a single OVR box is back beside the three tiles");
+  return page;
+});
+
+
+// ═══════════════════════════════════════════════════════════════
+// The Dynasty menu (menu.html): its own app, mouse first, keyboard and gamepad
+// ═══════════════════════════════════════════════════════════════
+
+// Boise State, as "My Team", so a screen opens without the team-select step.
+const MENU_TEAM_ID = "68";
+async function openMenu(ctx, hash = "#/hub", opts = {}) {
+  await ctx.addInitScript(id => { try { localStorage.setItem("cfb-menu-team", id); } catch (e) {} }, MENU_TEAM_ID);
+  return openPage(ctx, `menu.html${hash}`, opts);
+}
+
+check("menu: team select sets My Team, persists it, and the hub shows it", async ctx => {
+  const page = await openPage(ctx, "menu.html#/team-select");
+  await waitCount(page, ".m-tile", 20);
+  await page.locator(".m-tile").first().click();
+  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 20000 });
+  const saved = await page.evaluate(() => localStorage.getItem("cfb-menu-team"));
+  assert(saved && Number(saved) > 0, `My Team not saved: ${saved}`);
+  await page.reload();
+  await waitCount(page, ".m-item", 6);
+  assert(await page.locator(".m-teamcard h2").count() === 1, "the hub shows no team card after a reload");
+  return page;
+});
+
+check("menu: keyboard walks hub → roster → card, and Escape walks back", async ctx => {
+  const page = await openMenu(ctx);
+  await waitCount(page, ".m-item", 6);
+  assert(await page.locator(".m-item.is-selected").count() === 1, "the hub has no single selected item");
+  await page.keyboard.press("Enter");
+  await waitCount(page, ".m-row", 10);
+  assert(page.url().includes("#/roster"), `expected the roster, at ${page.url()}`);
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => location.hash.startsWith("#/player"), null, { timeout: 30000 });
+  await waitCount(page, ".trio-tile", 3);
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => location.hash.startsWith("#/roster"), null, { timeout: 15000 });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
+  return page;
+});
+
+check("menu: the roster and the card show 2025, projection and to-date, three tiles on the card", async ctx => {
+  const page = await openMenu(ctx, "#/roster");
+  await waitCount(page, ".m-row", 10);
+  const head = (await page.locator(".m-rowhead").first().innerText()).toUpperCase();
+  assert(head.includes(String(CURRENT - 1)) && head.includes("PROJ") && head.includes("LIVE"), `roster header: ${head}`);
+  await page.locator(".m-row").first().click();
+  await page.waitForSelector(".trio-strip", { timeout: 30000 });
+  assert(await page.locator(".trio-tile").count() === 3, "expected three rating tiles on the card");
+  return page;
+});
+
+check("menu: a simulated gamepad drives the menu and the prompt bar switches to pad glyphs", async ctx => {
+  await ctx.addInitScript(() => {
+    window.__pad = { id: "Fake pad", index: 0, connected: true, mapping: "standard", axes: [0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    navigator.getGamepads = () => [window.__pad];
+  });
+  const page = await openMenu(ctx);
+  await waitCount(page, ".m-item", 6);
+  const press = async i => {
+    await page.evaluate(n => { window.__pad.buttons[n] = { pressed: true, value: 1 }; }, i);
+    await page.waitForTimeout(120);
+    await page.evaluate(n => { window.__pad.buttons[n] = { pressed: false, value: 0 }; }, i);
+    await page.waitForTimeout(120);
+  };
+  await press(13);                                   // D-pad down: the second item
+  await press(0);                                    // A: select
+  await page.waitForFunction(() => location.hash.startsWith("#/depth"), null, { timeout: 20000 });
+  assert(await page.locator(".m-glyph--pad").count() > 0, "the prompt bar did not switch to pad glyphs");
+  await press(1);                                    // B: back
+  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
+  return page;
+});
+
+check("menu: every screen renders rows with no page errors and no sideways scroll", async ctx => {
+  const rowsOf = { "#/roster": ".m-row", "#/depth": ".m-drow", "#/schedule": ".m-row", "#/standings": ".m-row",
+    "#/rankings": ".m-row--rank", "#/recruiting": ".m-row--class", "#/recruiting/prospects": ".m-row--prospect",
+    "#/portal": ".m-row--portal" };
+  let last = null;
+  for (const [hash, sel] of Object.entries(rowsOf)) {
+    for (const [width, height] of [[1280, 800], [375, 740]]) {
+      const page = await openMenu(ctx, hash, { width, height });
+      await waitCount(page, sel, 3);
+      assert(await noHorizontalScroll(page), `${hash} scrolls sideways at ${width}px`);
+      assert(!(await errorStates(page, "#m-stage")).length, `${hash} shows an error state`);
+      assert(!page.problems.length, `${hash}: ${page.problems[0]}`);
+      await page.close();
+    }
+  }
+  return last;
+});
+
+check("menu: recruiting class ranks run 1..n and the board counts match the file", async ctx => {
+  const page = await openMenu(ctx, "#/recruiting");
+  await waitCount(page, ".m-row--class", 10);
+  const ranks = await page.locator(".m-row--class .m-rank").allInnerTexts();
+  assert(ranks.slice(0, 10).every((r, i) => Number(r) === i + 1), `ranks not dense: ${ranks.slice(0, 10)}`);
+  const file = await page.evaluate(async y => (await (await fetch(`data/recruiting_${y}.json`)).json()), CURRENT);
+  const ranked = file.teams.filter(t => t.class_rank != null).sort((a, b) => a.class_rank - b.class_rank);
+  const first = await page.locator(".m-row--class .m-pname").first().innerText();
+  assert(first.trim() === ranked[0].team, `top class ${first} != file ${ranked[0].team}`);
+  return page;
+});
 
 const selected = checks.filter(c => !ONLY || c.name.startsWith(ONLY));
 const t0 = Date.now();

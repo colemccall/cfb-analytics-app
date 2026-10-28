@@ -1,0 +1,333 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   menu.css — the Dynasty menu (menu.html): a console-football-style front end.
+   A separate app from the main site, not a skin: its own frame (header, tab strip,
+   stage, button-prompt bar), its own screens, its own navigation. It reuses the
+   site's rating pills and team marks, which come from styles.css / components.css.
+
+   Original art: panels, gloss, banners and the selection bar are CSS gradients and
+   clip-paths — no images, no borrowed assets, fonts or logos.
+
+   Every colour lives in the .menu-app token block below and is held to the contrast
+   floors by tools/contrast-check.mjs (text 7:1, muted 4.5:1, text on the hot
+   selection fill 7:1). Nothing below 12px; 12px only for uppercase labels. The
+   @media block is at the END of the file, where it must stay.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.menu-app {
+  /* Field */
+  --m-bg-0:       #050b14;
+  --m-bg-1:       #0b1a31;
+  --m-glow:       #1e4c90;
+  --m-stripe:     rgba(255,255,255,0.028);
+  /* Panels: lit from above */
+  --m-panel-top:  #1e3756;
+  --m-panel-bot:  #0f2139;
+  --m-panel-edge: #7aa3d6;
+  --m-gloss:      rgba(255,255,255,0.12);
+  --m-shadow:     rgba(0,0,0,0.55);
+  --m-line:       #46668f;
+  /* Ink */
+  --m-text:       #f4f8ff;
+  --m-muted:      #a9bfdc;
+  /* The one hot colour: selection, the active tab, live data */
+  --m-hot:        #ff9a1f;
+  --m-hot-2:      #ffc24d;
+  --m-hot-glow:   rgba(255,154,31,0.45);
+  --m-on-hot:     #1a0f00;
+
+  position: fixed; inset: 0;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto;
+  color: var(--m-text); font-family: var(--font-ui);
+  background:
+    radial-gradient(120% 80% at 50% -15%, var(--m-glow) 0%, transparent 58%),
+    repeating-linear-gradient(115deg, var(--m-stripe) 0 2px, transparent 2px 24px),
+    linear-gradient(var(--m-bg-1), var(--m-bg-0));
+  overflow: hidden;
+}
+body.menu-body { display: block; margin: 0; background: var(--bg); }
+.menu-app *, .menu-app *::before, .menu-app *::after { box-sizing: border-box; }
+.menu-app button { font: inherit; color: inherit; cursor: pointer; }
+.menu-app :focus-visible { outline: 3px solid var(--m-hot-2); outline-offset: 2px; }
+
+/* ── Header: banner · title · season ─────────────────────────────────────── */
+.m-header {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 1.25rem; padding: 0.9rem 2rem 0.4rem;
+}
+.m-banner { grid-column: 1; }
+.m-titles { grid-column: 2; }
+.m-season { grid-column: 3; justify-self: end; }
+.m-banner {
+  --m-team: var(--m-line);
+  width: 96px; height: 66px; display: none; place-items: center;
+  background: linear-gradient(115deg, var(--m-team), color-mix(in srgb, var(--m-team) 55%, var(--m-bg-0)));
+  clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
+  box-shadow: inset 0 0 0 2px var(--m-gloss);
+}
+.m-banner.has-team { display: grid; }
+.m-banner .team-mark { background: transparent; border: none; font-size: var(--fs-xl); }
+.m-crumb {
+  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-muted);
+}
+.m-title {
+  font-family: var(--font-display); font-weight: 900; font-style: italic; text-transform: uppercase;
+  font-size: clamp(2.1rem, 4.4vw, 3.5rem); line-height: 1; letter-spacing: 0.015em; margin: 0.15rem 0 0;
+}
+.m-title::after {
+  content: ""; display: block; height: 4px; width: min(240px, 42%); margin-top: 0.4rem;
+  background: linear-gradient(90deg, var(--m-hot), transparent);
+}
+.m-season {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.5rem;
+  background: linear-gradient(var(--m-panel-top), var(--m-panel-bot));
+  border: 1px solid var(--m-line); border-top-color: var(--m-panel-edge);
+}
+.m-season[hidden] { display: none; }
+.m-season-label {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  font-size: var(--fs-sm); min-width: 9rem; text-align: center;
+}
+.m-step { background: transparent; border: 0; width: 2rem; height: 2rem; color: var(--m-hot-2); font-size: var(--fs-md); }
+.m-step.is-selected { background: var(--m-hot); color: var(--m-on-hot); }
+
+/* ── Tab strip: trapezoid tabs with bumper markers at the ends ───────────── */
+.m-tabs {
+  display: flex; align-items: flex-end; gap: 0.3rem; padding: 0.5rem 2rem 0;
+  border-bottom: 2px solid var(--m-line); overflow-x: auto; scrollbar-width: none;
+}
+.m-tabs[hidden] { display: none; }
+/* Explicit rows: a hidden tab strip must not let the stage and prompt bar slide up a row. */
+.m-header { grid-row: 1; }
+.m-tabs { grid-row: 2; }
+.m-stage { grid-row: 3; }
+.m-prompts { grid-row: 4; }
+.m-tab {
+  padding: 0.55rem 1.4rem; border: 0; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md);
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--m-muted);
+  background: linear-gradient(var(--m-panel-top), var(--m-panel-bot));
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+.m-tab.is-active { background: linear-gradient(var(--m-hot-2), var(--m-hot)); color: var(--m-on-hot); }
+.m-tab.is-selected:not(.is-active) { color: var(--m-text); box-shadow: inset 0 -4px 0 var(--m-hot); }
+.m-bumper {
+  align-self: center; min-width: 2.2rem; height: 1.6rem; padding: 0 0.4rem; margin: 0 0.4rem;
+  font-weight: 800; font-size: var(--fs-label); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--m-bg-0); background: var(--m-muted); border: 0; border-radius: 5px;
+}
+
+/* ── Stage: where a screen lives ─────────────────────────────────────────── */
+.m-stage { overflow: auto; padding: 1.1rem 2rem 1rem; position: relative; outline: none; }
+.m-stage.is-loading { opacity: 0.5; }
+.m-stage.is-entering { animation: m-in 220ms ease-out; }
+@keyframes m-in { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+.m-split { display: grid; grid-template-columns: minmax(260px, 36%) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.m-split--hub { grid-template-columns: minmax(260px, 30%) minmax(0, 1fr); }
+.m-error, .m-empty { padding: 2rem; color: var(--m-muted); text-align: center; }
+
+/* ── Panels ───────────────────────────────────────────────────────────────── */
+.m-panel {
+  background: linear-gradient(var(--m-panel-top), var(--m-panel-bot));
+  border: 1px solid var(--m-line); border-top-color: var(--m-panel-edge); border-radius: 6px;
+  box-shadow: 0 12px 32px var(--m-shadow), inset 0 1px 0 var(--m-gloss);
+  padding: 1rem;
+}
+
+/* ── Hub menu: big uppercase rows; the selection is a hot bar with a notch ─── */
+.m-menu { padding: 0.4rem 0; display: flex; flex-direction: column; }
+.m-item {
+  position: relative; display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 0.75rem 1.4rem; background: transparent; border: 0; text-align: left;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.45rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--m-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--m-line) 55%, transparent);
+}
+.m-item:last-child { border-bottom: 0; }
+.m-item.is-selected {
+  background: linear-gradient(90deg, var(--m-hot), var(--m-hot-2)); color: var(--m-on-hot);
+  box-shadow: 0 0 22px var(--m-hot-glow);
+}
+.m-item.is-selected::after {
+  content: ""; position: absolute; right: -9px; top: 50%; margin-top: -9px;
+  border: 9px solid transparent; border-right: 0; border-left-color: var(--m-hot-2);
+}
+.m-item[aria-disabled="true"] { color: var(--m-muted); }
+.m-item[aria-disabled="true"].is-selected { color: var(--m-on-hot); }
+.m-soon { font-family: var(--font-ui); font-size: var(--fs-label); letter-spacing: 0.12em; opacity: 0.85; }
+.m-hint { margin: 0.85rem 0 0; min-height: 1.6rem; color: var(--m-muted); font-size: var(--fs-md); }
+
+/* ── Team card / preview ─────────────────────────────────────────────────── */
+.m-teamcard, .m-preview { display: flex; flex-direction: column; gap: 0.7rem; min-height: 16rem; }
+.m-preview-head {
+  --m-team: var(--m-hot); display: flex; align-items: center; gap: 1rem;
+  padding-left: 0.9rem; border-left: 7px solid var(--m-team);
+}
+.m-preview-head h2 {
+  margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 2.1rem;
+  text-transform: uppercase; line-height: 1;
+}
+.m-sub { color: var(--m-muted); font-size: var(--fs-sm); }
+.m-preview-mark.team-mark { width: auto; min-width: 74px; height: 74px; font-size: var(--fs-xl); }
+.m-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-weight: 600; font-size: var(--fs-md); }
+.m-live, .m-proj {
+  font-family: var(--font-display); font-weight: 800; letter-spacing: 0.1em; font-size: var(--fs-sm);
+  padding: 0 0.5rem; border: 1px solid var(--m-hot); color: var(--m-hot-2);
+}
+.m-proj { border-style: dashed; color: var(--m-muted); border-color: var(--m-muted); }
+.m-note { color: var(--m-muted); font-size: var(--fs-sm); }
+.m-bar { display: grid; grid-template-columns: 6rem minmax(0, 1fr) 2.6rem; align-items: center; gap: 0.75rem; }
+.m-bar-label { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--m-muted); }
+.m-bar-track { height: 14px; background: var(--m-bg-0); border: 1px solid var(--m-line); position: relative; overflow: hidden; }
+.m-bar-track i { position: absolute; inset: 0 auto 0 0; display: block; }
+.m-bar-val { font-family: var(--font-display); font-size: var(--fs-xl); text-align: right; }
+.m-next { margin-top: auto; display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.7rem; border-top: 1px solid var(--m-line); }
+.m-next-label { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: var(--fs-label); color: var(--m-muted); }
+.m-next-game { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; text-transform: uppercase; }
+.m-next-game small { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--m-muted); font-weight: 500; text-transform: none; }
+.m-ticker {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.4rem; margin-top: 0.9rem;
+  padding: 0.5rem 1rem; background: var(--m-bg-0); border-left: 5px solid var(--m-hot);
+  font-weight: 600; font-size: var(--fs-sm);
+}
+.m-ticker-label { font-family: var(--font-display); letter-spacing: 0.14em; color: var(--m-hot-2); }
+
+/* ── Team select grid ────────────────────────────────────────────────────── */
+.m-tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 0.6rem; align-content: start; }
+.m-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  padding: 0.7rem 0.4rem; background: var(--m-panel-bot); border: 1px solid var(--m-line); color: var(--m-text);
+}
+.m-tile .team-mark { width: auto; min-width: 52px; height: 52px; font-size: var(--fs-md); }
+.m-tile-name {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.menu-app .team-mark { box-shadow: 0 0 0 2px var(--m-panel-edge); }
+.m-tile-ovr { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; color: var(--m-hot-2); }
+.m-tile.is-mine::after { content: "★"; position: absolute; top: 4px; right: 7px; color: var(--m-hot-2); }
+.m-tile.is-selected { border-color: var(--m-hot); background: var(--m-panel-top); box-shadow: 0 0 0 3px var(--m-hot), 0 0 26px var(--m-hot-glow); z-index: 1; }
+
+/* ── Button-prompt bar ───────────────────────────────────────────────────── */
+.m-prompts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.6rem; padding: 0.65rem 2rem;
+  background: linear-gradient(var(--m-panel-bot), var(--m-bg-0)); border-top: 2px solid var(--m-line);
+}
+.m-prompt { display: inline-flex; align-items: center; gap: 0.55rem; background: transparent; border: 0; padding: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--m-text); }
+.m-prompt:not(.is-static):hover span:last-child { color: var(--m-hot-2); }
+.m-glyph {
+  display: inline-grid; place-items: center; min-width: 2rem; height: 1.6rem; padding: 0 0.55rem;
+  font-weight: 800; font-size: var(--fs-sm); border-radius: 5px; background: var(--m-text); color: var(--m-bg-0);
+}
+.m-glyph--pad { border-radius: 999px; background: var(--m-hot); color: var(--m-on-hot); }
+
+.m-toast {
+  position: fixed; left: 50%; bottom: 4.2rem; transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  padding: 0.55rem 1.2rem; background: var(--m-text); color: var(--m-bg-0); font-weight: 700;
+  border-left: 5px solid var(--m-hot); transition: opacity 160ms, transform 160ms;
+}
+.m-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── Lists: roster rows, depth rows ──────────────────────────────────────── */
+.m-split--roster { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
+.m-split--card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 1rem; }
+.m-list { padding: 0; overflow: hidden; }
+.m-rowhead, .m-row {
+  display: grid; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;
+  grid-template-columns: 2.2rem 3.6rem minmax(0, 1fr) 5.2rem 4.8rem;
+}
+.m-rowhead.is-trio, .m-row.is-trio { grid-template-columns: 2.2rem 3.6rem minmax(0, 1fr) 5.2rem repeat(3, 4.6rem); }
+.m-rowhead {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.12em; font-size: var(--fs-label);
+  text-transform: uppercase; color: var(--m-muted); background: var(--m-bg-0); border-bottom: 2px solid var(--m-hot);
+}
+.m-rowhead > span:nth-child(n+5), .m-row > .m-rating { text-align: center; }
+.m-row {
+  width: 100%; background: transparent; border: 0; text-align: left; color: var(--m-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--m-line) 50%, transparent);
+}
+.m-row:nth-child(even) { background: color-mix(in srgb, var(--m-panel-top) 38%, transparent); }
+.m-row.is-selected, .m-drow.is-selected {
+  background: linear-gradient(90deg, var(--m-hot), var(--m-hot-2)); color: var(--m-on-hot);
+  box-shadow: 0 0 18px var(--m-hot-glow); position: relative; z-index: 1;
+}
+.m-row.is-selected .m-rank, .m-row.is-selected .m-pmeta, .m-drow.is-selected .m-slot { color: var(--m-on-hot); }
+.m-rank, .m-slot { font-family: var(--font-display); font-weight: 700; color: var(--m-muted); text-align: right; }
+.m-pname { font-weight: 700; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-pmeta { color: var(--m-hot-2); font-size: var(--fs-sm); white-space: nowrap; }
+.m-rating { display: flex; justify-content: center; }
+.m-detail { position: sticky; top: 0; display: flex; flex-direction: column; gap: 0.7rem; min-height: 14rem; }
+.m-detail-name { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 1.9rem; text-transform: uppercase; line-height: 1; }
+.m-detail .trio-strip { grid-template-columns: 1fr; padding: 0.4rem 0; background: none; border: 0; }
+.m-detail .trio-arrow { transform: rotate(90deg); line-height: 0.6; }
+.m-foot { margin: 0.8rem 0 0; color: var(--m-muted); font-size: var(--fs-sm); }
+.m-big .ovr-badge { font-size: var(--fs-3xl); padding: 0.1rem 0.9rem; }
+
+.m-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 0.9rem; align-items: start; }
+.m-group { padding: 0; overflow: hidden; }
+.m-group-head { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.9rem; background: var(--m-bg-0); border-bottom: 2px solid var(--m-hot); color: var(--m-muted); font-size: var(--fs-sm); }
+.m-drow {
+  width: 100%; display: grid; align-items: center; gap: 0.5rem; padding: 0.45rem 0.9rem; text-align: left;
+  grid-template-columns: 1.6rem minmax(0, 1fr) 4rem; background: transparent; border: 0; color: var(--m-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--m-line) 45%, transparent);
+}
+.m-drow.is-trio { grid-template-columns: 1.6rem minmax(0, 1fr) repeat(3, 3.7rem); }
+
+/* ── Player card ─────────────────────────────────────────────────────────── */
+.m-hero { margin-bottom: 0.9rem; }
+.m-hero-main { display: flex; flex-direction: column; gap: 0.4rem; }
+.m-bio { font-size: var(--fs-md); }
+.m-h3 { margin: 0 0 0.7rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--m-muted); font-size: var(--fs-md); }
+.m-stats { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.m-stat { min-width: 6.5rem; padding: 0.6rem 0.9rem; background: var(--m-bg-0); border-left: 4px solid var(--m-hot); display: flex; flex-direction: column; }
+.m-stat b { font-family: var(--font-display); font-size: var(--fs-2xl); line-height: 1; }
+.m-stat span { color: var(--m-muted); font-size: var(--fs-sm); }
+.m-link { display: inline-block; margin-top: 0.7rem; padding: 0.45rem 0.9rem; color: var(--m-hot-2); font-weight: 700; border: 1px solid var(--m-hot); text-decoration: none; }
+.m-link.is-selected { background: var(--m-hot); color: var(--m-on-hot); }
+.menu-app .trio-strip { background: linear-gradient(var(--m-panel-top), var(--m-panel-bot)); border: 1px solid var(--m-line); border-top-color: var(--m-panel-edge); }
+.menu-app .trio-tile { background: var(--m-bg-0); border-color: var(--m-line); }
+.menu-app .trio-tile.is-live { border-color: var(--m-hot); }
+.menu-app .trio-cap, .menu-app .trio-sub, .menu-app .trio-arrow { color: var(--m-muted); }
+
+/* ── Schedule, standings, rankings, portal rows ──────────────────────────── */
+.m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3.4rem minmax(0, 1fr) 6.4rem 4.6rem 6.4rem; }
+.m-rowhead.m-row--stand, .m-row--stand { grid-template-columns: 2.2rem minmax(0, 1fr) 4.4rem 4.4rem 3.6rem 3.6rem 4.6rem; }
+.m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 2.4rem minmax(0, 1fr) 9rem 4rem 4.6rem 5.6rem; }
+.m-rowhead.m-row--portal, .m-row--portal { grid-template-columns: 2.4rem minmax(0, 1.1fr) 3.6rem minmax(0, 1.4fr) 4rem 4rem 5.2rem; }
+.m-rowhead.m-row--class, .m-row--class { grid-template-columns: 2.4rem minmax(0, 1.2fr) 4.4rem 4.4rem 4.4rem 5rem; }
+.m-rowhead.m-row--prospect, .m-row--prospect { grid-template-columns: 3.4rem minmax(0, 1.1fr) 3.6rem 4rem 4.6rem 3.2rem minmax(0, 1fr); }
+.m-num { text-align: center; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); }
+.m-row--sched.is-next { box-shadow: inset 5px 0 0 var(--m-hot); }
+.m-row.is-mine:not(.is-selected) { background: color-mix(in srgb, var(--m-hot) 16%, transparent); }
+.m-result { font-family: var(--font-display); font-weight: 800; text-align: center; letter-spacing: 0.04em; color: var(--m-muted); }
+.m-result.is-win { color: var(--m-hot-2); }
+.m-row.is-selected .m-result, .m-row.is-selected .m-pmeta { color: var(--m-on-hot); }
+.m-row-mark.team-mark { width: auto; min-width: 2.2rem; height: 1.6rem; font-size: var(--fs-label); vertical-align: middle; margin-right: 0.4rem; }
+img.m-row-mark { width: 2.2rem; height: 1.6rem; object-fit: contain; vertical-align: middle; margin-right: 0.4rem; }
+img.m-banner-mark { width: 52px; height: 52px; object-fit: contain; }
+img.m-preview-mark { width: 74px; height: 74px; object-fit: contain; }
+/* A light plate so a navy or black mark stays legible on the dark panel. */
+img.m-banner-mark, img.m-preview-mark { background: var(--m-text); border-radius: 6px; padding: 4px; }
+.m-banner .team-mark { color: var(--m-text); text-shadow: 0 1px 2px var(--m-bg-0); }
+.m-gap { text-align: center; color: var(--m-muted); padding: 0.2rem; letter-spacing: 0.4em; }
+.m-vs { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.m-vs-side { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center; font-family: var(--font-display); text-transform: uppercase; }
+.m-vs-at { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; color: var(--m-hot-2); }
+
+@media (prefers-reduced-motion: reduce) { .m-stage.is-entering { animation: none; } .m-toast { transition: none; } }
+
+/* ── Narrow screens (kept at the end of the file) ────────────────────────── */
+@media (max-width: 900px) {
+  .m-header { padding: 0.7rem 1rem 0.3rem; grid-template-columns: auto minmax(0, 1fr); }
+  .m-season { grid-column: 1 / -1; justify-self: start; }
+  .m-tabs, .m-stage, .m-prompts { padding-left: 1rem; padding-right: 1rem; }
+  .m-split, .m-split--hub { grid-template-columns: 1fr; }
+  .m-bar { grid-template-columns: 4.6rem minmax(0, 1fr) 2.4rem; }
+  .m-item { font-size: 1.2rem; }
+  .m-split--roster, .m-split--card { grid-template-columns: 1fr; }
+  .m-detail { position: static; }
+  .m-groups { grid-template-columns: 1fr; }
+  .m-rowhead.is-trio, .m-row.is-trio { grid-template-columns: 1.6rem 3rem minmax(0, 1fr) repeat(3, 3.2rem); }
+  .m-row .m-pmeta, .m-rowhead > span:nth-child(4) { display: none; }
+  .m-rowhead.is-trio, .m-row.is-trio { grid-template-columns: 1.6rem 3rem minmax(0, 1fr) repeat(3, 3.2rem); }
+}

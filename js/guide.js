@@ -149,6 +149,12 @@ const GUIDE = [
       { term: "PROJ badge",
         sample: () => projBadge(),
         meaning: "Marks the odd one out where projected and earned numbers sit side by side — a career chart, a transfer table. On a wholly projected season the page says it once at the top instead of badging every number." },
+      { term: "To-date rating",
+        sample: () => livePill({ live_rating: 88, live_games: 6, live_through_week: 8 }),
+        meaning: "What a player has earned so far in a season being played, rescaled to full-season pace. The solid underline is what tells it from a plain earned pill and a hatched projection. It is provisional: it needs three games, and it will move as the season does. Never averaged with the projection." },
+      { term: "The three ratings",
+        sample: () => ratingTrioCells({ rating_prev: 80, overall_rating: 84, projection_low: 78, projection_high: 90, live_rating: 88, live_games: 6, live_through_week: 8, live_status: "rated", rating_prev_status: "rated", position_group: "WR" }, CONFIG.CURRENT_SEASON).join(" "),
+        meaning: `On a ${CONFIG.CURRENT_SEASON} player: last season earned, the preseason projection, and earned so far. Three different questions with three different numbers. A missing one is a dash with the reason on hover: a player with 1 or 2 games shows "(2 gm)", an offensive lineman is not rated, a newcomer has no last season.` },
       { term: "Projected-season banner",
         sample: () => `<span class="badge-proj">PROJ</span> <span class="text-muted">Every rating for ${CONFIG.CURRENT_SEASON} is a projection…</span>`,
         meaning: "Appears at the top of any page showing an unplayed season, and disappears when you switch to a played one." },
@@ -242,6 +248,33 @@ const GUIDE = [
   },
 
   // ── Page by page ──────────────────────────────────────────────────────────
+  {
+    id: "page-menu",
+    group: "pages",
+    title: "The Dynasty menu",
+    summary: `A second front door at menu.html, laid out like the franchise menus of an early-2010s console
+      football game: pick a team, land on a hub, and move through Roster, Depth Chart, Schedule, Standings,
+      Rankings, Recruiting and the Transfer Portal one screen at a time. It reads the same data as the rest of
+      the site, so a number here is the same number there. The look is original; the layout is from the
+      author's memory of that style and may not match it exactly.
+
+      A 2026 roster row and player card show three ratings side by side: last season, the preseason
+      projection, and earned to date. They are never combined.`,
+    controls: [
+      { name: "Mouse", what: "Hover moves the highlight, click selects. Tabs along the top are clickable." },
+      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H returns to the hub." },
+      { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start returns to the hub. The prompt bar at the bottom switches to controller labels." },
+    ],
+    tips: [
+      "The bar along the bottom always lists what the buttons do on the current screen.",
+      "Your team and season are remembered on this device.",
+    ],
+    limits: `Controller support follows the browser's standard gamepad layout and has been tested here with a
+      simulated pad only; an unusual controller may map differently. The depth chart is the order the ratings
+      imply, not an official chart. Polls are not shown (none are on disk), and the recruiting class rank is
+      our own summary: see the recruiting entry in Methods.`,
+  },
+
   {
     id: "page-home",
     group: "pages",

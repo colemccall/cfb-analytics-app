@@ -23,6 +23,10 @@ const CONFIG = {
   CURRENT_SEASON:     2026,
   PROJECTED_SEASONS:  [2026],
 
+  // Class years with a recruiting_{year}.json (script 18; the menu's Recruiting screen).
+  // Guarded against the files on disk by tests/test_frontend_config.py.
+  RECRUITING_SEASONS: [2020, 2021, 2022, 2023, 2024, 2025, 2026],
+
   // Seasons with a live_{season}.json (script 17: ratings earned so far in a season
   // being played). Guarded against the files on disk by tests/test_frontend_config.py.
   LIVE_SEASONS:       [2026],
