@@ -108,7 +108,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
         const subRatings = typeof teamRating.sub_ratings === "string"
           ? JSON.parse(teamRating.sub_ratings)
           : (teamRating.sub_ratings || {});
-        teamRatingsMap[teamRating.team_id] = { live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, power: teamRating.power_rating, livePower: teamRating.live_power_rating, results: teamRating.results_rating, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
+        teamRatingsMap[teamRating.team_id] = { live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, ratingPart: teamRating.rating_part, resultsGames: teamRating.results_games, power: teamRating.power_rating, livePower: teamRating.live_power_rating, results: teamRating.results_rating, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
       }
     }
   }
@@ -124,6 +124,8 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
       power_rating:        teamRating.power ?? null,       // ranks teams: quality plus results, points per game above average
       live_power_rating:   teamRating.livePower ?? null,
       results_rating:      teamRating.results ?? null,
+      rating_part:         teamRating.ratingPart ?? null,
+      results_games:       teamRating.resultsGames ?? null,
       offense_rating: teamRating.off || null,
       defense_rating: teamRating.def || null,
       sub_ratings:    teamRating.sub || {},
@@ -149,6 +151,13 @@ async function fetchTeamSchedule(teamId, season = CONFIG.CURRENT_SEASON) {
   const schedules = await _load(`schedules_${season}.json`);
   if (!schedules) return [];
   return schedules[String(teamId)] || [];
+}
+
+// The games behind every team's power rating for a season: { team_id: [{ week, opp, home, score,
+// opp_score, margin, value, expected, over }] }, or {} for a season with no file, without a request.
+async function fetchPowerGames(season) {
+  if (!CONFIG.POWER_GAME_SEASONS.includes(Number(season))) return {};
+  return (await _load(`power_games_${season}.json`)) || {};
 }
 
 // One recruiting class: { year, prospects: [...], teams: [...] } from script 18, or
@@ -276,6 +285,17 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
     if (found) return found;
   }
   return null;
+}
+
+// Every player row of one season's ratings file, or [] when that season has none.
+async function fetchSeasonPlayers(season = CONFIG.CURRENT_SEASON) {
+  return (await _load(`players_${season}.json`)) || [];
+}
+
+// One team's season-by-season history (newest first): record, conference and ratings, or [].
+async function fetchTeamHistory(teamId) {
+  const all = await _load("team_history.json");
+  return (all && all[String(teamId)]) || [];
 }
 
 // One player's row in ONE season's file, or null when that season's file has no row for him

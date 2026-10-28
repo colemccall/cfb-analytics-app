@@ -184,24 +184,21 @@ menuRouter.register("team-select", {
 // `team` rows need a team chosen. The Team tab is the drill-down into one team, the League tab is
 // everything across teams, and the News tab is what is going on and how to read it.
 function menuHubItems(tab, team) {
-  const q = team ? `team=${encodeURIComponent(team.school)}&season=${MENU.season}` : "";
   if (tab === "league") return [
-    { label: "Rankings",        route: "rankings",   hint: "The top 25 by power: team rating plus results." },
-    { label: "Standings",       route: "standings",  hint: "Conference records, derived from the results." },
-    { label: "All Teams",       href: "teams.html",    hint: "Every team's page: roster, ratings, schedule, depth." },
-    { label: "Players",         href: "players.html",  hint: "Every rated player, filterable, with the full card." },
-    { label: "Stats & Leaders", href: "ratings.html",  hint: "Position leaderboards and the rating scatter." },
-    { label: "Recruiting",      route: "recruiting", hint: "Class rankings and the prospect board for the whole league." },
-    { label: "Transfer Portal", route: "portal",     hint: "Every move in the league, with the rating before and after." },
-    { label: "Conferences",     href: "league.html",   hint: "Standings and the league-wide portal on the full page." },
+    { label: "Rankings",          route: "rankings",    hint: "The top 25 by power, with how each number is made." },
+    { label: "Standings",         route: "standings",   hint: "Conference records, derived from the results." },
+    { label: "All Teams",         route: "team-select", hint: "Every team: pick one to follow." },
+    { label: "Players & Leaders", route: "players",     hint: "Every rated player, by position, with the full card." },
+    { label: "Recruiting",        route: "recruiting",  hint: "Class rankings and the prospect board for the whole league." },
+    { label: "Transfer Portal",   route: "portal",      hint: "Every move in the league, with the rating before and after." },
   ];
   if (tab === "news") return [
-    { label: "Playoff Picture", route: "playoff",    hint: "Who would be in a 4, 8, 12 or 24-team playoff, as a bracket." },
-    { label: "'26 Season",      href: "season2026.html", hint: "The season in progress: projections and earned to date." },
-    { label: "Research",        href: "research.html", hint: "Findings, each with the table behind it." },
-    { label: "How It Works",    href: "info.html",     hint: "The guide to reading the app." },
-    { label: "Methods",         href: "methods.html",  hint: "How every number is computed and what it cannot support." },
-    { label: "Build Log",       href: "changes.html",  hint: "What changed, why, and what it cost." },
+    { label: "Playoff Picture", route: "playoff",  hint: "Who would be in a 4, 8, 12 or 24-team playoff, as a bracket." },
+    { label: "The Season",      route: "season",   hint: "The season in progress: movers and the best players to date." },
+    { label: "Research",        route: "research", hint: "Findings, each with the table behind it." },
+    { label: "How It Works",    route: "guide",    hint: "The guide to reading the app." },
+    { label: "Methods",         route: "methods",  hint: "How every number is computed and what it cannot support." },
+    { label: "Build Log",       route: "changes",  hint: "What changed, why, and what it cost." },
   ];
   return [
     { label: "Roster",          route: "roster",          hint: "Every player on the team, with last season, projection and to-date ratings." },
@@ -209,7 +206,7 @@ function menuHubItems(tab, team) {
     { label: "Schedule",        route: "schedule",        hint: "Every game, byes, the result so far, and what is next." },
     { label: "Recruiting",      route: "team-recruiting", hint: "This team's recruiting class, with a map of where the players come from." },
     { label: "Transfers",       route: "team-portal",     hint: "Players coming in and going out, with the rating before and after." },
-    { label: "Team Page",       href: `teams.html?${q}`,  hint: "The full team page: ratings, history, roster and depth." },
+    { label: "Team History",    route: "team-history",    hint: "Every season: record, conference and ratings." },
     { label: "Switch Team",     route: "team-select",     hint: "Pick a different team to follow." },
   ];
 }
@@ -227,8 +224,8 @@ menuRouter.register("hub", {
     const team = menuMyTeam(d);
     ctx.team = team; ctx.d = d; ctx.tab = tab;
     const items = menuHubItems(tab, team).map(it => `
-      <button class="m-item" type="button" data-nav data-nav-group="hub" ${it.route ? `data-route="${it.route}"` : `data-href="${_esc(it.href)}"`} data-hint="${_esc(it.hint)}">
-        <span class="m-item-label">${_esc(it.label)}</span>${it.href ? '<span class="m-soon m-soon--page">PAGE</span>' : ""}</button>`).join("");
+      <button class="m-item" type="button" data-nav data-nav-group="hub" data-route="${it.route}" data-hint="${_esc(it.hint)}">
+        <span class="m-item-label">${_esc(it.label)}</span></button>`).join("");
     return `<div class="m-split m-split--hub">
       <nav class="m-panel m-menu" aria-label="Dynasty menu">${items}</nav>
       ${tab === "league" ? menuHubLeaguePanel(d) : tab === "news" ? menuHubNewsPanel(d) : menuHubTeamPanel(d, team)}
@@ -242,7 +239,6 @@ menuRouter.register("hub", {
       if (it) hint.textContent = it.dataset.hint || "";
     });
     stage.querySelectorAll("[data-route]").forEach(b => b.addEventListener("click", () => menuRouter.go(`#/${b.dataset.route}`)));
-    stage.querySelectorAll("[data-href]").forEach(b => b.addEventListener("click", () => { window.location.href = b.dataset.href; }));
   },
   prefer: () => ".m-item",
 });
@@ -300,47 +296,3 @@ function menuHubNewsPanel(d) {
       <p class="m-note">Open the Playoff Picture for the whole bracket.</p>
     </section>`;
 }
-
-// ── Analytics library ──────────────────────────────────────────────────────
-
-// The pages outside the menu, each one a link. They are the site's analysis pages and keep
-// their own look for now; the menu is the front door and this is the way through to them.
-const MENU_LIBRARY = [
-  { label: "Players",      href: "players.html",    hint: "Every rated player, filterable, with the full card." },
-  { label: "Teams",        href: "teams.html",      hint: "Every team's roster, ratings, schedule and depth." },
-  { label: "Ratings",      href: "ratings.html",    hint: "Position leaderboards and the rating scatter." },
-  { label: "'26 Season",   href: "season2026.html", hint: "The season in progress: projections and earned to date." },
-  { label: "League",       href: "league.html",     hint: "Standings and the league-wide transfer portal." },
-  { label: "Research",     href: "research.html",   hint: "Findings, each with the table behind it." },
-  { label: "Methods",      href: "methods.html",    hint: "How every number is computed and what it cannot support." },
-  { label: "Build Log",    href: "changes.html",    hint: "What changed, why, and what it cost." },
-  { label: "How It Works", href: "info.html",       hint: "The guide to reading the site." },
-  { label: "Classic Home", href: "index.html?classic", hint: "The original home page." },
-];
-
-menuRouter.register("library", {
-  title: "Analytics",
-  crumb: () => "DYNASTY › ANALYTICS",
-  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open" }, { action: "back", label: "Back" }],
-  async render(ctx) {
-    ctx.team = menuMyTeam(await menuTeams(MENU.season));
-    const items = MENU_LIBRARY.map(it => `
-      <button class="m-item" type="button" data-nav data-nav-group="lib" data-href="${_esc(it.href)}" data-hint="${_esc(it.hint)}">
-        <span class="m-item-label">${_esc(it.label)}</span></button>`).join("");
-    return `<div class="m-split m-split--hub">
-      <nav class="m-panel m-menu" aria-label="Analytics pages">${items}</nav>
-      <section class="m-panel"><h2 class="m-detail-name">Analytics</h2>
-        <p class="m-note">These pages leave the menu and keep the site's own look. Use the browser's back button to return.</p>
-        <div class="m-hint" id="m-hint"></div></section>
-    </div>`;
-  },
-  mount(stage) {
-    const hint = stage.querySelector("#m-hint");
-    stage.addEventListener("menu:select", e => {
-      const it = e.target.closest?.("[data-href]");
-      if (it) hint.textContent = it.dataset.hint || "";
-    });
-    stage.querySelectorAll("[data-href]").forEach(b => b.addEventListener("click", () => { window.location.href = b.dataset.href; }));
-  },
-  prefer: () => "[data-href]",
-});

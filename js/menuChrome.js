@@ -181,12 +181,14 @@ menuChrome.openMenu = function () {
   el.innerHTML = `<div class="m-ovl-panel m-panel" role="dialog" aria-label="Menu">
       <h2 class="m-ovl-title">MENU</h2>
       <div class="m-ovl-cols">
-        <div><h3 class="m-ovl-h">${mine}</h3>${item("hub", "Dynasty Hub")}${item("roster", "Roster")}${item("depth", "Depth Chart")}${item("schedule", "Schedule")}${item("team-recruiting", "Recruiting Class")}${item("team-portal", "Transfers")}</div>
-        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("standings", "Standings")}${item("rankings", "Rankings")}${item("playoff", "Playoff Picture")}${item("recruiting", "Recruiting")}${item("portal", "Transfer Portal")}${item("library", "Analytics")}</div>
-        <div><h3 class="m-ovl-h">OPTIONS</h3>${item("team-select", "Switch Team")}
+        <div><h3 class="m-ovl-h">${mine}</h3>${item("hub", "Dynasty Hub")}${item("roster", "Roster")}${item("depth", "Depth Chart")}${item("schedule", "Schedule")}${item("team-recruiting", "Recruiting Class")}${item("team-portal", "Transfers")}${item("team-history", "Team History")}</div>
+        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("rankings", "Rankings")}${item("standings", "Standings")}${item("players", "Players & Leaders")}${item("recruiting", "Recruiting")}${item("portal", "Transfer Portal")}${item("team-select", "All Teams")}</div>
+        <div><h3 class="m-ovl-h">NEWS</h3>${item("playoff", "Playoff Picture")}${item("season", "The Season")}${item("research", "Research")}${item("guide", "How It Works")}${item("methods", "Methods")}${item("changes", "Build Log")}</div>
+      </div>
+      <div class="m-ovl-opts">
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="mode"><span class="m-item-label">${this.mode === "light" ? "Dark Mode" : "Light Mode"}</span></button>
-          <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button></div>
+          <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button>
       </div></div>`;
   this.root.appendChild(el);
   this.overlay = el;

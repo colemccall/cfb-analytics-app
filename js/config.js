@@ -23,6 +23,11 @@ const CONFIG = {
   CURRENT_SEASON:     2026,
   PROJECTED_SEASONS:  [2026],
 
+  // Seasons with a power_games_{season}.json (script 12): every game behind each team's power
+  // rating, for the Rankings screen's explanation. Guarded against the files on disk by
+  // tests/test_frontend_config.py.
+  POWER_GAME_SEASONS: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
+
   // Class years with a recruiting_{year}.json (script 18; the menu's Recruiting screen).
   // Guarded against the files on disk by tests/test_frontend_config.py.
   RECRUITING_SEASONS: [2020, 2021, 2022, 2023, 2024, 2025, 2026],

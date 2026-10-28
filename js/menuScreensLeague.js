@@ -162,13 +162,14 @@ menuRouter.register("rankings", {
         needs a CollegeFootballData /rankings harvest. The lists beside this one are our own team ratings.</p></section>`;
     }
     // Ranked by power (quality plus results), not by the rating alone: the rating never looks at a
-    // scoreboard. The rating is still shown beside it.
+    // scoreboard. The rating is still shown beside it, and the panel explains the number.
     const val = t => ctx.list === "live" ? d.liveById[t.id]?.overall_rating : t.overall_rating;
     const pw = t => ctx.list === "live" ? d.liveById[t.id]?.power_rating : t.power_rating;
     const ranked = d.teams.filter(t => pw(t) != null).sort((a, b) => pw(b) - pw(a));
+    ctx.ranked = ranked; ctx.pw = pw; ctx.val = val;
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
     const row = (t, i) => `
-      <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank">
+      <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}">
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
         <span class="m-pmeta">${_esc(t.conference || "")}</span>
@@ -178,16 +179,61 @@ menuRouter.register("rankings", {
       </button>`;
     const top = ranked.slice(0, 25).map(row).join("");
     const mineRow = mineIdx >= 25 ? `<div class="m-gap">· · ·</div>${row(ranked[mineIdx], mineIdx)}` : "";
-    return `<section class="m-panel m-list" aria-label="Top 25">
+    return `<div class="m-split m-split--roster">
+      <section class="m-panel m-list" aria-label="Top 25">
         <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span>REC</span><span>RATING</span><span>POWER</span></div>
         ${top}${mineRow}
       </section>
-      <p class="m-foot">Ranked by <b>power</b>: the team rating (how good its players and stats are) plus a results rating (an opponent-adjusted scoring margin from the games played), in points per game above an average team.
-        Our own numbers, not a poll. ${ctx.list === "live"
+      <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see how its power is made.</p></aside>
+    </div>
+    <p class="m-foot">Ranked by <b>power</b>: what a team's players and stats say it should do (the rating part) plus how much better or worse it has actually played than that (the results part), in points per game above an average team. Our own numbers, not a poll, and nothing external: no SP+, strength of schedule or strength of record. ${ctx.list === "live"
         ? "To date is built from this season's games so far; provisional."
         : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season."}</p>`;
   },
+  mount(stage, ctx) {
+    const detail = stage.querySelector("#m-detail");
+    if (!detail) return;
+    const byId = new Map((ctx.ranked || []).map((t, i) => [String(t.id), { t, rank: i + 1 }]));
+    let token = 0;
+    // The panel follows the selection: the team's power in its two parts and the games behind the results part.
+    stage.addEventListener("menu:select", async e => {
+      const hit = byId.get(e.target.closest?.("[data-team]")?.dataset.team);
+      if (!hit) return;
+      const mine = ++token;
+      const games = (await fetchPowerGames(MENU.season))[String(hit.t.id)] || [];
+      if (mine === token) detail.innerHTML = menuPowerPanel(hit.t, hit.rank, ctx, games);
+    });
+  },
 });
+
+// The explanation of one team's power for the Rankings screen: the two parts that add up to it
+// (rating, results), each with where it comes from, then every game that fed the results part with
+// what it was worth, what the ratings expected, and the difference.
+function menuPowerPanel(t, rank, ctx, games) {
+  const d = ctx.d, live = ctx.list === "live";
+  const lv = d.liveById[t.id];
+  const power = ctx.pw(t), rating = ctx.val(t);
+  const ratingPart = live ? lv?.rating_part : t.rating_part;
+  const resultsPart = live ? lv?.results_rating : t.results_rating;
+  const n = live ? lv?.results_games : t.results_games;
+  const st = d.standings[t.id];
+  const rows = games.map(g => `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
+      <td>W${g.week ?? "—"}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${_esc(g.opp || "—")}</td>
+      <td>${g.margin > 0 ? "W" : g.margin < 0 ? "L" : "T"} ${g.score}–${g.opp_score}</td>
+      <td>${menuPowerText(g.value)}</td><td>${menuPowerText(g.expected)}</td><td><b>${menuPowerText(g.over)}</b></td></tr>`).join("");
+  return `<h2 class="m-detail-name">${_esc(t.school)} · #${rank}</h2>
+    <div class="m-facts"><span>${st ? `${st.w}-${st.l}` : "—"}</span><span>${_esc(t.conference || "")}</span></div>
+    <div class="m-pparts">
+      <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
+      <i>+</i>
+      <div><span>RESULTS PART</span><b>${menuPowerText(resultsPart)}</b><small>${n ? `from ${n} game${n === 1 ? "" : "s"}, below` : "no games yet"}</small></div>
+      <i>=</i>
+      <div class="is-total"><span>POWER</span><b>${menuPowerText(power)}</b><small>points a game above an average team</small></div>
+    </div>
+    ${rows ? `<table class="m-ptable"><thead><tr><th>WK</th><th>OPPONENT</th><th>RESULT</th><th title="Margin (capped at 28) plus 8 for a win or minus 8 for a loss">VALUE</th><th title="What the two teams' ratings expected the game to be worth">EXPECTED</th><th title="Value minus expected: the game's contribution to the results part">OVER</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="m-note">Value is the margin (capped at 28) plus 8 for a win or minus 8 for a loss. Expected comes from the two ratings and the home edge. The results part is about the average of OVER, pulled toward 0 for a team with few games. A loss costs its 8 and its margin; a win over a team the ratings call weak earns little.</p>`
+      : '<p class="m-note">No game-by-game table for this list.</p>'}`;
+}
 
 // ── Transfer portal ───────────────────────────────────────────────────────
 

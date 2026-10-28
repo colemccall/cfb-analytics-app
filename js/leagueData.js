@@ -41,7 +41,7 @@ function computeStandings(schedules, teams) {
 }
 
 // Win percentage, 0 for a team with no games, so sorting never sees a NaN.
-function _pct(w, l) { return w + l ? w / (w + l) : 0; }
+function _winPct(w, l) { return w + l ? w / (w + l) : 0; }
 
 // Flattens a season's per-team transfer lists to one row per transfer. Every
 // move appears once as "in" for its destination and once as "out" for its origin,
@@ -80,6 +80,6 @@ function _depthOrder(a, b) {
 // The order a conference's standings are listed in: conference record, then overall
 // record, then team rating. One comparator, so the League page and the menu agree.
 function standingsOrder(a, b) {
-  return _pct(b.cw, b.cl) - _pct(a.cw, a.cl) || _pct(b.w, b.l) - _pct(a.w, a.l)
+  return _winPct(b.cw, b.cl) - _winPct(a.cw, a.cl) || _winPct(b.w, b.l) - _winPct(a.w, a.l)
     || (b.team.overall_rating || 0) - (a.team.overall_rating || 0);
 }

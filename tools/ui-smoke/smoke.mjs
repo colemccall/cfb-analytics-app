@@ -75,7 +75,13 @@ function assert(cond, msg) { if (!cond) throw new Fail(msg); }
 // External requests (Google Fonts, team logos on a CDN) are excluded: the
 // machine running this may be offline, and they are not the site's code.
 let BASE = "";
-async function openPage(ctx, rel, { width = 1400, height = 900 } = {}) {
+async function openPage(ctx, rel, { width = 1400, height = 900, raw = false } = {}) {
+  // The classic pages redirect to the menu screens that replaced them; ?classic keeps the old page
+  // for these checks. A check of the redirect itself, or of the menu, passes raw: true.
+  if (!raw && /\.html/.test(rel) && !rel.startsWith("menu.html") && !/[?&]classic(&|$)/.test(rel)) {
+    const [path, hash] = rel.split("#");
+    rel = `${path}${path.includes("?") ? "&" : "?"}classic${hash ? "#" + hash : ""}`;
+  }
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height });
   const problems = [];
@@ -427,7 +433,7 @@ check("players: ?player=ID deep link opens that player", async ctx => {
   const page = await openPage(ctx, "players.html");
   await waitCount(page, ROWS, 50);
   const id = await page.locator(ROWS).first().getAttribute("data-id");
-  await page.goto(`${BASE}players.html?player=${id}&season=${CURRENT}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE}players.html?player=${id}&season=${CURRENT}&classic`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#player-modal.open .modal-body", { timeout: 30000 })
     .catch(() => { throw new Fail("deep link landed on the board with no player open"); });
   return page;
@@ -500,7 +506,7 @@ for (const tab of ["roster", "ratings", "schedule", "transfers", "history"]) {
 check("teams: ?team= deep link and #slug deep link both open the team", async ctx => {
   const page = await openTeam(ctx, "?team=Boise%20State");
   assert((await text(page, ".d-hero-name")) === "Boise State", "?team= opened the wrong team");
-  await page.goto(`${BASE}teams.html#ohio-state`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE}teams.html?classic#ohio-state`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".d-team-hero", { timeout: 30000 });
   assert((await text(page, ".d-hero-name")) === "Ohio State", "#slug opened the wrong team");
   return page;
@@ -641,7 +647,9 @@ check("teams: schedule table sorts, opponent link navigates", async ctx => {
   await page.click("#team-tab-content th:has-text('Opponent')");
   assert(await page.getAttribute("#team-tab-content th:has-text('Opponent')", "aria-sort") === "ascending",
     "sort did not mark ascending");
-  await page.locator("#team-tab-content a.entity-link--team").first().click();
+  // The link goes to a classic page URL, which now redirects to the menu; follow it with ?classic.
+  const href = await page.locator("#team-tab-content a.entity-link--team").first().getAttribute("href");
+  await page.goto(BASE + href + (href.includes("?") ? "&" : "?") + "classic", { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".d-team-hero", { timeout: 30000 });
   assert((await text(page, ".d-hero-name")) !== "Georgia", "opponent link did not change team");
   return page;
@@ -1017,7 +1025,7 @@ check("links: every internal page link and #anchor resolves", async ctx => {
   const bad = [];
   const anchorsByPage = {};
   for (const p of PAGES) {
-    await page.goto(BASE + p, { waitUntil: "domcontentloaded" });
+    await page.goto(BASE + (/[?&]classic/.test(p) ? p : `${p}${p.includes("?") ? "&" : "?"}classic`), { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(300);
     anchorsByPage[p] = new Set(await page.evaluate(() => [...document.querySelectorAll("[id]")].map(e => e.id)));
@@ -1200,19 +1208,20 @@ check("menu: recruiting class ranks run 1..n and the board counts match the file
 });
 
 
-check("menu: the front door redirects to the menu, ?classic keeps the old home, and the library links out", async ctx => {
-  const page = await openPage(ctx, "index.html");
+check("menu: the front door and every classic page redirect to the menu; ?classic keeps the old page", async ctx => {
+  const page = await openPage(ctx, "index.html", { raw: true });
   await page.waitForURL(u => u.pathname.endsWith("menu.html"), { timeout: 20000 });
+  for (const [from, to] of [["players.html", "#/players"], ["methods.html#power-rating", "#/methods/power-rating"], ["season2026.html", "#/season"], ["research-breakout.html", "#/research/breakout"]]) {
+    const p2 = await openPage(ctx, from, { raw: true });
+    await p2.waitForFunction(t => location.hash === t, to, { timeout: 15000 });
+    await p2.close();
+  }
   const classic = await ctx.newPage();
   await classic.goto(BASE + "index.html?classic", { waitUntil: "domcontentloaded" });
   await classic.waitForTimeout(800);
   assert(classic.url().includes("index.html"), "?classic was redirected away");
   await classic.close();
-  const lib = await openMenu(ctx, "#/library");
-  await waitCount(lib, ".m-item[data-href]", 8);
-  const hrefs = await lib.locator(".m-item[data-href]").evaluateAll(els => els.map(e => e.dataset.href));
-  assert(hrefs.includes("players.html") && hrefs.includes("methods.html"), `library links: ${hrefs}`);
-  return lib;
+  return page;
 });
 
 check("menu: M switches dark and light, and remembers it", async ctx => {
@@ -1298,6 +1307,57 @@ check("menu: the schedule shows a bye week and the roster is ordered by the to-d
   const nums = lives.filter(v => v != null);
   assert(nums.length >= 5 && nums.every((v, i) => i === 0 || v <= nums[i - 1]), `roster not in to-date order: ${lives}`);
   return r;
+});
+
+
+check("menu: the readers show Methods, the Build Log, How It Works and Research inside the menu", async ctx => {
+  const m = await openMenu(ctx, "#/methods/power-rating");
+  await m.waitForSelector(".m-reader .method-title", { timeout: 20000 });
+  assert(/power/i.test(await m.locator(".m-reader .method-title").first().innerText()), "the Methods entry is not the one asked for");
+  assert(await m.locator(".m-row--read").count() > 10, "the Methods list is short");
+  const links = await m.locator('.m-reader a[href*=".html"]').count();
+  assert(links === 0, `${links} links in the entry still point at a classic page`);
+  await m.close();
+  const c = await openMenu(ctx, "#/changes");
+  await c.waitForSelector(".m-reader .method-title", { timeout: 20000 });
+  await c.close();
+  const g = await openMenu(ctx, "#/guide");
+  await g.waitForSelector(".m-reader .method-title", { timeout: 20000 });
+  await g.close();
+  const r = await openMenu(ctx, "#/research/team-performance");
+  await r.waitForSelector("#finding-root .finding-stats, #finding-root .data-table", { timeout: 60000 });
+  return r;
+});
+
+check("menu: Players & Leaders lists rated players by position and opens a card", async ctx => {
+  const page = await openMenu(ctx, "#/players/QB");
+  await waitCount(page, "button.m-row--player", 20);
+  const pos = await page.locator("button.m-row--player .m-pos").allInnerTexts();
+  assert(pos.every(p => p.trim() === "QB"), `a non-QB in the QB list: ${[...new Set(pos)]}`);
+  await page.locator("button.m-row--player").first().click();
+  await page.waitForFunction(() => location.hash.startsWith("#/player/"), null, { timeout: 15000 });
+  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  return page;
+});
+
+check("menu: The Season and Team History screens render", async ctx => {
+  const s = await openMenu(ctx, "#/season");
+  await s.waitForSelector(".m-detail-name", { timeout: 20000 });
+  assert(/week \d+/i.test(await s.locator(".m-detail-name").first().innerText()), "no week on the season screen");
+  const h = await openMenu(ctx, "#/team-history");
+  await waitCount(h, ".m-row--hist", 10);
+  return h;
+});
+
+check("menu: a ranking explains itself: power in two parts and the games behind it", async ctx => {
+  const page = await openMenu(ctx, "#/rankings");
+  await waitCount(page, ".m-row--rank", 10);
+  await page.locator(".m-row--rank").nth(2).hover();
+  await page.waitForSelector(".m-pparts", { timeout: 20000 });
+  assert(await page.locator(".m-ptable tbody tr").count() >= 4, "no games listed behind the results part");
+  const parts = (await page.locator(".m-pparts b").allInnerTexts()).map(t => Number(t.replace("−", "-").replace("+", "")));
+  assert(Math.abs(parts[0] + parts[1] - parts[2]) < 0.25, `the parts do not add up: ${parts}`);
+  return page;
 });
 
 const selected = checks.filter(c => !ONLY || c.name.startsWith(ONLY));

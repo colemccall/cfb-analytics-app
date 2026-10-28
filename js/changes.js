@@ -33,6 +33,93 @@
 
 const CHANGES = [
   {
+    id: "v4.13-explainable-power-and-console-pages",
+    version: "v4.13",
+    date: "2026-10-28",
+    title: "An explainable power ranking built on our own numbers; every page is now a console screen",
+    summary: `The owner asked for a power ranking on our own metrics that can be explained, with losses that stand for
+      something, strength of schedule that matters to some degree but nothing outside (no SP+, SOS or SOR), and a hard
+      look at why a team like Liberty rates so highly. Power is rebuilt as a rating part plus a results part, each game
+      behind it shown on the Rankings screen. The same pass turned the site's classic pages into menu screens, so the
+      whole app is one product.`,
+    motivation: `The owner said the ranking should be explainable, that unbeaten teams should not rank higher just for
+      winning, that losses must stand for something, that SP+, strength of schedule and strength of record are suspected
+      of inflating the SEC and Big Ten, that Liberty is rated far too highly, and that the classic pages break the
+      immersion and make testing hard.`,
+    did: [
+      { what: "Power rebuilt: the rating as a prior, results as the update, a win bonus, no outside numbers",
+        why: `power = rating part + results part. A game is worth its margin (capped at 28) plus 8 for a win or minus 8 for a
+          loss, read against what the two teams' ratings expected, so the schedule enters only through our own ratings.
+          Backtested on 2,781 later games (2016-2025, leave-one-season-out): 70.7% of winners picked against 62.5% for the
+          rating alone and 56.8% for the home team; shuffling the results parts across teams drops it to 57.7%, below the
+          rating alone. The Rankings screen now shows, for the selected team, the two parts, and every game with what it was
+          worth, what the ratings expected and the difference. Recomputed for 2008-2025 from cache with no API call; no team
+          rating, offense, defense or SP+ value changed.`,
+        cost: "The win bonus buys 0.7 points of winner accuracy for 0.09 points of margin error. Power still credits margin, so it is not a resume." },
+      { what: "A conference level was measured, and left switched off",
+        why: `Out-of-conference results can measure how a conference has really played against its ratings. Scored, it moves
+          accuracy by 0.1 point, and on eight weeks of data it would add 9.7 points to every SEC team and take 6.5 off every MAC
+          team. It stays in the code at zero. The measured levels are in the Methods entry rather than in the ranking.`,
+        cost: "None; it is not used." },
+      { what: "Why teams like Liberty rate highly: the finding",
+        why: `Not SP+ inflating the SEC. Our own player ratings under-separate levels: Power-4 roster ratings average 87.2 and
+          Group-of-6 83.4, a gap that implies 3.7 points a game, while the games say 7.7. The player ratings' opponent adjustment
+          (script 06) is too soft for weak opponents, so Liberty's production against Conference USA and the Sun Belt is credited
+          too generously (rating 83.3, 34th; power 22nd).`,
+        cost: "Reported, not fixed: it needs a change to the player ratings' opponent adjustment, with its own back-test, and a full recompute." },
+      { what: "Every classic page is now a menu screen; the old pages redirect",
+        why: `Players & Leaders (position tabs, sorts, the player card), The Season, Team History, Methods, Build Log, How It Works
+          and Research are screens in the menu frame. The four readers draw the registries with the same entry renderers the classic
+          pages used and rewrite their links to stay inside the menu. Every classic page now redirects to its screen (?classic keeps
+          the old page, which is how the checks still reach it). The hub's League and News tabs list the screens; the quick menu lists
+          them all.`,
+        cost: "The classic team page's tabs and the Players page's text search are not ported: the Team tab drills into a team through its own screens, and Players & Leaders has no search box yet." },
+    ],
+    tried: [
+      { what: "A conference level from out-of-conference results",
+        result: "Measured and kept at zero: a 0.1-point gain and a large, noisy effect on eight weeks of data.",
+        verdict: "rejected" },
+      { what: "Starting the results from zero instead of from the rating",
+        result: "70.4% and 13.37 margin error, against 70.7% and 13.12; and it credits a weak conference's wins as if its opponents were average.",
+        verdict: "rejected" },
+      { what: "Explaining Liberty by the team-stats half of the rating being opponent-blind",
+        result: "Checked and ruled out: across 2016-2025 the team-stat rating sits 12 to 13 points below the roster rating for every group of teams alike (Power 4 13.0, Group of 6 12.2). The roster rating is the part that rates Group-of-6 teams too highly.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Winner picked correctly on later games: rating alone / power", before: "62.5%", after: "70.7%" },
+      { label: "Margin error, points: rating alone / power", before: "14.80", after: "13.12" },
+      { label: "Power-4 minus Group-of-6: rating gap implied vs results gap, points a game", before: "3.7 implied", after: "7.7 actual" },
+      { label: "Liberty, 2026 through week 8: rank by rating / by power", before: "34", after: "22" },
+      { label: "Pipeline tests", before: "347 passed", after: "353 passed" },
+      { label: "UI smoke checks", before: "123", after: "127 / 127" },
+    ],
+    gates: [
+      { check: "python scripts/validate_rankings.py", result: "rating slope fitted 1.000 against the constant 0.98 (drift 2.1%)" },
+      { check: "re-export against the app's data", result: "only the power fields and the new power_games files differ" },
+      { check: "pytest tests -q (pipeline)", result: "353 passed" },
+    ],
+    unfixed: `**Liberty is still 22nd.** The cause is in the player ratings, not in power: their opponent adjustment is too soft
+      for weak opponents and still uses SP+. The measurement that would settle it is an ablation of that adjustment (several
+      floors, then a recompute and the same backtest); it is the next pass, and it is the real answer to the SEC and Big Ten
+      concern because it removes SP+ from the player ratings.
+
+      **LSU is still third.** Its rating part is the largest in the country and its results part is positive; its two losses
+      (by 8 and 1) cost it, but not enough to drop it behind Miami and Notre Dame.
+
+      **Power is not a resume,** and an unbeaten team is not guaranteed to rank above a team with losses.
+
+      **The classic team page and the Players text search are not ported.**
+
+      **A real controller is still untested.**
+
+      **Everything is uncommitted** in both repositories.`,
+    methods: ["power-rating", "team-ratings"],
+    files: ["utils/results_rating.py", "scripts/validate_rankings.py", "scripts/10_compute_team_ratings.py", "scripts/12_export_frontend_json.py",
+            "scripts/17_live_season.py", "tests/test_results_rating.py", "js/menuScreensPages.js", "js/menuScreensLeague.js", "js/menuScreens.js",
+            "js/menuChrome.js", "js/menuRouter.js", "js/dataLoader.js", "js/config.js", "css/menu.css", "menu.html", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.12-menu-home-one-skin-power-rankings",
     version: "v4.12",
     date: "2026-10-28",
