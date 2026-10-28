@@ -933,7 +933,9 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       overall, offense and defense come from the projected roster alone and differ from each other. The
       stored per-game team stats are now refreshed BEFORE the rating reads them (the order was reversed
       until v4.11, so a season's first run blended none); on the 2,309 stored team-seasons the refresh
-      changed nothing.`,
+      changed nothing. For a played season the team stats include the postseason (CFBD's season aggregate covers both: in
+      2025, 74 of 74 teams that played a bowl or playoff game have a games count equal to all their games); the roster
+      half reads regular-season game production only.`,
     why: `The owner's rule: each season's team rating should come from that year's player ratings and stats.
       SP+ is a model we did not build, and a rating anchored to it cannot be explained from the roster and the
       box score. The cost was measured before the change and is not small, so it is stated here instead of
@@ -998,7 +1000,7 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       team they call strong costs little. The Rankings screen shows the two parts and every game behind the second.`,
     inputs: [
       { name: "Team rating", source: "script 10 (the season's own roster ratings and team stats)", coverage: "every rated team-season; for a season in progress, the rating to date" },
-      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS", coverage: "2008-2026; 2026 through week 8" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 8" },
     ],
     formula: `rating part  = 0.98 * (team rating - mean team rating)
 value(game)  = clip(margin, +-28) + 8 if won, - 8 if lost            (from the team's side)
@@ -1042,7 +1044,11 @@ power        = rating part + results part                              (points p
 
       **Early in a season results are thin.** The ridge keeps a team near its rating after a few games.
 
-      **Only games between two FBS teams count.**`,
+      **Only games between two FBS teams count.**
+
+      **The postseason is not counted.** Bowls and the playoff appear in each team's game table marked POST, apart from the games that add up to the results part, with the same value and expected columns. Measured, they add nothing yet: with a season's bowls and playoff in, its power predicts the next season's games 65.8% / 14.03 against 66.3% / 14.06 without (2016-2024, 4,971 games); the postseason is 5.2% of FBS-vs-FBS games and 16.7% of cross-conference ones. And a season's regular-season results predict its bowl games worse than its rating does (59.8% against 66.0%, 485 games). Opt-outs and portal departures are the likely reason; that is not tested.
+
+      **Power rewards margin and rating more than a resume would.** Power is a prediction-shaped number. A sweep of the margin cap, the win bonus and the prior's weight (60 settings, 2016-2025) moved winner accuracy only between 67.6% and 70.7%, so the choice among them is a judgement about what the ranking is for. In 2026 through week 8, LSU is 3rd on a rating part of +12.7 and a results part of +9.3; Kentucky is 23rd on +1.1 and +12.3, with the head-to-head win over LSU. Kentucky's results part is already above LSU's; the gap is the team rating (91.9, 1st, against 80.1, 61st).`,
     alternatives: [
       { label: "Rank by the team rating alone", basis: "the previous rule", status: "rejected", note: "It ignores every result; LSU first with two losses, Kansas State eighth at 3-3." },
       { label: "Results from zero, no rating prior (an opponent-adjusted margin rating)", basis: "the same back-test", status: "rejected", note: "70.4% and 13.37: worse than starting from the rating, and it credits a weak conference's wins as if its opponents were average." },
@@ -1051,6 +1057,7 @@ power        = rating part + results part                              (points p
       { label: "Rank by win-loss record", basis: "wins first", status: "rejected", note: "Not built or backtested. A near win/loss margin cap of 7 scored 69.1% against 70.0% at a cap of 28." },
     ],
     changelog: [
+      { version: "v4.14", change: "Postseason games listed apart in the per-game table, shown and not counted." },
       { version: "v4.12", change: "Added: power from the rating plus a results rating, used by Rankings, the ticker, the hub and the playoff picture." },
       { version: "v4.13", change: "Rebuilt on the rating as a prior with a win bonus and a per-game explanation; conference level measured and switched off." },
     ],

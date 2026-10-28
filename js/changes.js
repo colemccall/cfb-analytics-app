@@ -36,38 +36,99 @@ const CHANGES = [
     id: "v4.14-landing-page-and-robust-cards",
     version: "v4.14",
     date: "2026-10-28",
-    title: "A landing page that needs no team; cards and rosters that fail visibly and are tested for it",
-    summary: `The menu opened on team select, so seeing the league or the news meant picking a team first. A landing page now
-      shows the league and the news straight away, and the Dynasty drill-down is the optional way to follow one team.`,
-    motivation: `The owner likes the menu but wants to view the whole league and the news without going in through a team,
-      and said the Dynasty hub is a good idea with room to grow but is not what everyone wants first.`,
+    title: "A landing page that needs no team; cards that load small and fail visibly; the postseason in schedules and records; a full player card with photos",
+    summary: `The menu opened on team select, so seeing the league or the news meant picking a team first. Player cards and
+      rosters sometimes failed to load or came up blank. Past-season schedules showed bowls as week numbers. A card
+      carried only a few stat tiles. This pass adds a landing page, makes every data failure visible and retryable,
+      cuts what a card downloads by about twelve times, labels the postseason, and builds the full card with photos.`,
+    motivation: `The owner likes the menu but wants the whole league and the news without going in through a team, said
+      cards and rosters "dont always load or miss things" and asked for error handling that is tested fully, asked that
+      schedules and stats include the postseason, and asked for the most robust card with full stats and head shots.`,
     did: [
       { what: "A landing page (#/home) is the front door; it needs no team",
         why: `Three cards (League, News, Dynasty) over the top teams by power and the season's playoff picture. League and News
           list the same screens as the hub's tabs. Dynasty shows the followed team's record, rank and next game with My Team and
           Switch Team, or a single Follow a Team entry before one is chosen. An empty or unknown route is the landing page, never
           team select. The Dynasty hub is one step below it: Back at the hub returns to the landing page, and Back at the landing
-          page opens the quick menu, which gains a Home entry. Screens about one team (roster, depth chart, schedule, a team's
-          recruiting and transfers, history) still ask for a team.`,
+          page opens the quick menu, which gains a Home entry. Screens about one team still ask for a team.`,
         cost: "A design change: one new screen and the group-card markup. The landing page lists the top eight, where the hub's League tab lists ten, so it fits on one screen." },
+      { what: "The data loader tells a failed load from an absent file, retries, and never caches a failure",
+        why: `Measured first: the loader cached every failure as null for the life of the page, so one dropped request left a roster or
+          a card empty until a reload, and an empty page read the same as "no data". Two callers asking for the same file at once each
+          downloaded it (teams.json, live_2026.json, team_history.json, schedules_2026.json and team_ratings.json were each fetched twice on one card).
+          Now a 404 is an answer and is cached; anything else (network error, server error, truncated JSON) is tried three times with growing
+          pauses, recorded, and not cached; concurrent callers share one request. The router names any file that failed while a screen was built, in
+          a banner with a Retry; a screen that throws shows an error panel with Retry instead of a blank stage; the header, tabs and prompts cannot take the frame down; a roster or card says
+          whether its file failed, is absent, or was filtered empty.`,
+        cost: "A failing file now costs about two seconds of retries before it is reported." },
+      { what: "A card reads one small file per player instead of every season's file",
+        why: `Measured first: opening one card downloaded 92.6 MB over 16 requests (81.5 MB over 15 for a 2025 card); the classic modal read 19 files, about
+          200 MB. Script 12 now writes cards/NNNN.json (player id modulo 1,024): each player's whole career, the grid's rows unchanged, oldest season first,
+          about 0.2 MB a shard. A card now downloads 7.4 MB over 7 requests, almost all of it files the whole menu shares; the card's own data is the shard and the transfer file.
+          The shards are read back from the files just written and a contract test compares them to the grid row for row.`,
+        cost: "194 MB added to data/ (395 MB to about 589 MB, 1,024 files). Dropping three rarely used fields (not_rated_reason, class_year_basis, projection_confidence) would save about 10%; not done." },
+      { what: "Rosters and cards always say why a number or a table is missing",
+        why: `Measured: no roster row lacks an id, name or position, none is duplicated, none is on two teams and no ratings row is orphaned (170,805 rows, 2016-2026), but
+          76,519 of the 153,923 roster rows for 2016-2025 (49.7%) had no rating and no stated reason, and in a crawl 305 of 1,054 past-season non-lineman cards showed a bare dash. A missing rating now
+          carries its reason in the tooltip and a note on the card (offensive linemen are withheld by design; anyone else has too few counted games on file).`,
+        cost: "The reason for a past-season blank is general (not enough counted games), not measured per player; the export does not say which of fewer than three games or no stat line it was." },
+      { what: "The postseason in schedules, records and power's listing",
+        why: `Schedules already held the bowls and the playoff, shown as 'W1' and 'W2'; they now sit under a Postseason heading, labelled POST, with the venue. A team's record shows the regular season
+          with the postseason beside it ("12-1 · post 1-1"); Standings stay regular-season; Team History counts every game and says so. Team stats already include the postseason
+          (2025: 74 of 74 teams that played one have a games count equal to all their games). Power's per-game table lists postseason games apart, "shown, not counted".`,
+        cost: "Power does not count the postseason yet: how a bowl should weigh (opt-outs, motivation) is for the strength model to measure. games.json has no bowl names, so a game is labelled Postseason with its venue." },
+      { what: "The full player card",
+        why: `Every stat the data holds, grouped as a box score, as Regular season, Postseason and Total for the season shown; a career table with a row per season and career totals (counts summed, longs taken as the maximum, rates recomputed);
+          the rating history; how each rating is built (production score and games, the three jobs of a defensive back, where the projection came from, the to-date games); the transfer path; usage shares.`,
+        cost: "No game log and no similar players on the card yet." },
+      { what: "Headshots, linked from ESPN, matched strictly",
+        why: `scripts/19_harvest_headshots.py read ESPN's public team list and 138 rosters (140 requests, no key, no CFBD spend), matched each athlete to our player by school and normalised name (a duplicate name needs a compatible position; a conflict drops both) and
+          wrote a mapping of ids. 13,170 of 16,882 players on a 2026 roster (78.0%) and 8,409 of the 10,460 the app rates (80.4%) are matched; ESPN lists 13,800 athletes, 13,269 with a photo, of which 99.3% matched. Power 4 81.7%, Group of 6 and independents 74.7%.
+          Height agrees within an inch and weight within 15 lb for all 13,139 and 13,141 comparable pairs. The image is linked, never copied, drawn over the monogram in a fixed frame, and removed if it fails to load.`,
+        cost: "An outside dependency (photos vanish if the host changes), visitors' browsers request images from ESPN, the images are ESPN's, and a player who has left has none. A switch (CONFIG.HEADSHOTS_ENABLED) turns every photo off. The agreement check is a consistency check, not independent proof: both sources carry school-provided sizes." },
     ],
     tried: [
       { what: "Keeping the hub as the front door and making its League tab the default",
         result: "It would have opened on one tab of a team-centred screen, with the Dynasty group missing for anyone who does not follow a team.",
         verdict: "rejected" },
+      { what: "Reading the card from every season's players file, as before",
+        result: "92.6 MB over 16 requests to open one card.",
+        verdict: "replaced" },
+      { what: "Counting postseason games in power: does a season's strength predict the next season better with its bowls and playoff?",
+        result: "No measurable gain. Season s's power predicting every regular-season game of s+1 (2016-2024, 4,971 games, leave-one-season-out): winner 66.3% without the postseason, 65.8% with it; margin error 14.06 and 14.03. The postseason is 5.2% of FBS-vs-FBS games and 16.7% of cross-conference ones (388 of 2,318 in 2016-2025); the regular season has about five times as many cross-conference games. A conference level learned from cross-conference games (full-season data, lambda 5) is worth 0.4 points of winner accuracy and 0.13 of margin error, with or without the postseason.",
+        verdict: "measured, not counted" },
+      { what: "Does regular-season performance predict the postseason games themselves?",
+        result: "No better than the rating. On 485 FBS-vs-FBS bowl and playoff games, 2016-2024: the season's rating alone picks 66.0% (margin error 12.82); power (rating plus regular-season results) 59.8% (13.11); always the average margin 13.48. Margins of victory in the regular season did not carry into bowls; opt-outs and portal departures are the likely reason, and this is not yet tested.",
+        verdict: "measured, reported" },
+      { what: "A sweep of the margin cap, the win bonus and the prior's weight (60 settings), after the owner said power rewards margins and ranks LSU too high against Kentucky",
+        result: "Winner accuracy 67.6-70.7% and margin error 13.12-13.69 across the whole grid; the shipped setting (cap 28, bonus 8, prior ridge 2) is best on both. A results-leaning setting (cap 7, bonus 16, ridge 2) scores 69.3% / 13.51 and puts Kentucky 6th above LSU 11th. In 2026 through week 8 LSU is 3rd (rating part +12.7, results part +9.3) and Kentucky 23rd (rating part +1.1, results part +12.3): Kentucky's results part is already above LSU's; LSU leads on the rating part alone (rating 91.9, 1st, against 80.1, 61st). LSU's rank moves between 2nd and 12th across the grid.",
+        verdict: "measured, constants not changed" },
     ],
     measured: [
       { label: "First visit with no team chosen opens on", before: "Team select", after: "The landing page" },
-      { label: "UI smoke checks, menu group", before: "17", after: "20 (landing page, hub Back, quick menu Home added)" },
+      { label: "Data one card downloads (local, uncompressed)", before: "92.6 MB / 16 requests", after: "7.4 MB / 7 requests" },
+      { label: "Roster rows 2016-2025 with no rating and no stated reason", before: "76,519 of 153,923 (49.7%)", after: "0 (each has a reason in its tooltip)" },
+      { label: "Crawl: every rostered player's card and every position tab, 5 seasons x 4 teams", before: "305 of 1,054 past-season cards with a bare dash", after: "1,757 cards, 240 roster tabs, 0 problems" },
+      { label: "Players on a 2026 roster with a photo", before: "none", after: "13,170 of 16,882 (78.0%)" },
+      { label: "Margin sweep: range of winner accuracy / margin error over 60 settings", before: "shipped 70.7% / 13.12", after: "67.6-70.7% / 13.12-13.69" },
+      { label: "Postseason as evidence for the next season: winner / margin error", before: "66.3% / 14.06 (regular season only)", after: "65.8% / 14.03 (with bowls and playoff)" },
+      { label: "UI smoke checks", before: "127", after: "140 passed" },
+      { label: "Pipeline tests", before: "353 passed", after: "440 passed" },
     ],
     gates: [
-      { check: "node tools/ui-smoke/smoke.mjs --only=menu", result: "20 / 20" },
+      { check: "node tools/ui-smoke/smoke.mjs", result: "140 / 140 (one earlier run had a 45-second timeout in a classic-page check that passed alone and on rerun)" },
+      { check: "pytest tests -q; node --check js/*.js; doc-check 185/185; prose, theme and contrast checks", result: "440 passed; all clean" },
+      { check: "re-export against the app's data", result: "only schedules_*, power_games_*, manifest and the new cards/ differ; every rating, roster, player and team file is byte-identical" },
     ],
-    unfixed: `**Part of the same session, not finished in this entry:** error handling and tests for cards and rosters, the postseason
-      in schedules, and the full player card (see the entries that follow). **A real controller is still untested.**
-      **Everything is uncommitted** in both repositories.`,
-    methods: [],
-    files: ["js/menuRouter.js", "js/menuScreens.js", "js/menuChrome.js", "js/menuScreensPages.js", "css/menu.css", "tools/ui-smoke/smoke.mjs"],
+    unfixed: `**The strength model is not started.** Strength of schedule and conference measured by us, fitted to ten years of results with the postseason, is the next piece
+      of work (explore first, report before building); the Liberty finding from v4.13 stands. **Power does not count the postseason.**
+      **No game log and no similar players on the card;** the roster header strip has no photo. **Photos exist only for the 2026 roster,** and depend on ESPN.
+      **A blank past-season rating gets a general reason,** not a per-player one. **The classic modal still reads every season's file** (it is reachable only with ?classic).
+      **bowl names are not in the data.** **card shards added 194 MB** to data/. **A real controller is still untested.** **Everything is uncommitted** in both repositories.`,
+    methods: ["power-rating", "team-ratings"],
+    files: ["js/menuRouter.js", "js/menuScreens.js", "js/menuScreensTeam.js", "js/menuScreensLeague.js", "js/menuScreensPages.js", "js/menuCard.js", "js/menuChrome.js",
+            "js/dataLoader.js", "js/leagueData.js", "js/ui.js", "js/config.js", "css/menu.css", "menu.html", "tools/ui-smoke/smoke.mjs",
+            "scripts/12_export_frontend_json.py", "scripts/19_harvest_headshots.py", "tests/test_export_contract.py", "tests/test_headshots.py", "tests/test_frontend_config.py"],
   },
   {
     id: "v4.13-explainable-power-and-console-pages",
