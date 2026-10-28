@@ -23,12 +23,12 @@
   document.documentElement.setAttribute("data-theme", theme);
   if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v4.9.0";
+  const VERSION = "v4.10.0";
 
   // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
   // so anything longer than ~8 characters gets an abbreviation here.
   const PAGES = [
-    { id: "home",     href: "index.html",      icon: "⬡",  label: "Home" },
+    { id: "home",     href: "index.html?classic",      icon: "⬡",  label: "Home" },
     { id: "season26", href: "season2026.html", icon: "🏈", label: "'26 Season", short: "'26" },
     { id: "teams",    href: "teams.html",      icon: "🏟",  label: "Teams" },
     { id: "players",  href: "players.html",    icon: "👤", label: "Players" },

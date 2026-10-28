@@ -275,6 +275,14 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
   return null;
 }
 
+// One player's row in ONE season's file, or null when that season's file has no row for him
+// (unlike fetchPlayerProfile, which falls back to other seasons). A player on a roster with
+// no ratings row is common: 2026 has 3,528 of them, so a caller needs to know it was absent.
+async function fetchSeasonPlayer(playerId, season = CONFIG.CURRENT_SEASON) {
+  const rows = await _load(`players_${season}.json`);
+  return rows?.find(p => p.id == playerId) || null;
+}
+
 // ---------------------------------------------------------------------------
 // Single player live stats — included in players_{season}.json, no extra fetch needed.
 // Returns array shaped like old stats rows: [{season, stat_type, data, team}]

@@ -33,6 +33,91 @@
 
 const CHANGES = [
   {
+    id: "v4.10-menu-primary-and-rating-audit",
+    version: "v4.10",
+    date: "2026-10-28",
+    title: "The Dynasty menu becomes the front door; player cards fixed; a rating audit",
+    summary: `Three complaints after v4.9: the menu looked like a theme rather than the app, player cards
+      had no 2026 data and did not connect to anything, and some ratings looked wrong, LSU's most of all.
+      The menu is restyled to the early-2010s console football menu look from the owner's reference
+      screenshots and is now what the site opens to. The cards were failing for 3,528 rostered players.
+      The audit found a real defect in preseason team offense and defense, and measured that the
+      preseason team rating ranks teams worse than last year's rating did. That second finding is
+      reported here and not yet acted on.`,
+    motivation: `The owner supplied six reference screenshots and asked for that look as the primary way to
+      view the app, with light and dark modes; said cards had no 2026 data or connections; and asked why LSU
+      is rated so high for 2026.`,
+    did: [
+      { what: "The menu restyled to the reference look, and made the front door",
+        why: `Dusk-stadium background; a black glossy title bar with a red selector pill for the season;
+          brushed-silver menu buttons that go black with red end caps when selected; team-coloured glossy tiles on
+          team select; a black prompt bar with a round badge over a top-25 scores ticker. Dark (dusk) and light
+          (daylight) modes on the M key and the Select button, remembered on the device; the page theme follows
+          the mode so the rating pills repaint. index.html now redirects to menu.html; the old home is at
+          index.html?classic and the sidebar's Home link points there. A new Analytics screen lists the
+          existing pages (Players, Teams, Ratings, Research, Methods, Build Log and the rest).`,
+        cost: "Design changes, stated: new chrome, a ticker, two modes, and a redirect. The pages behind Analytics keep their old look; restyling them is not done." },
+      { what: "Player cards for every rostered player, with a career strip",
+        why: `The card read only players_2026.json, which lacks 3,528 of the 16,882 rostered players (no
+          projection and fewer than three games, or offensive line), so those cards said there was no data. It now
+          falls back to the team roster row, states why there are no stat tiles, and adds a Career ratings strip
+          (every earlier season, then the projection and to-date number).`,
+        cost: "Roster rows carry no box-score stats, so those players still show none, now with the reason." },
+      { what: "Preseason offense and defense withheld in the menu",
+        why: `For an unplayed season every team's offense, defense and overall rating are the same number
+          (138 of 138 in 2026, against 0 of 136 for 2025), so two identical bars read as a measurement. The menu
+          now shows a dash with a tooltip. Earned-to-date offense and defense are real and still shown.`,
+        cost: "The classic site's team pages still draw the identical bars. Not changed there." },
+    ],
+    tried: [
+      { what: "Rebuilding preseason offense and defense from the position sub-ratings",
+        result: `Measured against points scored and allowed per game, weeks 1 to 8, 137 teams: offense Spearman 0.360 (overall repeated) against 0.364 (sub-ratings); defense 0.338 against 0.329. The split carries no usable information (the offense minus defense gap has a standard deviation of 2.0 points), so it was withheld rather than redrawn.`,
+        verdict: "rejected" },
+      { what: "Restyling every classic page in the same pass",
+        result: "Not done: the menu, cards and rating audit were the complaints. Deferred, and said so below.",
+        verdict: "rejected" },
+      { what: "A second browser theme for light mode",
+        result: "Rejected in favour of a mode inside the menu's own token block, held to the contrast floors by contrast-check. The page theme follows it only so rating pills pick the right ramp.",
+        verdict: "shipped" },
+    ],
+    measured: [
+      { label: "Preseason team offense = defense = overall, 2026", before: "138 of 138 teams", after: "withheld in the menu" },
+      { label: "Team rating vs average scoring margin against FBS opponents, weeks 1 to 8 (Spearman, 135 teams)", before: "2025 earned 0.486; 2025 SP+ 0.487", after: "2026 preseason 0.411; 2026 to date 0.809" },
+      { label: "Player projections, mean change for players with a 2025 rating", before: "+3.0 (2023 to 24, n 5,099), +3.9 (2024 to 25, n 4,940)", after: "+4.1 (2025 to 26, n 5,805): in line, not a bias" },
+      { label: "LSU", before: "2025 earned 80.4 (offense 71.8, defense 87.2, SP+ 10.3)", after: "2026 preseason 91.9 (+11.5, fifth); to date 92.4, first, while ranking 10th of 137 by margin (+18.8)" },
+      { label: "Rostered 2026 players whose card had no data", before: "3,528 of 16,882", after: "0 (card opens, reason stated)" },
+      { label: "UI smoke checks", before: "115", after: "118 / 118" },
+    ],
+    gates: [
+      { check: "cd tools/ui-smoke && npm run smoke", result: "118/118" },
+      { check: "node tools/contrast-check.mjs", result: "all floors green: dark, light, retro, and the menu in both of its modes" },
+      { check: "node tools/doc-check.mjs, prose-check, theme-check, node --check js/*.js", result: "PASS" },
+    ],
+    unfixed: `**Why LSU is rated so high, answered, not fixed.** The 2026 preseason team rating comes only from the
+      roster: the mean of a team's top 22 projected players blended with a position-weighted composite. It has no
+      SP+, no offensive line and no schedule, and it does not look at what the team did last year. LSU's roster
+      projects high (several 85 to 97 projections; 19 of its 71 rated players are new with no 2025 rating) so it
+      lands at 91.9 against 80.4 earned in 2025. Player projections are not biased (above), but the team rollup
+      ranks teams worse than last year's team rating did (0.411 against 0.486 on eight weeks), so the roster-only
+      shape is the weak part. Blending the prior team rating in would likely help; it needs a back-test on past
+      seasons and a placebo before it ships, and has not been built.
+
+      **To-date LSU, 92.4,** is first by rating but tenth by scoring margin, and Indiana (92.3) is twentieth.
+      Margin is only one view, with eight games of unequal schedules.
+
+      **The pages behind Analytics keep their old look.** Making the whole site look like the menu is the next
+      large piece of work.
+
+      **A real controller is still untested,** and the look is from memory of screenshots, not the game.
+
+      **The classic team pages still show identical preseason offense and defense bars.**
+
+      **Everything is uncommitted** in both repositories.`,
+    methods: ["three-ratings", "live-season"],
+    files: ["css/menu.css", "js/menuChrome.js", "js/menuInput.js", "js/menuScreens.js", "js/menuScreensTeam.js",
+            "js/dataLoader.js", "index.html", "js/shell.js", "tools/contrast-check.mjs", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.9-three-ratings-and-menu",
     version: "v4.9",
     date: "2026-10-28",

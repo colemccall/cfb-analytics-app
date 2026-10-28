@@ -278,7 +278,7 @@ const GUIDE = [
   {
     id: "page-home",
     group: "pages",
-    page: "index.html",
+    page: "index.html?classic",
     title: "Home",
     summary: `The front door: a handful of claims the data supports this week, each linking to the
       full list behind it. Every number on it is computed from the data files when the page loads;

@@ -15,8 +15,8 @@
 // What each action is called on each device. The mouse shows the keyboard labels:
 // those are the ones a mouse user who wants a shortcut needs.
 const MENU_GLYPHS = {
-  keys: { select: "Enter", back: "Esc", tabs: "Q / E", page: "PgUp / PgDn", alt: "Space", season: "Y", home: "H", move: "↑ ↓ ← →" },
-  pad:  { select: "A",     back: "B",   tabs: "LB / RB", page: "LT / RT",   alt: "X",     season: "Y", home: "Start", move: "D-pad" },
+  keys: { select: "Enter", back: "Esc", tabs: "Q / E", page: "PgUp / PgDn", alt: "Space", season: "Y", home: "H", mode: "M", move: "↑ ↓ ← →" },
+  pad:  { select: "A",     back: "B",   tabs: "LB / RB", page: "LT / RT",   alt: "X",     season: "Y", home: "Start", mode: "Select", move: "D-pad" },
 };
 
 const menuChrome = { el: {}, prompts: [], toastTimer: null };
@@ -39,9 +39,13 @@ menuChrome.build = function (root) {
     </header>
     <nav class="m-tabs" id="m-tabs" aria-label="Screen tabs" hidden></nav>
     <main class="m-stage" id="m-stage" tabindex="-1"></main>
-    <footer class="m-prompts" id="m-prompts" aria-label="Controls"></footer>
+    <footer class="m-bottom">
+      <div class="m-prompts" id="m-prompts" aria-label="Controls"></div>
+      <div class="m-ticker" aria-label="Top 25 teams"><span class="m-ticker-tag">TOP 25</span>
+        <div class="m-ticker-run"><div class="m-ticker-track" id="m-ticker-track"></div></div><span class="m-ticker-end">CFB</span></div>
+    </footer>
     <div class="m-toast" id="m-toast" role="status" aria-live="polite"></div>`;
-  for (const id of ["banner", "crumb", "title", "season", "season-label", "tabs", "stage", "prompts", "toast"]) {
+  for (const id of ["banner", "crumb", "title", "season", "season-label", "tabs", "stage", "prompts", "ticker-track", "toast"]) {
     this.el[id] = root.querySelector(`#m-${id}`);
   }
   window.addEventListener("menu:device", () => this.renderPrompts());
@@ -51,6 +55,10 @@ menuChrome.build = function (root) {
   });
   this.el.season.querySelectorAll(".m-step").forEach(b =>
     b.addEventListener("click", () => menuRouter.stepSeason(parseInt(b.dataset.step))));
+  this.root = root;
+  this.setMode(menuChrome.savedMode(), false);
+  menuInput.on("mode", () => { this.setMode(this.mode === "light" ? "dark" : "light", true); return true; });
+  this.loadTicker();
   return this.el.stage;
 };
 
@@ -94,8 +102,9 @@ menuChrome.setPrompts = function (prompts) {
 // markers on the tab strip pick up the same labels.
 menuChrome.renderPrompts = function () {
   const g = MENU_GLYPHS[menuInput.device === "pad" ? "pad" : "keys"];
-  const run = { select: "select", back: "back", home: "home", season: "season", alt: "alt" };
-  this.el.prompts.innerHTML = this.prompts.map(p => {
+  const run = { select: "select", back: "back", home: "home", season: "season", alt: "alt", mode: "mode" };
+  const all = [...this.prompts, { action: "mode", label: this.mode === "light" ? "Dark mode" : "Light mode" }];
+  this.el.prompts.innerHTML = all.map(p => {
     const act = run[p.action];
     const glyph = `<span class="m-glyph m-glyph--${menuInput.device === "pad" ? "pad" : "key"}">${_esc(g[p.action] || "")}</span>`;
     return act
@@ -116,4 +125,39 @@ menuChrome.toast = function (msg) {
   el.classList.add("is-on");
   clearTimeout(this.toastTimer);
   this.toastTimer = setTimeout(() => el.classList.remove("is-on"), 2400);
+};
+
+// The saved colour mode ("dark" or "light"), or "dark" when nothing is saved or storage is
+// blocked.
+menuChrome.savedMode = function () {
+  try { return localStorage.getItem("cfb-menu-mode") === "light" ? "light" : "dark"; } catch (e) { return "dark"; }
+};
+
+// Switches the menu between its dark (dusk) and light (daylight) look. The rating pills take
+// their colours from the site theme, so the page theme follows the mode, and the current
+// screen is drawn again so its JS-computed colours are not left stale. `redraw` is false
+// on the first call, before the router has drawn anything.
+menuChrome.setMode = function (mode, redraw) {
+  this.mode = mode;
+  this.root.dataset.mode = mode;
+  document.documentElement.setAttribute("data-theme", mode === "light" ? "light" : "retro");
+  try { localStorage.setItem("cfb-menu-mode", mode); } catch (e) { /* the mode still applies */ }
+  this.renderPrompts();
+  if (redraw) { menuRouter.render(); this.toast(mode === "light" ? "Light mode" : "Dark mode"); }
+};
+
+// Fills the scores ticker with the top 25 by our team rating (earned to date when the season
+// has it, else the projection), each with its record. The text is written twice so the
+// marquee can loop without a gap. A failed load leaves the ticker empty, which is harmless.
+menuChrome.loadTicker = async function () {
+  try {
+    const d = await menuTeams(MENU.season);
+    const val = t => d.liveById[t.id]?.overall_rating ?? t.overall_rating;
+    const top = d.teams.filter(t => val(t) != null).sort((a, b) => val(b) - val(a)).slice(0, 25);
+    const one = top.map((t, i) => {
+      const s = d.standings[t.id];
+      return `<span>#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</span>`;
+    }).join("");
+    this.el["ticker-track"].innerHTML = one + one;
+  } catch (e) { /* no ticker */ }
 };

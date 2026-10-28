@@ -128,7 +128,7 @@ async function noHorizontalScroll(page) {
 const NAV_COUNT = (fs.readFileSync(path.join(APP_ROOT, "js", "shell.js"), "utf8").match(/{ id: "[a-z0-9]+", +href:/g) || []).length;
 
 const PAGES = [
-  "index.html", "season2026.html", "teams.html", "players.html", "ratings.html",
+  "index.html?classic", "season2026.html", "teams.html", "players.html", "ratings.html",
   "research.html", "methods.html", "changes.html", "info.html", "league.html",
   "research-team-performance.html", "research-coaching-impact.html",
   "research-recruiting-roi.html", "research-breakout.html",
@@ -153,7 +153,7 @@ for (const p of PAGES) {
 }
 
 check("shell: theme switch flips data-theme, persists, repaints without errors", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   await waitCount(page, "#storylines .story-card", 1);
   const before = await page.getAttribute("html", "data-theme");
   const target = before === "dark" ? "light" : "dark";
@@ -173,7 +173,7 @@ check("shell: ?theme= URL override wins over the saved theme", async ctx => {
 });
 
 check("shell: mobile — tab bar shows 5 items, sidebar hidden, no horizontal scroll", async ctx => {
-  const page = await openPage(ctx, "index.html", { width: 375, height: 800 });
+  const page = await openPage(ctx, "index.html?classic", { width: 375, height: 800 });
   await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
   const tabs = await page.locator(".mobile-tab-bar .mobile-tab-btn").count();
   assert(tabs === 5, `${tabs} mobile tabs`);
@@ -200,7 +200,7 @@ for (const p of ["players.html", "teams.html", "ratings.html", "season2026.html"
 // ════════════════════════════════════════════════════════════════════════════
 
 check("home: every panel renders", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   const stories = await waitCount(page, "#storylines .story-card", 3);
   await waitCount(page, "#home-top-teams .home-team-row", 8);
   await waitCount(page, "#home-research .mini-finding", 1);
@@ -215,7 +215,7 @@ check("home: every panel renders", async ctx => {
 });
 
 check("home: a player link in a storyline opens the modal in place", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   await waitCount(page, "#storylines a.entity-link--player", 1);
   await page.locator("#storylines a.entity-link--player").first().click();
   await page.waitForSelector("#player-modal.open .modal-body", { timeout: 60000 });
@@ -540,7 +540,7 @@ check("teams: conference chips follow the season picker", async ctx => {
 // ═══════════════════════════════════════════════════════════════
 
 check("shell: swatches come from CONFIG.THEMES; version, skip link and CFBD credit present", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   const n = await page.locator(".theme-swatch").count();
   const want = await page.evaluate(() => CONFIG.THEMES.length);
   assert(n === want, `${n} swatches for ${want} themes`);
@@ -750,7 +750,7 @@ check("players: a projected season shows the model's range on the card, and no E
   await waitCount(page, ROWS, 50);
   const header = (await page.locator(".draft-board-header").first().innerText()).toUpperCase();
   assert(header.includes("PROJ"), `no projection column in: ${header}`);
-  assert(!/EA/.test(header), "an EA column is back");
+  assert(!/\bEA\b/.test(header), "an EA column is back");
   // The range moved from its own grid column into the projection tile on the card.
   await page.locator(`${ROWS}.trio .draft-name`).first().click();
   await page.waitForSelector("#player-modal.open .trio-strip", { timeout: 90000 });
@@ -800,7 +800,7 @@ check("league: a tab and a season arrive from the URL, and the portal clamps to 
 });
 
 check("shell: the retro skin turns the side rail into a top tab strip", async ctx => {
-  const page = await openPage(ctx, "index.html?theme=retro", { width: 1400, height: 900 });
+  const page = await openPage(ctx, "index.html?classic&theme=retro", { width: 1400, height: 900 });
   await waitCount(page, "#storylines .story-card", 1);
   const box = await page.locator(".sidebar").boundingBox();
   assert(box.y === 0 && box.width >= 1390 && box.height < 80, `sidebar is ${Math.round(box.width)}x${Math.round(box.height)} at y=${box.y}`);
@@ -822,7 +822,7 @@ check("shell: retro is reachable from the swatches and survives a reload", async
 
 check("shell: retro does not scroll sideways at 1280px or on a phone", async ctx => {
   for (const [w, h] of [[1280, 800], [375, 800]]) {
-    for (const rel of ["index.html", "players.html", "teams.html", "league.html", "methods.html"]) {
+    for (const rel of ["index.html?classic", "players.html", "teams.html", "league.html", "methods.html"]) {
       const page = await openPage(ctx, `${rel}${rel.includes("?") ? "&" : "?"}theme=retro`, { width: w, height: h });
       await page.waitForTimeout(1500);
       assert(await noHorizontalScroll(page), `${rel} scrolls sideways at ${w}px in retro`);
@@ -987,7 +987,7 @@ check("teams: ?season= deep link opens the team in that season", async ctx => {
 });
 
 check("home: 'Last Season's Standard' shows the last played season", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   await waitCount(page, "#home-top-teams .home-team-row", 8);
   const hrefs = await page.locator("#home-top-teams .home-team-row").evaluateAll(a => a.map(x => x.href));
   assert(hrefs.every(h => h.includes(`season=${PLAYED}`)), `panel links: ${hrefs[0]}`);
@@ -1008,7 +1008,7 @@ check("ratings: scatter tooltip carries no constant-zero movement", async ctx =>
 // ════════════════════════════════════════════════════════════════════════════
 
 check("links: every internal page link and #anchor resolves", async ctx => {
-  const page = await openPage(ctx, "index.html");
+  const page = await openPage(ctx, "index.html?classic");
   const bad = [];
   const anchorsByPage = {};
   for (const p of PAGES) {
@@ -1191,6 +1191,46 @@ check("menu: recruiting class ranks run 1..n and the board counts match the file
   const ranked = file.teams.filter(t => t.class_rank != null).sort((a, b) => a.class_rank - b.class_rank);
   const first = await page.locator(".m-row--class .m-pname").first().innerText();
   assert(first.trim() === ranked[0].team, `top class ${first} != file ${ranked[0].team}`);
+  return page;
+});
+
+
+check("menu: the front door redirects to the menu, ?classic keeps the old home, and the library links out", async ctx => {
+  const page = await openPage(ctx, "index.html");
+  await page.waitForURL(u => u.pathname.endsWith("menu.html"), { timeout: 20000 });
+  const classic = await ctx.newPage();
+  await classic.goto(BASE + "index.html?classic", { waitUntil: "domcontentloaded" });
+  await classic.waitForTimeout(800);
+  assert(classic.url().includes("index.html"), "?classic was redirected away");
+  await classic.close();
+  const lib = await openMenu(ctx, "#/library");
+  await waitCount(lib, ".m-item[data-href]", 8);
+  const hrefs = await lib.locator(".m-item[data-href]").evaluateAll(els => els.map(e => e.dataset.href));
+  assert(hrefs.includes("players.html") && hrefs.includes("methods.html"), `library links: ${hrefs}`);
+  return lib;
+});
+
+check("menu: M switches dark and light, and remembers it", async ctx => {
+  const page = await openMenu(ctx);
+  await waitCount(page, ".m-item", 6);
+  assert((await page.locator("#menu-root").getAttribute("data-mode")) === "dark", "not dark by default");
+  await page.keyboard.press("m");
+  await page.waitForFunction(() => document.getElementById("menu-root").dataset.mode === "light", null, { timeout: 5000 });
+  await page.reload();
+  await waitCount(page, ".m-item", 6);
+  assert((await page.locator("#menu-root").getAttribute("data-mode")) === "light", "the mode was not remembered");
+  return page;
+});
+
+check("menu: a rostered player with no ratings row still opens a card, with a stated reason", async ctx => {
+  // Brandon Amaniampong (EDGE, 2 games, no projection) is on Boise State's 2026 roster but has no
+  // row in players_2026.json.
+  const page = await openMenu(ctx, "#/player/1129716/68");
+  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  assert(!(await page.locator(".m-error").count()), "the card shows an error");
+  const empty = await page.locator(".m-stats .m-empty").innerText();
+  assert(empty.length > 20 && !empty.includes("${"), `no reason for the missing stats: "${empty}"`);
+  assert(await page.locator(".m-career").count() === 1, "no career strip");
   return page;
 });
 

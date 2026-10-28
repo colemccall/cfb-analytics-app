@@ -55,7 +55,7 @@ function buildSeasonMasthead(games, firstDate) {
       <span>${games.length.toLocaleString()} FBS matchups scheduled</span>
       ${firstDate ? `<span>First kickoff ${fmt(firstDate)}</span>` : ""}
       ${lastDate ? `<span>Regular season through ${fmt(lastDate)}</span>` : ""}
-      <a href="index.html">This week's storylines →</a>`;
+      <a href="index.html?classic">This week's storylines →</a>`;
   }
 }
 

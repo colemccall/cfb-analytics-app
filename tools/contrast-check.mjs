@@ -138,29 +138,36 @@ for (const [themeName, t] of Object.entries(themes)) {
   }
 }
 
-// ── The menu (css/menu.css): its own token block, the same floors ───────────────
-// The menu is a separate app with its own palette (--m-*), so it is checked here
-// rather than as a theme. Text 7:1 on every field and panel colour, muted 4.5:1, the
-// dark ink that sits on the hot selection fill 7:1, and the hot colours as text
-// 4.5:1 on the dark panels they are drawn over.
+// ── The menu (css/menu.css): its own token blocks, one per mode, the same floors ────
+// The menu is the primary front end with its own palette (--m-*) and two modes, dark and
+// light, so both are checked here rather than as site themes. Text 7:1 on every field and
+// panel colour, muted 4.5:1, dark ink on the silver buttons 7:1, white on the red selection
+// fill 7:1, and the red-as-text accent 4.5:1 on the panels it is drawn over.
 {
   const menuCss = readFileSync(join(root, "css", "menu.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-  const block = menuCss.match(/\.menu-app\s*\{([^}]*)\}/);
-  const m = {};
-  if (block) for (const decl of block[1].matchAll(/--(m-[\w-]+)\s*:\s*([^;]+);/g)) m[decl[1]] = decl[2].trim();
-  const fields = ["m-bg-0", "m-bg-1", "m-panel-top", "m-panel-bot"];
-  for (const f of fields) {
-    check("menu", `text on --${f}`, m["m-text"], m[f], 7.0);
-    check("menu", `muted on --${f}`, m["m-muted"], m[f], 4.5);
+  const grab = re => {
+    const b = menuCss.match(re), out = {};
+    if (b) for (const decl of b[1].matchAll(/--(m-[\w-]+)\s*:\s*([^;]+);/g)) out[decl[1]] = decl[2].trim();
+    return out;
+  };
+  const base = grab(/\.menu-app\s*\{([^}]*)\}/);
+  if (!Object.keys(base).length) failures.push(["menu", "css/menu.css has no .menu-app token block", "-", "-"]);
+  const modes = { dark: base, light: { ...base, ...grab(/\.menu-app\[data-mode="light"\]\s*\{([^}]*)\}/) } };
+  for (const [mode, m] of Object.entries(modes)) {
+    const name = `menu-${mode}`;
+    for (const f of ["m-bg-0", "m-bg-1", "m-panel-top", "m-panel-bot"]) {
+      check(name, `text on --${f}`, m["m-text"], m[f], 7.0);
+      check(name, `muted on --${f}`, m["m-muted"], m[f], 4.5);
+      check(name, `accent on --${f}`, m["m-accent"], m[f], 4.5);
+    }
+    check(name, "on-hot on --m-hot", m["m-on-hot"], m["m-hot"], 7.0);
+    check(name, "on-hot on --m-hot-2", m["m-on-hot"], m["m-hot-2"], 7.0);
+    check(name, "btn-text on --m-btn-top", m["m-btn-text"], m["m-btn-top"], 7.0);
+    check(name, "btn-text on --m-btn-bot", m["m-btn-text"], m["m-btn-bot"], 7.0);
+    check(name, "ink on --m-text (key glyphs)", m["m-bg-0"], m["m-text"], 7.0);
+    check(name, "ink on --m-muted (bumpers)", m["m-bg-0"], m["m-muted"], 4.5);
+    check(name, "line vs --m-panel-bot", m["m-line"], m["m-panel-bot"], 1.8);
   }
-  check("menu", "on-hot on --m-hot", m["m-on-hot"], m["m-hot"], 7.0);
-  check("menu", "on-hot on --m-hot-2", m["m-on-hot"], m["m-hot-2"], 7.0);
-  check("menu", "hot-2 on --m-bg-0", m["m-hot-2"], m["m-bg-0"], 4.5);
-  check("menu", "hot-2 on --m-panel-bot", m["m-hot-2"], m["m-panel-bot"], 4.5);
-  check("menu", "ink on --m-text (key glyphs)", m["m-bg-0"], m["m-text"], 7.0);
-  check("menu", "ink on --m-muted (bumpers)", m["m-bg-0"], m["m-muted"], 4.5);
-  check("menu", "line vs --m-panel-bot", m["m-line"], m["m-panel-bot"], 1.8);
-  if (!block) failures.push(["menu", "css/menu.css has no .menu-app token block", "-", "-"]);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
@@ -174,4 +181,4 @@ if (failures.length) {
   console.error(`\n${failures.length} failure(s).`);
   process.exit(1);
 }
-console.log(`contrast-check: all floors green (${Object.keys(themes).join(" + ")}, tokens + domain palettes).`);
+console.log(`contrast-check: all floors green (${Object.keys(themes).join(" + ")}, tokens + domain palettes; menu dark + light).`);

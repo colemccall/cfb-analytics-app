@@ -97,7 +97,7 @@ function _findingMasthead(f) {
       <h1>${_esc(f.title)}</h1>
       <p class="masthead-sub">${_esc(f.claim)}</p>
       <p class="finding-breadcrumb">
-        <a href="${f.kind === "research" ? "research.html" : "index.html"}">
+        <a href="${f.kind === "research" ? "research.html" : "index.html?classic"}">
           ${f.kind === "research" ? "← All research" : "← All storylines"}</a>
         ${f.status === "upcoming" ? '<span class="badge-upcoming">Not built yet</span>' : ""}
       </p>

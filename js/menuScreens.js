@@ -48,6 +48,24 @@ function menuTeamRank(team, d) {
   return 1 + d.teams.filter(t => (menuTeamOvr(t, d) ?? -1) > mine).length;
 }
 
+// A team's offense or defense rating for the bar, or null when there is none to show. Earned
+// to date has a real split. A preseason projection does not: for a season not yet played the
+// offense and defense numbers are the overall rating repeated (138 of 138 teams in 2026), so
+// they are withheld rather than drawn as two identical bars that look like a measurement.
+function menuSide(team, live, field) {
+  if (live && live[field] != null) return live[field];
+  const same = team[field] != null && team[field] === team.overall_rating
+    && team.offense_rating === team.defense_rating;
+  return same && isProjectedSeason(MENU.season) ? null : team[field];
+}
+
+// The tooltip for an offense or defense bar that menuSide withheld, so a dash says why.
+function menuSideHint(team, live) {
+  const withheld = !live && team.offense_rating != null && team.offense_rating === team.defense_rating
+    && isProjectedSeason(MENU.season);
+  return withheld ? "A preseason projection has no separate offense and defense rating" : "";
+}
+
 // A horizontal rating bar: label, a track filled to the rating in the tier colour,
 // and the number. A missing value draws an empty track and a dash, not a zero.
 function menuBar(label, value, hint = "") {
@@ -102,7 +120,7 @@ menuRouter.register("team-select", {
     const tiles = list.map(t => {
       const ovr = menuTeamOvr(t, d);
       return `<button class="m-tile${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="tiles"
-          data-team="${t.id}" aria-label="${_esc(t.school)}">
+          style="--m-team:${_esc(t.color || "")}" data-team="${t.id}" aria-label="${_esc(t.school)}">
         ${teamMark(t, "m-tile-mark")}
         <span class="m-tile-name">${_esc(t.school)}</span>
         <span class="m-tile-ovr">${ovr == null ? "—" : Math.round(ovr)}</span>
@@ -128,8 +146,8 @@ menuRouter.register("team-select", {
           <div><h2>${_esc(t.school)}</h2><div class="m-sub">${_esc(t.conference || "")}</div></div>
         </div>
         ${menuBar("Overall", menuTeamOvr(t, d), lv ? "Earned to date" : "Team rating")}
-        ${menuBar("Offense", lv?.offense_rating ?? t.offense_rating)}
-        ${menuBar("Defense", lv?.defense_rating ?? t.defense_rating)}
+        ${menuBar("Offense", menuSide(t, lv, "offense_rating"), menuSideHint(t, lv))}
+        ${menuBar("Defense", menuSide(t, lv, "defense_rating"), menuSideHint(t, lv))}
         <div class="m-facts">
           <span>${st ? `Record ${st.w}-${st.l}` : "No results yet"}</span>
           <span>Rank #${menuTeamRank(t, d) ?? "—"}</span>
@@ -161,7 +179,7 @@ const MENU_HUB_ITEMS = [
   { id: "recruiting", label: "Recruiting",      hint: "Class rankings and the prospect board." },
   { id: "portal",     label: "Transfer Portal", hint: "Every move, with the rating before and after." },
   { id: "team-select", label: "Switch Team",    hint: "Pick a different team to follow." },
-  { id: "site",       label: "Main Site",       hint: "Leave the menu for the full analytics site: teams, players, ratings, methods.", href: "index.html" },
+  { id: "library",    label: "Analytics",       hint: "Players, teams, ratings, research, methods and the build log: the full analytics pages." },
 ];
 
 menuRouter.register("hub", {
@@ -186,7 +204,7 @@ menuRouter.register("hub", {
     const opp = next ? `${next.is_home ? "vs" : "@"} ${next.opponent || "TBD"}` : "";
     const movers = (d.live?.teams || []).filter(t => t.change != null)
       .sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 5)
-      .map(t => `<span class="m-tick">${_esc(t.school)} ${t.change > 0 ? "▲" : "▼"} ${Math.abs(t.change).toFixed(1)}</span>`).join("");
+      .map(t => `<span>${_esc(t.school)} ${t.change > 0 ? "▲" : "▼"} ${Math.abs(t.change).toFixed(1)}</span>`).join("");
     return `<div class="m-split m-split--hub">
       <nav class="m-panel m-menu" aria-label="Dynasty menu">${items}</nav>
       <section class="m-panel m-teamcard" aria-label="Your team">
@@ -201,15 +219,15 @@ menuRouter.register("hub", {
           ${lv ? `<span class="m-live">TO DATE · WK ${d.live.through_week}</span>` : ""}
         </div>
         ${menuBar("Overall", menuTeamOvr(team, d), lv ? "Earned to date" : "Team rating")}
-        ${menuBar("Offense", lv?.offense_rating ?? team.offense_rating)}
-        ${menuBar("Defense", lv?.defense_rating ?? team.defense_rating)}
+        ${menuBar("Offense", menuSide(team, lv, "offense_rating"), menuSideHint(team, lv))}
+        ${menuBar("Defense", menuSide(team, lv, "defense_rating"), menuSideHint(team, lv))}
         ${lv && team.overall_rating != null ? `<div class="m-note">Preseason projection ${Math.round(team.overall_rating)} → ${Math.round(lv.overall_rating)} so far</div>` : ""}
         <div class="m-next"><span class="m-next-label">NEXT GAME</span>
           <span class="m-next-game">${next ? `${_esc(opp)} <small>${_esc(String(next.game_date || "").slice(0, 10))}</small>` : "No game scheduled"}</span></div>` : ""}
       </section>
     </div>
     <div class="m-hint" id="m-hint"></div>
-    ${movers ? `<div class="m-ticker" aria-label="Around the league"><span class="m-ticker-label">AROUND THE LEAGUE</span>${movers}</div>` : ""}`;
+    ${movers ? `<div class="m-around" aria-label="Around the league"><span class="m-around-label">AROUND THE LEAGUE</span>${movers}</div>` : ""}`;
   },
   mount(stage) {
     const hint = stage.querySelector("#m-hint");
@@ -224,4 +242,48 @@ menuRouter.register("hub", {
     }));
   },
   prefer: () => '[data-route="roster"]',
+});
+
+// ── Analytics library ──────────────────────────────────────────────────────
+
+// The pages outside the menu, each one a link. They are the site's analysis pages and keep
+// their own look for now; the menu is the front door and this is the way through to them.
+const MENU_LIBRARY = [
+  { label: "Players",      href: "players.html",    hint: "Every rated player, filterable, with the full card." },
+  { label: "Teams",        href: "teams.html",      hint: "Every team's roster, ratings, schedule and depth." },
+  { label: "Ratings",      href: "ratings.html",    hint: "Position leaderboards and the rating scatter." },
+  { label: "'26 Season",   href: "season2026.html", hint: "The season in progress: projections and earned to date." },
+  { label: "League",       href: "league.html",     hint: "Standings and the league-wide transfer portal." },
+  { label: "Research",     href: "research.html",   hint: "Findings, each with the table behind it." },
+  { label: "Methods",      href: "methods.html",    hint: "How every number is computed and what it cannot support." },
+  { label: "Build Log",    href: "changes.html",    hint: "What changed, why, and what it cost." },
+  { label: "How It Works", href: "info.html",       hint: "The guide to reading the site." },
+  { label: "Classic Home", href: "index.html?classic", hint: "The original home page." },
+];
+
+menuRouter.register("library", {
+  title: "Analytics",
+  crumb: () => "DYNASTY › ANALYTICS",
+  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open" }, { action: "back", label: "Back" }],
+  async render(ctx) {
+    ctx.team = menuMyTeam(await menuTeams(MENU.season));
+    const items = MENU_LIBRARY.map(it => `
+      <button class="m-item" type="button" data-nav data-nav-group="lib" data-href="${_esc(it.href)}" data-hint="${_esc(it.hint)}">
+        <span class="m-item-label">${_esc(it.label)}</span></button>`).join("");
+    return `<div class="m-split m-split--hub">
+      <nav class="m-panel m-menu" aria-label="Analytics pages">${items}</nav>
+      <section class="m-panel"><h2 class="m-detail-name">Analytics</h2>
+        <p class="m-note">These pages leave the menu and keep the site's own look. Use the browser's back button to return.</p>
+        <div class="m-hint" id="m-hint"></div></section>
+    </div>`;
+  },
+  mount(stage) {
+    const hint = stage.querySelector("#m-hint");
+    stage.addEventListener("menu:select", e => {
+      const it = e.target.closest?.("[data-href]");
+      if (it) hint.textContent = it.dataset.hint || "";
+    });
+    stage.querySelectorAll("[data-href]").forEach(b => b.addEventListener("click", () => { window.location.href = b.dataset.href; }));
+  },
+  prefer: () => "[data-href]",
 });

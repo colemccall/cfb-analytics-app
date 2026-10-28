@@ -114,7 +114,7 @@ menuRouter.register("roster", {
         <p class="m-note">Press <b>${menuInput.device === "pad" ? "A" : "Enter"}</b> for the full card.</p>`;
     });
     stage.querySelectorAll("[data-pid]").forEach(b => b.addEventListener("click", () =>
-      menuRouter.go(`#/player/${b.dataset.pid}`)));
+      menuRouter.go(`#/player/${b.dataset.pid}/${MENU.teamId}`)));
     ctx.cleanups.push(menuInput.on("alt", () => {
       _menuRosterSort = (_menuRosterSort + 1) % MENU_ROSTER_SORTS.length;
       menuRouter.render();
@@ -156,7 +156,7 @@ menuRouter.register("depth", {
   },
   mount(stage) {
     stage.querySelectorAll("[data-pid]").forEach(b => b.addEventListener("click", () =>
-      menuRouter.go(`#/player/${b.dataset.pid}`)));
+      menuRouter.go(`#/player/${b.dataset.pid}/${MENU.teamId}`)));
   },
 });
 
@@ -180,15 +180,51 @@ const MENU_STAT_FIELDS = {
   P:  [["puntingNO", "Punts"], ["puntingYDS", "Yards"], ["puntingYPP", "Avg"]],
 };
 
+// Why a card has no stat tiles, in words: a stated reason rather than a bare empty box.
+function menuNoStatsWhy(p) {
+  if (p.rating_status === "not_rated") return p.not_rated_reason || "Offensive linemen are not rated and have no box-score stats.";
+  if (p.live_status === "no_games") return "No game is recorded for him this season yet.";
+  if (p.live_status === "too_few_games") return `Only ${p.live_games ?? "a few"} game(s) recorded so far: not enough for a rating, and no stat line is on file.`;
+  return "No stats are recorded for him in this season's data.";
+}
+
+// The career strip on a player card: one cell per season he has a rating, oldest first,
+// then this season's projection and to-date number when it is a season in progress. The
+// seasons come from the per-season files, so a transfer's earlier seasons at other schools
+// are included.
+async function menuCareerRows(pid, p) {
+  const hist = (await fetchPlayerRatingHistory(pid)).filter(h => h.overall_rating != null && h.season < MENU.season)
+    .sort((a, b) => a.season - b.season);
+  const cells = hist.map(h => `<div class="m-career-cell"><span class="m-career-yr">${h.season}</span>${ovrPill(h.overall_rating, { season: h.season, label: `Rating, ${h.season}` })}</div>`);
+  if (hasTrio(p)) {
+    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} PROJ</span>${projPill(p, MENU.season)}</div>`);
+    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} TO DATE</span>${livePill(p)}</div>`);
+  } else if (p.overall_rating != null) {
+    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season}</span>${ovrPill(p.overall_rating, { season: MENU.season })}</div>`);
+  }
+  return cells.length ? `<div class="m-career-row">${cells.join("")}</div>`
+    : '<p class="m-empty">No rated seasons on file for him.</p>';
+}
+
 menuRouter.register("player", {
   title: ctx => ctx.player?.name || "Player",
   crumb: () => "DYNASTY › PLAYER",
   prompts: [{ action: "back", label: "Back" }, { action: "home", label: "Hub" }],
   async render(ctx) {
     const d = await menuTeams(MENU.season);
-    const p = await fetchPlayerProfile(parseInt(ctx.params[0]), MENU.season);
+    const pid = parseInt(ctx.params[0]);
+    // The ratings file first; a rostered player with no ratings row there (offensive line, or no
+    // projection and no games) is read from the team roster so his card still opens, with the
+    // fields that row has and a stated reason for the rest.
+    let p = await fetchSeasonPlayer(pid, MENU.season);
+    if (!p) {
+      const roster = await fetchTeamRoster(parseInt(ctx.params[1]) || MENU.teamId, MENU.season);
+      const r = roster.find(x => x.player_id === pid);
+      const t = r && d.teams.find(x => x.id === (parseInt(ctx.params[1]) || MENU.teamId));
+      if (r) p = { ...r, id: r.player_id, team_id: t?.id, team: t?.school, conference: t?.conference, stats_season: null };
+    }
     ctx.d = d;
-    if (!p) return '<div class="m-error">No rating data for this player in this season.</div>';
+    if (!p) return '<div class="m-error">This player is not on the roster file for this season.</div>';
     ctx.player = p;
     ctx.team = d.teams.find(t => t.id === p.team_id) || null;
     const pg = p.position_group || "ATH";
@@ -197,6 +233,7 @@ menuRouter.register("player", {
       .map(([k, label]) => `<div class="m-stat"><b>${_esc(String(stats[k]))}</b><span>${_esc(label)}</span></div>`).join("");
     const ht = p.height_in ? `${Math.floor(p.height_in / 12)}'${p.height_in % 12}"` : "—";
     const trio = hasTrio(p);
+    const career = await menuCareerRows(pid, p);
     return `<section class="m-panel m-hero">
         <div class="m-hero-main">
           <div class="m-sub">${posBadge(pg)} ${_esc(p.team || "")} · ${_esc(p.conference || "")}</div>
@@ -207,14 +244,15 @@ menuRouter.register("player", {
       ${trio ? ratingTrioStrip(p, MENU.season) : `<section class="m-panel"><div class="m-big">${ovrPill(p.overall_rating, { season: MENU.season, source: p.projection_source })}</div></section>`}
       <div class="m-split m-split--card">
         <section class="m-panel"><h3 class="m-h3">${MENU.season} stats${trio && p.live_through_week ? ` · through week ${p.live_through_week}` : ""}</h3>
-          <div class="m-stats">${tiles || '<p class="m-empty">No stats recorded yet this season.</p>'}</div></section>
+          <div class="m-stats">${tiles || `<p class="m-empty">${_esc(menuNoStatsWhy(p))}</p>`}</div></section>
         <section class="m-panel"><h3 class="m-h3">What these numbers are</h3>
           <p class="m-note">${trio
             ? `<b>${MENU.season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional and needs three games.`
             : "The rating is for the season viewed."}</p>
           <a class="m-link" href="players.html?player=${p.id}&season=${MENU.season}" data-nav data-nav-group="links">Full analysis on the main site →</a>
         </section>
-      </div>`;
+      </div>
+      <section class="m-panel m-career"><h3 class="m-h3">Career ratings</h3>${career}</section>`;
   },
   mount(stage) {
     stage.querySelectorAll("[data-nav-group=links]").forEach(a => a.addEventListener("click", e => e.stopPropagation()));

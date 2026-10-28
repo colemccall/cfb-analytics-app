@@ -38,13 +38,13 @@ const MENU_KEYS = {
   w: "up", s: "down", a: "left", d: "right", y: "season",
   Enter: "select", Escape: "back", Backspace: "back",
   q: "tabPrev", e: "tabNext", "[": "tabPrev", "]": "tabNext",
-  PageUp: "pageUp", PageDown: "pageDown", " ": "alt", h: "home",
+  PageUp: "pageUp", PageDown: "pageDown", " ": "alt", h: "home", m: "mode",
 };
 
 // Standard-mapping gamepad buttons → action.
 const MENU_PAD_BUTTONS = {
   0: "select", 1: "back", 2: "alt", 3: "season", 4: "tabPrev", 5: "tabNext",
-  6: "pageUp", 7: "pageDown", 9: "home", 12: "up", 13: "down", 14: "left", 15: "right",
+  6: "pageUp", 7: "pageDown", 8: "mode", 9: "home", 12: "up", 13: "down", 14: "left", 15: "right",
 };
 
 const MENU_STICK_DEADZONE = 0.55;   // how far the stick must lean before it counts
