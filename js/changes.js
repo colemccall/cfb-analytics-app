@@ -33,6 +33,43 @@
 
 const CHANGES = [
   {
+    id: "v4.14-landing-page-and-robust-cards",
+    version: "v4.14",
+    date: "2026-10-28",
+    title: "A landing page that needs no team; cards and rosters that fail visibly and are tested for it",
+    summary: `The menu opened on team select, so seeing the league or the news meant picking a team first. A landing page now
+      shows the league and the news straight away, and the Dynasty drill-down is the optional way to follow one team.`,
+    motivation: `The owner likes the menu but wants to view the whole league and the news without going in through a team,
+      and said the Dynasty hub is a good idea with room to grow but is not what everyone wants first.`,
+    did: [
+      { what: "A landing page (#/home) is the front door; it needs no team",
+        why: `Three cards (League, News, Dynasty) over the top teams by power and the season's playoff picture. League and News
+          list the same screens as the hub's tabs. Dynasty shows the followed team's record, rank and next game with My Team and
+          Switch Team, or a single Follow a Team entry before one is chosen. An empty or unknown route is the landing page, never
+          team select. The Dynasty hub is one step below it: Back at the hub returns to the landing page, and Back at the landing
+          page opens the quick menu, which gains a Home entry. Screens about one team (roster, depth chart, schedule, a team's
+          recruiting and transfers, history) still ask for a team.`,
+        cost: "A design change: one new screen and the group-card markup. The landing page lists the top eight, where the hub's League tab lists ten, so it fits on one screen." },
+    ],
+    tried: [
+      { what: "Keeping the hub as the front door and making its League tab the default",
+        result: "It would have opened on one tab of a team-centred screen, with the Dynasty group missing for anyone who does not follow a team.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "First visit with no team chosen opens on", before: "Team select", after: "The landing page" },
+      { label: "UI smoke checks, menu group", before: "17", after: "20 (landing page, hub Back, quick menu Home added)" },
+    ],
+    gates: [
+      { check: "node tools/ui-smoke/smoke.mjs --only=menu", result: "20 / 20" },
+    ],
+    unfixed: `**Part of the same session, not finished in this entry:** error handling and tests for cards and rosters, the postseason
+      in schedules, and the full player card (see the entries that follow). **A real controller is still untested.**
+      **Everything is uncommitted** in both repositories.`,
+    methods: [],
+    files: ["js/menuRouter.js", "js/menuScreens.js", "js/menuChrome.js", "js/menuScreensPages.js", "css/menu.css", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.13-explainable-power-and-console-pages",
     version: "v4.13",
     date: "2026-10-28",

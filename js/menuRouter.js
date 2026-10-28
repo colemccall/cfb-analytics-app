@@ -46,14 +46,14 @@ menuRouter.register = function (id, def) {
 };
 
 // Splits "#/roster/QB" into { id: "roster", params: ["QB"] }. An empty or unknown
-// route is the hub, or team select if no team has been chosen yet.
+// route is the landing page, which needs no team.
 menuRouter.parse = function (hash) {
   const parts = String(hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
-  let id = parts[0] || "hub";
-  if (!menuScreens[id]) id = "hub";
+  let id = parts[0] || "home";
+  if (!menuScreens[id]) id = "home";
   // Screens that are about the league, not a team, open without one chosen. The Team tab of the
   // hub and every team screen need a team, so they send you to pick one.
-  const leagueOnly = ["standings", "rankings", "playoff", "recruiting", "portal", "team-select", "players", "season", "methods", "changes", "guide", "research"];
+  const leagueOnly = ["home", "standings", "rankings", "playoff", "recruiting", "portal", "team-select", "players", "season", "methods", "changes", "guide", "research"];
   const openTab = id === "hub" && ["league", "news"].includes(parts[1]);
   if (!MENU.teamId && !leagueOnly.includes(id) && !openTab) id = "team-select";
   return { id, params: parts.slice(1) };
@@ -66,15 +66,15 @@ menuRouter.go = function (path) {
   if (location.hash === next) this.render(); else location.hash = next;
 };
 
-// One step back: the browser's history if there is any. At the top of the menu (the hub, or
-// team select with a team already chosen) there is nowhere to go back to, so back opens the
-// quick menu instead of doing nothing.
+// One step back: the browser's history if there is any, else the landing page. At the top of
+// the menu (the landing page) there is nowhere to go back to, so back opens the quick menu
+// instead of doing nothing. The Dynasty hub is one step below the landing page.
 menuRouter.back = function () {
   const id = this.current && this.current.id;
-  if (id === "hub") { menuChrome.openMenu(); return; }
-  if (id === "team-select") { if (MENU.teamId) this.go("#/hub"); return; }
+  if (id === "home") { menuChrome.openMenu(); return; }
+  if (id === "hub") { this.go("#/home"); return; }
   if (history.length > 1 && this.current) history.back();
-  else this.go("#/hub");
+  else this.go("#/home");
 };
 
 // Moves the season one step (±1) within the seasons that exist, wrapping, and
@@ -88,6 +88,14 @@ menuRouter.stepSeason = function (step) {
   this.render();
 };
 
+// A visible, retryable error: role=alert text and a Retry button that renders the route again
+// (a failed file is never cached, so the retry really asks again). `inline` is a banner above a
+// screen that did render; otherwise it is the whole screen.
+function menuErrorPanel(message, inline = false) {
+  return `<div class="m-error${inline ? " m-error--banner" : ""}" role="alert"><span class="m-error-text">${_esc(message)}</span>
+      <button class="m-retry" type="button" data-nav data-nav-group="retry" data-retry>Retry</button></div>`;
+}
+
 // Renders the route in the hash: fetch the screen's markup, fill the frame, wire its
 // tabs, reset the selection, run its mount(). A newer render supersedes an older one
 // still waiting on data (the token check), so quick navigation never paints a stale
@@ -98,11 +106,16 @@ menuRouter.render = async function () {
   const ctx = { params: route.params, state: MENU, route };
   const token = ++this.token;
   const stage = menuChrome.el.stage;
+  const startedAt = Date.now();
   stage.classList.add("is-loading");
 
-  let html;
+  let html, renderFailed = false;
   try { html = await def.render(ctx); }
-  catch (e) { html = `<div class="m-error">That screen failed to load: ${_esc(e.message)}</div>`; }
+  catch (e) {
+    renderFailed = true;
+    const files = dataFailures(startedAt).map(f => `${f.file} (${f.message})`);
+    html = menuErrorPanel(`That screen failed to load: ${e && e.message ? e.message : e}${files.length ? `. Data that did not load: ${files.join(", ")}` : ""}`);
+  }
   if (token !== this.token) return;
 
   // The screen we are leaving lets go of anything it subscribed to (input handlers).
@@ -111,16 +124,20 @@ menuRouter.render = async function () {
   this.cleanups = ctx.cleanups = [];
   this.current = { id: route.id, ctx };
   const team = (ctx.team !== undefined ? ctx.team : null);
+  // The header, tabs and prompts read what the screen's render() left in ctx, which a screen
+  // that failed part-way did not finish: a throw there must not take the frame down with it.
+  const safe = (fn, fallback) => { try { return fn(); } catch (e) { return fallback; } };
+  const title = safe(() => (typeof def.title === "function" ? def.title(ctx) : def.title), "Menu");
   menuChrome.setHeader({
-    title: typeof def.title === "function" ? def.title(ctx) : def.title,
-    crumb: typeof def.crumb === "function" ? def.crumb(ctx) : def.crumb,
+    title,
+    crumb: safe(() => (typeof def.crumb === "function" ? def.crumb(ctx) : def.crumb), ""),
     team: def.banner === false ? null : team || ctx.bannerTeam || null,
     season: def.season === false ? null : MENU.season,
   });
-  const tabs = def.tabs ? def.tabs(ctx) : null;
+  const tabs = safe(() => (def.tabs ? def.tabs(ctx) : null), null);
   this.tabs = tabs;
   menuChrome.setTabs(tabs);
-  menuChrome.setPrompts(typeof def.prompts === "function" ? def.prompts(ctx) : (def.prompts || []));
+  menuChrome.setPrompts(safe(() => (typeof def.prompts === "function" ? def.prompts(ctx) : (def.prompts || [])), []));
 
   stage.innerHTML = html;
   stage.classList.remove("is-loading");
@@ -128,9 +145,18 @@ menuRouter.render = async function () {
   void stage.offsetWidth;              // restart the enter animation
   stage.classList.add("is-entering");
   stage.scrollTop = 0;
-  if (def.mount) await def.mount(stage, ctx);
+  // A file that failed to load while this screen was being built is said so at the top of it,
+  // with a Retry, instead of leaving what looks like an empty or partial screen.
+  const failed = renderFailed ? [] : dataFailures(startedAt);
+  if (failed.length) stage.insertAdjacentHTML("afterbegin", menuErrorPanel(`Some data did not load: ${failed.map(f => `${f.file} (${f.message})`).join(", ")}.`, true));
+  // A screen whose mount() throws still gets its frame and focus; the failure is shown, not swallowed.
+  if (def.mount && !renderFailed) {
+    try { await def.mount(stage, ctx); }
+    catch (e) { stage.insertAdjacentHTML("afterbegin", menuErrorPanel(`Part of this screen failed to start: ${e && e.message ? e.message : e}`, true)); }
+  }
+  stage.querySelectorAll("[data-retry]").forEach(b => b.addEventListener("click", () => menuRouter.render()));
   menuFocus.reset(def.prefer ? def.prefer(ctx) : null);
-  document.title = `${typeof def.title === "function" ? def.title(ctx) : def.title} — CFB Dynasty Menu`;
+  document.title = `${title} — CFB Dynasty Menu`;
 };
 
 // Starts the router: load what the menu remembers, wire back/home/season/tab actions

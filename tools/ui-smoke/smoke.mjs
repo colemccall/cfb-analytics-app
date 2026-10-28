@@ -1106,7 +1106,7 @@ check("players: the 2026 card shows three tiles, never one merged number", async
 // The Dynasty menu (menu.html): its own app, mouse first, keyboard and gamepad
 // ═══════════════════════════════════════════════════════════════
 
-// Boise State, as "My Team", so a screen opens without the team-select step.
+// Team 68 (Nevada), as "My Team", so a screen opens without the team-select step.
 const MENU_TEAM_ID = "68";
 async function openMenu(ctx, hash = "#/hub", opts = {}) {
   await ctx.addInitScript(id => { try { localStorage.setItem("cfb-menu-team", id); } catch (e) {} }, MENU_TEAM_ID);
@@ -1178,7 +1178,7 @@ check("menu: a simulated gamepad drives the menu and the prompt bar switches to 
 });
 
 check("menu: every screen renders rows with no page errors and no sideways scroll", async ctx => {
-  const rowsOf = { "#/roster": ".m-row", "#/depth": ".m-drow", "#/schedule": ".m-row", "#/standings": ".m-row",
+  const rowsOf = { "#/home": ".m-group", "#/roster": ".m-row","#/depth": ".m-drow", "#/schedule": ".m-row", "#/standings": ".m-row",
     "#/rankings": ".m-row--rank", "#/recruiting": ".m-row--class", "#/recruiting/prospects": ".m-row--prospect",
     "#/portal": ".m-row--portal" };
   let last = null;
@@ -1237,7 +1237,7 @@ check("menu: M switches dark and light, and remembers it", async ctx => {
 });
 
 check("menu: a rostered player with no ratings row still opens a card, with a stated reason", async ctx => {
-  // Brandon Amaniampong (EDGE, 2 games, no projection) is on Boise State's 2026 roster but has no
+  // Brandon Amaniampong (EDGE, 2 games, no projection) is on Nevada's (team 68) 2026 roster but has no
   // row in players_2026.json.
   const page = await openMenu(ctx, "#/player/1129716/68");
   await page.waitForSelector(".m-hero", { timeout: 30000 });
@@ -1249,12 +1249,49 @@ check("menu: a rostered player with no ratings row still opens a card, with a st
 });
 
 
-check("menu: Back at the hub and the H key open the quick menu, which Back closes", async ctx => {
-  const page = await openMenu(ctx);
+check("menu: with no team chosen the menu opens on a landing page that shows the league and the news", async ctx => {
+  const page = await openPage(ctx, "menu.html");
+  await waitCount(page, ".m-group", 3);
+  assert(await page.locator(".m-tile").count() === 0, "the landing page sent a first visit to team select");
+  const heads = (await page.locator(".m-group .m-h3").allInnerTexts()).map(s => s.trim().toUpperCase());
+  assert(["LEAGUE", "NEWS", "DYNASTY"].every((h, i) => heads[i] === h), `groups: ${heads}`);
+  assert(await page.locator(".m-home-live .m-teamcard").count() === 2, "expected a league panel and a news panel");
+  assert(await page.locator(".m-home-live .m-hrow:not(.m-hrow--head)").count() >= 8, "the live panels list too few teams");
+  assert(await page.locator(".m-homeline").count() === 0, "a team strip appeared with no team followed");
+  for (const [route, sel] of [["rankings", ".m-row--rank"], ["playoff", "button.m-row--seed"], ["standings", ".m-row"]]) {
+    await page.locator(`.m-group [data-route="${route}"]`).click();
+    await waitCount(page, sel, 3);
+    assert(await page.locator(".m-tile").count() === 0, `${route} asked for a team`);
+    await page.keyboard.press("Escape");
+    await waitCount(page, ".m-group", 3);
+  }
+  assert(!page.problems.length, page.problems[0]);
+  return page;
+});
+
+check("menu: following a team adds a strip to the landing page; the hub's Back returns to it; team screens still ask for a team", async ctx => {
+  const page = await openMenu(ctx, "#/home");
+  await waitCount(page, ".m-group", 3);
+  assert(await page.locator(".m-homeline").count() === 1, "no team strip with a team followed");
+  await page.locator('.m-group [data-route="hub"]').click();
+  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
+  await waitCount(page, ".m-item", 6);
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => location.hash === "#/home", null, { timeout: 15000 });
+  const bare = await openPage(ctx, "menu.html#/roster");
+  await bare.addInitScript(() => { try { localStorage.removeItem("cfb-menu-team"); } catch (e) {} });
+  await bare.reload();
+  await waitCount(bare, ".m-tile", 20);
+  return page;
+});
+
+check("menu: Back at the landing page and the H key open the quick menu, which Back closes", async ctx => {
+  const page = await openMenu(ctx, "#/home");
   await waitCount(page, ".m-item", 6);
   await page.keyboard.press("Escape");
   await page.waitForSelector(".m-overlay .m-item", { timeout: 5000 });
   assert(await page.locator(".m-overlay [data-go]").count() >= 10, "the quick menu lists too few screens");
+  assert(await page.locator('.m-overlay [data-go="home"]').count() === 1, "the quick menu has no Home entry");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => !document.querySelector(".m-overlay"), null, { timeout: 5000 });
   await page.keyboard.press("h");
@@ -1271,6 +1308,219 @@ check("menu: every screen's prompt bar always offers Back, Year and Menu", async
   const bar = (await page.locator(".m-prompts").innerText()).toUpperCase();
   for (const w of ["BACK", "YEAR", "MENU"]) assert(bar.includes(w), `prompt bar lacks ${w}: ${bar}`);
   return page;
+});
+
+// ── Cards and rosters under failure ──────────────────────────────────────────
+// A data file that fails (500, truncated JSON) must be said on the screen, with a Retry that
+// recovers; a file that is absent (404) is a different message and no error; a slow file shows the
+// rows when it arrives; and rows or cards with missing fields must render without "undefined",
+// "NaN" or "null" text. Injected failures show up as HTTP errors, so these checks return no page
+// and assert for script errors themselves.
+
+// Routes a data file as the test dictates. `mode()` is read on every request: "500", "404",
+// "bad-json" (truncated), "slow" (3 s), "ok", or a function that rewrites the real file's JSON.
+async function faultRoute(ctx, pattern, mode) {
+  await ctx.route(pattern, async route => {
+    const m = mode();
+    if (m === "500") return route.fulfill({ status: 500, body: "server error" });
+    if (m === "404") return route.fulfill({ status: 404, body: "not found" });
+    if (m === "bad-json") return route.fulfill({ status: 200, contentType: "application/json", body: '{"truncated": [1, 2' });
+    if (m === "slow") { await new Promise(r => setTimeout(r, 3000)); return route.continue(); }
+    if (typeof m === "function") {
+      const res = await route.fetch();
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(m(await res.json())) });
+    }
+    return route.continue();
+  });
+}
+const quiet = page => page.problems.filter(p => !/^HTTP \d+/.test(p));
+
+check("menu: a roster file that fails to load shows a banner and Retry, and Retry recovers", async ctx => {
+  let mode = "500";
+  await faultRoute(ctx, /\/data\/rosters_2026\.json/, () => mode);
+  const page = await openMenu(ctx, "#/roster");
+  await page.waitForSelector(".m-error--banner", { timeout: 30000 });
+  const banner = await page.locator(".m-error--banner").first().innerText();
+  assert(banner.includes("rosters_2026.json") && /HTTP 500/.test(banner), `banner: ${banner}`);
+  const empty = await page.locator(".m-rbody .m-empty").innerText();
+  assert(/did not load/i.test(empty), `the empty state does not say the file failed: "${empty}"`);
+  assert(await page.locator(".m-row").count() === 0, "rows were drawn from a file that failed");
+  mode = "ok";
+  await page.locator(".m-retry").first().click();
+  await waitCount(page, ".m-row", 10);
+  assert(!(await page.locator(".m-error--banner").count()), "the banner stayed after a successful retry");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: a truncated career file is named on the card, and Retry brings the stats back", async ctx => {
+  const shard = `cards/${String(1129716 % constant("CARD_SHARDS")).padStart(4, "0")}.json`;
+  let mode = "bad-json";
+  await faultRoute(ctx, `**/data/${shard}`, () => mode);
+  const page = await openMenu(ctx, "#/player/1129716/68");
+  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  const banner = await page.locator(".m-error--banner").first().innerText();
+  assert(banner.includes(shard), `banner: ${banner}`);
+  const why = await page.locator(".m-stats .m-empty").innerText();
+  assert(/did not load/i.test(why), `the card claims no stats exist when the file failed: "${why}"`);
+  assert(/did not load/i.test(await page.locator(".m-career").innerText()), "the career section does not say its file failed");
+  mode = "ok";
+  await page.locator(".m-retry").first().click();
+  await page.waitForFunction(() => !document.querySelector(".m-error--banner"), null, { timeout: 60000 });
+  assert(!/did not load/i.test(await page.locator(".m-stats .m-empty").innerText()), "the card still blames the file after Retry");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: a player's career fills in from his one file, and a failed file leaves the card standing", async ctx => {
+  const players = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "players_2026.json"), "utf8"));
+  const p = players.find(x => x.team_id === 68 && x.rating_prev != null && x.stats_season);
+  assert(p, "no 2026 player on team 68 with a 2025 rating and stats to test with");
+  const shard = `cards/${String(p.id % constant("CARD_SHARDS")).padStart(4, "0")}.json`;
+  let mode = "500";
+  await faultRoute(ctx, `**/data/${shard}`, () => mode);
+  const page = await openMenu(ctx, `#/player/${p.id}/68`);
+  await page.waitForSelector(".m-hero", { timeout: 60000 });
+  assert(/did not load/i.test(await page.locator(".m-career").innerText()), "the career section does not say its file failed");
+  assert(await page.locator(".trio-tile").count() === 3, "the card lost its rating tiles when the career file failed");
+  mode = "ok";
+  await page.locator(".m-retry").first().click();
+  await page.waitForSelector(".m-career-table", { timeout: 60000 });
+  const rows = await page.locator(".m-career-table tbody tr").count();
+  assert(rows >= 2, `the career table has ${rows} season(s) for a player with a 2025 rating`);
+  assert(await page.locator(".m-career-table tfoot").count() === 1, "no career totals row");
+  assert(await page.locator(".m-stattable").count() >= 1, "no full stat table on the card");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: a matched player's card shows his ESPN photo in a fixed frame, and a player without one shows his initials", async ctx => {
+  const hs = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "headshots.json"), "utf8"));
+  const roster = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "rosters_2026.json"), "utf8"))["68"];
+  const withPhoto = roster.find(p => hs.players[String(p.player_id)]);
+  const without = roster.find(p => !hs.players[String(p.player_id)]);
+  assert(withPhoto && without, "no matched and unmatched Nevada player to test with");
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  await ctx.route(/espncdn\.com/, r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
+  const a = await openMenu(ctx, `#/player/${withPhoto.player_id}/68`);
+  await a.waitForSelector(".m-photo img", { timeout: 30000 });
+  const src = await a.locator(".m-photo img").getAttribute("src");
+  assert(src === hs.image.replace("{id}", hs.players[String(withPhoto.player_id)]), `photo src ${src}`);
+  assert(await a.locator(".m-photo .m-photo-initials").count() === 1, "the initials are gone from a card with a photo");
+  const box = await a.locator(".m-photo").boundingBox();
+  assert(Math.abs(box.width - 104) < 1 && Math.abs(box.height - 128) < 1, `the photo frame is ${box.width}x${box.height}`);
+  const b = await openMenu(ctx, `#/player/${without.player_id}/68`);
+  await b.waitForSelector(".m-photo", { timeout: 30000 });
+  assert(await b.locator(".m-photo img").count() === 0, "a photo for a player the lookup did not match");
+  assert(await b.locator(".m-photo-initials").count() === 1, "no initials for an unmatched player");
+  return null;
+});
+
+check("menu: a photo that fails to load is removed and the initials stay; no photo is requested when headshots are off", async ctx => {
+  const hs = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "headshots.json"), "utf8"));
+  const roster = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "rosters_2026.json"), "utf8"))["68"];
+  const withPhoto = roster.find(p => hs.players[String(p.player_id)]);
+  await ctx.route(/espncdn\.com/, r => r.abort());
+  const page = await openMenu(ctx, `#/player/${withPhoto.player_id}/68`);
+  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  await page.waitForFunction(() => !document.querySelector(".m-photo img"), null, { timeout: 15000 })
+    .catch(() => { throw new Fail("a failed photo stayed on the card as a broken image"); });
+  assert(await page.locator(".m-photo-initials").isVisible(), "the initials are not showing after the photo failed");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: a slow roster file shows its rows when it arrives, with no error", async ctx => {
+  await faultRoute(ctx, /\/data\/rosters_2026\.json/, () => "slow");
+  const page = await openMenu(ctx, "#/roster");
+  await waitCount(page, ".m-row", 10);
+  assert(!(await page.locator(".m-error").count()), "a slow file was reported as an error");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: a roster file that does not exist says so, and is not shown as a failure", async ctx => {
+  await faultRoute(ctx, /\/data\/rosters_2026\.json/, () => "404");
+  const page = await openMenu(ctx, "#/roster");
+  await page.waitForSelector(".m-rbody .m-empty", { timeout: 30000 });
+  assert(/no roster is on file/i.test(await page.locator(".m-rbody .m-empty").innerText()), "no 'no roster on file' message");
+  assert(!(await page.locator(".m-error--banner").count()), "an absent file was shown as a failed load");
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: rows and cards with missing fields render with no undefined, NaN or null text", async ctx => {
+  const roster = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "rosters_2026.json"), "utf8"))["68"];
+  const ids = roster.slice(0, 5).map(r => r.player_id);
+  await faultRoute(ctx, /\/data\/rosters_2026\.json/, () => j => {
+    const r = j["68"];
+    r[0].name = null; r[1].position_group = null;
+    Object.assign(r[2], { height_in: null, weight_lbs: null, hometown_state: null, class_year: null, stars: null });
+    Object.assign(r[3], { overall_rating: null, live_rating: null, rating_prev: null });
+    for (const k of Object.keys(r[4])) if (k !== "player_id") r[4][k] = null;
+    return j;
+  });
+  const page = await openMenu(ctx, "#/roster");
+  await waitCount(page, ".m-row", 10);
+  assert(await page.locator(".m-row").count() === roster.length, "the damaged rows changed the number of rows");
+  const body = await page.locator(".m-rbody").innerText();
+  assert(!/undefined|NaN|\bnull\b/.test(body), `roster text has a raw value: ${(body.match(/undefined|NaN|\bnull\b/) || [""])[0]}`);
+  for (const id of ids) {
+    await page.evaluate(i => { location.hash = `#/player/${i}/68`; }, id);
+    await page.waitForSelector(".m-hero", { timeout: 30000 });
+    const txt = await page.locator("#m-stage").innerText();
+    assert(!/undefined|NaN|\bnull\b/.test(txt), `card ${id} has a raw value: ${(txt.match(/undefined|NaN|\bnull\b/) || [""])[0]}`);
+  }
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
+});
+
+check("menu: every rostered player's card and every position tab render, across seasons and teams", async ctx => {
+  const page = await openMenu(ctx, "#/home");
+  await waitCount(page, ".m-group", 3);
+  const SEASONS = [2026, 2025, 2021, 2016, 2008], TEAMS = [68, 13, 52];
+  const totals = { cards: 0, rosters: 0, bad: [] };
+  for (const season of SEASONS) {
+    const res = await page.evaluate(async ({ season, teams }) => {
+      MENU.season = season;
+      const out = { cards: 0, rosters: 0, bad: [], noRating: 0, noStats: 0 };
+      const rosters = await _load(`rosters_${season}.json`);
+      // The smallest roster of the season stands in for a small program.
+      const smallest = Object.entries(rosters || {}).sort((a, b) => a[1].length - b[1].length)[0];
+      for (const team of [...teams, smallest ? Number(smallest[0]) : null].filter(Boolean)) {
+        const roster = await fetchTeamRoster(team, season);
+        MENU.teamId = team;
+        for (const pos of ["ALL", ...CONFIG.FILTER_POSITIONS]) {
+          try {
+            const html = await menuScreens.roster.render({ params: [pos], state: MENU, cleanups: [] });
+            const txt = html.replace(/<[^>]*>/g, " ");
+            if (/undefined|NaN|\bnull\b/.test(txt)) out.bad.push(`roster ${season}/${team}/${pos}: raw value`);
+            out.rosters++;
+          } catch (e) { out.bad.push(`roster ${season}/${team}/${pos}: ${e.message}`); }
+        }
+        for (const r of roster) {
+          try {
+            const html = await menuScreens.player.render({ params: [String(r.player_id), String(team)], state: MENU, cleanups: [] });
+            const txt = html.replace(/<[^>]*>/g, " ");
+            out.cards++;
+            if (/undefined|NaN|\bnull\b/.test(txt)) out.bad.push(`card ${season}/${team}/${r.player_id}: raw value`);
+            if (/class="m-error/.test(html)) out.bad.push(`card ${season}/${team}/${r.player_id}: error panel`);
+            const rated = /ovr-badge|trio-strip/.test(html) || /<div class="m-big">.*?<\/div><p class="m-note">/s.test(html);
+            if (!rated) { out.noRating++; out.bad.push(`card ${season}/${team}/${r.player_id}: no rating and no reason`); }
+            const stats = /<div class="m-stats"><(table|p class="m-empty")/.test(html);
+            if (!stats) { out.noStats++; out.bad.push(`card ${season}/${team}/${r.player_id}: no stats and no reason`); }
+          } catch (e) { out.bad.push(`card ${season}/${team}/${r.player_id}: ${e.message}`); }
+        }
+      }
+      return out;
+    }, { season, teams: TEAMS });
+    totals.cards += res.cards; totals.rosters += res.rosters; totals.bad.push(...res.bad);
+  }
+  console.log(`      crawl: ${totals.cards} cards, ${totals.rosters} roster tabs, ${totals.bad.length} problems`);
+  assert(totals.cards > 1500, `the crawl covered only ${totals.cards} cards`);
+  assert(!totals.bad.length, `${totals.bad.length} problems, first: ${totals.bad.slice(0, 3).join(" | ")}`);
+  assert(!quiet(page).length, quiet(page)[0]);
+  return null;
 });
 
 check("menu: the playoff picture fields 4, 8, 12 and 24 teams, seeded by rating", async ctx => {
@@ -1293,6 +1543,44 @@ check("menu: a team's recruiting class and transfers show a state map", async ct
   const t = await openMenu(ctx, "#/team-portal");
   await t.waitForSelector(".m-statemap", { timeout: 30000 });
   return t;
+});
+
+check("menu: a played season's schedule lists the bowl or playoff after the regular season, labelled; a team without one has none", async ctx => {
+  const sched = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "schedules_2025.json"), "utf8"));
+  const withPost = Object.keys(sched).find(t => sched[t].some(g => g.season_type === "postseason" && g.result) && sched[t].filter(g => g.season_type === "regular").length >= 12);
+  const without = Object.keys(sched).find(t => !sched[t].some(g => g.season_type === "postseason") && sched[t].filter(g => g.season_type === "regular").length >= 12);
+  assert(withPost && without, "no 2025 team with and without a postseason game to test");
+  const open = async team => {
+    await ctx.addInitScript(([t, y]) => { try { localStorage.setItem("cfb-menu-team", t); localStorage.setItem("cfb-menu-season", y); } catch (e) {} }, [team, "2025"]);
+    const page = await openPage(ctx, "menu.html#/schedule");
+    await waitCount(page, ".m-row--sched", 10);
+    return page;
+  };
+  const a = await open(withPost);
+  assert(await a.locator(".m-sched-div").count() === 1, "no POSTSEASON heading for a team that played a bowl");
+  const labels = await a.locator(".m-row--sched .m-rank").allInnerTexts();
+  const posts = sched[withPost].filter(g => g.season_type === "postseason").length;
+  assert(labels.filter(l => l === "POST").length === posts, `expected ${posts} POST rows, got ${labels.filter(l => l === "POST")}`);
+  assert(!labels.some((l, i) => /^W\d+$/.test(l) && labels.slice(0, i).includes("POST")), "a week-numbered game follows a postseason game");
+  await a.close();
+  const b = await open(without);
+  assert(await b.locator(".m-sched-div").count() === 0, "a POSTSEASON heading for a team that played none");
+  assert(await b.locator(".m-row--sched .m-rank").allInnerTexts().then(l => !l.includes("POST")), "a POST row for a team that played none");
+  return null;
+});
+
+check("menu: a team's record shows the postseason beside the regular season", async ctx => {
+  const sched = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "data", "schedules_2025.json"), "utf8"));
+  const team = Object.keys(sched).find(t => sched[t].some(g => g.season_type === "postseason" && g.result));
+  await ctx.addInitScript(([t, y]) => { try { localStorage.setItem("cfb-menu-team", t); localStorage.setItem("cfb-menu-season", y); } catch (e) {} }, [team, "2025"]);
+  const page = await openPage(ctx, "menu.html#/hub");
+  await waitCount(page, ".m-teamcard .m-facts", 1);
+  assert(/post \d+-\d+/.test(await page.locator(".m-teamcard .m-facts").first().innerText()), "the hub record has no postseason part");
+  const r = await openPage(ctx, "menu.html#/rankings/pre");
+  await waitCount(r, ".m-row--rank", 5);
+  await r.locator(".m-row--rank").first().click();
+  await r.waitForSelector(".m-ptable", { timeout: 20000 });
+  return null;
 });
 
 check("menu: the schedule shows a bye week and the roster is ordered by the to-date rating", async ctx => {

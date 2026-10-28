@@ -23,7 +23,7 @@
   document.documentElement.setAttribute("data-theme", theme);
   if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v4.13.0";
+  const VERSION = "v4.14.0";
 
   // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
   // so anything longer than ~8 characters gets an abbreviation here.

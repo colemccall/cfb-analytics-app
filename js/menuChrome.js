@@ -186,6 +186,7 @@ menuChrome.openMenu = function () {
         <div><h3 class="m-ovl-h">NEWS</h3>${item("playoff", "Playoff Picture")}${item("season", "The Season")}${item("research", "Research")}${item("guide", "How It Works")}${item("methods", "Methods")}${item("changes", "Build Log")}</div>
       </div>
       <div class="m-ovl-opts">
+          ${item("home", "Home")}
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="mode"><span class="m-item-label">${this.mode === "light" ? "Dark Mode" : "Light Mode"}</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button>

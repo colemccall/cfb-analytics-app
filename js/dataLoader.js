@@ -2,21 +2,56 @@
 // GitHub Pages serves these files directly; no backend or Supabase client required.
 
 const _cache = {};
-// The only fetch in the app. Loads data/<file> once and caches the parsed
-// JSON in memory for the life of the page — every later call, including
-// theme repaints, is served from the cache. A missing file, a network error
-// or invalid JSON all cache as null, so callers test for null rather than
-// catching.
+const _inflight = {};
+const _failures = {};
+const LOAD_TRIES = 3;
+const LOAD_BACKOFF_MS = 400;
+
+// The only fetch in the app. Loads data/<file> once and caches the parsed JSON in memory for
+// the life of the page — every later call, including theme repaints, is served from the cache,
+// and two callers asking for the same file at once share one request. Callers test for null.
+//
+// Null means one of two different things, and the loader keeps them apart:
+//   - the file does not exist (HTTP 404): that is an answer, so it is cached;
+//   - the load FAILED (network error, server error, truncated or invalid JSON): it is retried
+//     (LOAD_TRIES attempts, growing pauses), recorded in _failures so a screen can say so
+//     (dataFailures), and NOT cached, so the next call tries again instead of showing an empty
+//     page for the rest of the visit.
 async function _load(file) {
-  if (_cache[file] === undefined) {
+  if (_cache[file] !== undefined) return _cache[file];
+  if (!_inflight[file]) _inflight[file] = _fetchJson(file).finally(() => { delete _inflight[file]; });
+  return _inflight[file];
+}
+
+// One file, up to LOAD_TRIES attempts. Resolves to the parsed JSON, or null (see _load).
+async function _fetchJson(file) {
+  let why = "";
+  for (let attempt = 0; attempt < LOAD_TRIES; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, LOAD_BACKOFF_MS * attempt * attempt));
     try {
       const res = await fetch(CONFIG.DATA_BASE + file);
-      _cache[file] = res.ok ? await res.json() : null;
-    } catch (_) {
-      _cache[file] = null;
+      if (res.status === 404) { delete _failures[file]; return (_cache[file] = null); }
+      if (!res.ok) { why = `HTTP ${res.status}`; continue; }
+      const data = await res.json();
+      delete _failures[file];
+      return (_cache[file] = data);
+    } catch (e) {
+      why = e && e.message ? e.message : String(e);
     }
   }
-  return _cache[file];
+  _failures[file] = { file, message: why, at: Date.now() };
+  return null;
+}
+
+// The files whose most recent load failed, as [{ file, message, at }], optionally only those that
+// failed at or after `since` (a Date.now() value). A missing file is not a failure.
+function dataFailures(since = 0) {
+  return Object.values(_failures).filter(f => f.at >= since);
+}
+
+// Whether the last load of one data file failed (as opposed to the file being absent).
+function dataFailed(file) {
+  return Boolean(_failures[file]);
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +320,34 @@ async function fetchPlayerProfile(playerId, season = CONFIG.CURRENT_SEASON) {
     if (found) return found;
   }
   return null;
+}
+
+// The data file that holds one player's career card: cards/NNNN.json, NNNN = player_id % CARD_SHARDS.
+function playerCardFile(playerId) {
+  return `cards/${String(Number(playerId) % CONFIG.CARD_SHARDS).padStart(4, "0")}.json`;
+}
+
+// One player's card data: a row per season he has a ratings row in, oldest first, read from his
+// ~150 KB shard instead of every season's file (opening a card used to download 82-93 MB). [] when
+// he has no ratings row in any season; null when the shard failed to load (dataFailed(playerCardFile)
+// says so), so a caller can tell "no data" from "did not load".
+async function fetchPlayerCard(playerId) {
+  const shard = await _load(playerCardFile(playerId));
+  if (!shard) return dataFailed(playerCardFile(playerId)) ? null : [];
+  return shard[String(playerId)] || [];
+}
+
+// The photo mapping from script 19: { source, season, image: url pattern with {id}, players: { our player id:
+// ESPN athlete id } }, or null when the file is absent or CONFIG.HEADSHOTS_ENABLED is off (no request then).
+async function fetchHeadshots() {
+  if (!CONFIG.HEADSHOTS_ENABLED) return null;
+  return _load("headshots.json");
+}
+
+// Every player's transfer history, {player_id: [move, ...]}, or {} when the file is absent. The one
+// file is cached, so only the first card to ask pays for it.
+async function fetchPlayerTransfers() {
+  return (await _load("player_transfers.json")) || {};
 }
 
 // Every player row of one season's ratings file, or [] when that season has none.

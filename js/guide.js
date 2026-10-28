@@ -252,10 +252,12 @@ const GUIDE = [
     id: "page-menu",
     group: "pages",
     title: "The Dynasty menu",
-    summary: `The home page: a hub laid out like the franchise menus of an early-2010s console football game,
-      with Team, League and News tabs. Team drills into one team (roster, depth chart, schedule, recruiting,
-      transfers); League is everything across teams (rankings, standings, players, stats, recruiting, the portal);
-      News is the playoff bracket, the season page, research and how the app works. Every other page wears the same look. It reads the same data as the rest of
+    summary: `The home page is a landing page laid out like the franchise menus of an early-2010s console football
+      game: three cards (League, News, Dynasty) over the current top teams and the season's playoff picture. It needs
+      no team. League is everything across teams (rankings, standings, players, recruiting, the portal); News is the
+      playoff bracket, the season page, research and how the app works; Dynasty is the optional way to follow one team
+      and drill into it through the hub, with Team, League and News tabs (roster, depth chart, schedule, recruiting,
+      transfers, history). Every other page wears the same look. It reads the same data as the rest of
       the site, so a number here is the same number there. The look is original; the layout is from the
       author's memory of that style and may not match it exactly.
 
@@ -263,7 +265,7 @@ const GUIDE = [
       projection, and earned to date. They are never combined.`,
     controls: [
       { name: "Mouse", what: "Hover moves the highlight, click selects. Tabs along the top are clickable." },
-      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc at the top of the menu opens the quick menu too." },
+      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc on the landing page opens the quick menu too; Esc on the Dynasty hub returns to the landing page." },
       { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start opens the quick menu; Select switches light and dark. The prompt bar at the bottom switches to controller labels." },
     ],
     tips: [

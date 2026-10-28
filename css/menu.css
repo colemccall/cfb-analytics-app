@@ -159,6 +159,18 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
 .m-split { display: grid; grid-template-columns: minmax(260px, 36%) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .m-split--hub { grid-template-columns: minmax(280px, 32%) minmax(0, 1fr); }
 .m-error, .m-empty { padding: 2rem; color: var(--m-muted); text-align: center; }
+.m-error { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; color: var(--m-text); }
+.m-error--banner {
+  flex-direction: row; align-items: center; gap: 1rem; margin: 0 0 0.9rem; padding: 0.6rem 1rem; text-align: left;
+  border-left: 6px solid var(--m-hot); background: color-mix(in srgb, var(--m-hot) 16%, transparent);
+}
+.m-error-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.m-retry {
+  padding: 0.35rem 1.1rem; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--m-btn-text);
+  background: linear-gradient(var(--m-btn-top), var(--m-btn-bot)); border: 1px solid #8a929d; border-radius: 3px;
+}
+.m-retry.is-selected { color: #fff; background: linear-gradient(#2b3037, #000); border-color: #000; box-shadow: 0 0 0 1px #d9dde2, 0 0 14px var(--m-hot-glow); }
 
 /* ── Panels: dark glass with a silver top edge ───────────────────────────── */
 .m-panel {
@@ -333,6 +345,27 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: rg
 .m-detail .trio-strip { grid-template-columns: 1fr; padding: 0.4rem 0; background: none; border: 0; }
 .m-detail .trio-arrow { transform: rotate(90deg); line-height: 0.6; }
 .m-foot { margin: 0.8rem 0 0; color: var(--m-muted); font-size: var(--fs-sm); }
+/* ── Player card: photo slot, stat tables, why list ───────────────────────── */
+.m-hero { display: flex; align-items: center; gap: 1.1rem; }
+.m-photo {
+  flex: none; width: 104px; height: 128px; display: grid; place-items: center; overflow: hidden;
+  border: 2px solid var(--m-panel-edge); border-radius: 3px;
+  background: linear-gradient(var(--m-panel-top), var(--m-panel-bot)); box-shadow: inset 0 1px 0 var(--m-gloss);
+}
+.m-photo { position: relative; }
+.m-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; background: var(--m-panel-bot); }
+.m-photo-initials { font-family: var(--font-display); font-weight: 900; font-size: 2.4rem; letter-spacing: 0.05em; color: var(--m-muted); }
+.m-stats { display: grid; gap: 0.9rem; }
+.m-stattable { width: 100%; border-collapse: collapse; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+.m-stattable th, .m-stattable td { padding: 0.28rem 0.5rem; text-align: right; border-bottom: 1px solid var(--m-line); }
+.m-stattable thead th { font-family: var(--font-display); font-size: var(--fs-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--m-muted); border-bottom: 2px solid var(--m-panel-edge); }
+.m-stattable th:first-child, .m-stattable td:first-child { text-align: left; }
+.m-stattable tbody th { font-weight: 500; color: var(--m-text); }
+.m-stattable tfoot th, .m-stattable tfoot td { border-top: 2px solid var(--m-panel-edge); font-weight: 700; }
+.m-career-table th:nth-child(2), .m-career-table td:nth-child(2) { text-align: left; }
+.m-why { margin: 0 0 0.6rem; padding-left: 1.1rem; display: grid; gap: 0.4rem; font-size: var(--fs-md); }
+.m-sched-div { margin: 0.7rem 0 0.3rem; padding: 0.15rem 0.2rem; border-bottom: 2px solid var(--m-hot); font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: var(--fs-md); color: var(--m-muted); }
+.m-foot--warn { display: flex; align-items: center; gap: 0.8rem; color: var(--m-text); }
 .m-big .ovr-badge { font-size: var(--fs-3xl); padding: 0.1rem 0.9rem; }
 
 .m-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 0.9rem; align-items: start; }
@@ -508,7 +541,24 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-rowhead.m-row--player, .m-row--player { grid-template-columns: 2.4rem minmax(0, 1.5fr) 3.8rem 4.2rem 2.4rem 4.2rem; }
 .m-rowhead.m-row--player.is-trio, .m-row--player.is-trio { grid-template-columns: 2.4rem minmax(0, 1.5fr) 3.8rem 4.2rem 2.4rem repeat(3, 4.2rem); }
 .m-rowhead.m-row--hist, .m-row--hist { grid-template-columns: 4rem minmax(0, 1fr) 4.6rem 4.4rem 4rem 4rem; }
-.m-ovl-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1px solid var(--m-line); }
+.m-ovl-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1px solid var(--m-line); }
+
+/* ── Landing page: three menu cards over the live league panels ─────────── */
+.m-home { display: flex; flex-direction: column; gap: 1.1rem; }
+.m-home-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; align-items: start; }
+.m-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.m-group .m-h3 { margin-bottom: 0.2rem; }
+.m-item--sm { font-size: 1.05rem; padding: 0.42rem 1rem; }
+.m-item--sm.is-selected { padding-left: calc(1rem - 8px); padding-right: calc(1rem - 8px); }
+.m-homeline {
+  --m-team: var(--m-hot); display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.2rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.7rem; border-left: 6px solid var(--m-team);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--m-team) 30%, transparent), transparent);
+}
+.m-homeline b { display: block; font-family: var(--font-display); font-size: 1.15rem; text-transform: uppercase; }
+.m-homeline small { display: block; color: var(--m-muted); font-size: var(--fs-sm); }
+.m-home-live { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; align-items: start; }
+.m-home-live .m-teamcard { min-height: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .m-stage.is-entering { animation: none; } .m-toast { transition: none; } .m-ticker-track { animation: none; }
@@ -531,6 +581,7 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
   .m-readlist, .m-reader { max-height: none; }
   .m-ovl-opts { grid-template-columns: 1fr; }
   .m-ovl-cols { grid-template-columns: 1fr; }
+  .m-home-groups, .m-home-live { grid-template-columns: 1fr; }
   .m-rowhead.is-trio, .m-row.is-trio { grid-template-columns: 1.6rem 3rem minmax(0, 1fr) repeat(3, 3.2rem); }
   .m-row .m-pmeta, .m-rowhead > span:nth-child(4) { display: none; }
   .m-rhead { grid-template-columns: auto minmax(0, 1fr); }

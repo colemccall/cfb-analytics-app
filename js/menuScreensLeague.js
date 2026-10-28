@@ -47,8 +47,12 @@ menuRouter.register("schedule", {
     const haveWk = new Set(regWeeks);
     const byeRow = wk => `<div class="m-row m-row--sched is-bye"><span class="m-rank">W${wk}</span><span class="m-pname">BYE WEEK</span><span class="m-pmeta"></span><span></span><span class="m-result">—</span></div>`;
     let nextWk = firstWk;
+    let postShown = false;
     const rows = games.map(g => {
       let byes = "";
+      // Bowls and the playoff come after the regular season under their own heading: their "week" is an
+      // index within the postseason, not a week of the season, so it is not shown as one.
+      if (g.season_type === "postseason" && !postShown) { postShown = true; byes += '<div class="m-sched-div">POSTSEASON</div>'; }
       if (g.season_type === "regular" && g.week && Number.isFinite(firstWk)) {
         for (; nextWk < g.week; nextWk++) if (!haveWk.has(nextWk)) byes += byeRow(nextWk);
         nextWk = g.week + 1;
@@ -57,7 +61,7 @@ menuRouter.register("schedule", {
       const opp = menuTeamById(d, oppId);
       const played = g.result === "W" || g.result === "L";
       return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}">
-        <span class="m-rank">${g.week ? `W${g.week}` : "Bowl"}</span>
+        <span class="m-rank">${g.season_type === "postseason" ? "POST" : g.week ? `W${g.week}` : "—"}</span>
         <span class="m-pname">${g.is_home ? "vs" : "@"} ${_esc(g.opponent || "TBD")}${g.neutral_site ? " (N)" : ""}</span>
         <span class="m-pmeta">${_esc(String(g.game_date || "").slice(0, 10))}</span>
         <span class="m-rating">${opp ? menuTeamPill(opp, d, MENU.season) : '<span class="trio-na" title="Not in our team list (non-FBS)">—</span>'}</span>
@@ -87,7 +91,7 @@ menuRouter.register("schedule", {
         <div class="m-vs">${side(team)}<span class="m-vs-at">${g.is_home ? "vs" : "@"}</span>${side(opp, g.opponent)}</div>
         ${menuBar(team.school, menuTeamOvr(team, d))}
         ${opp ? menuBar(opp.school, menuTeamOvr(opp, d)) : ""}
-        <p class="m-note">${g.result ? `Final: ${g.result} ${g.team_score}–${g.opp_score ?? 0}` : "Not played yet"} · ${_esc(String(g.game_date || "").slice(0, 10))}</p>`;
+        <p class="m-note">${g.season_type === "postseason" ? "Postseason game · " : ""}${g.result ? `Final: ${g.result} ${g.team_score}–${g.opp_score ?? 0}` : "Not played yet"} · ${_esc(String(g.game_date || "").slice(0, 10))}${g.venue ? ` · ${_esc(g.venue)}` : ""}</p>`;
     });
   },
   prefer: () => ".m-row--sched.is-next",
@@ -181,7 +185,7 @@ menuRouter.register("rankings", {
     const mineRow = mineIdx >= 25 ? `<div class="m-gap">· · ·</div>${row(ranked[mineIdx], mineIdx)}` : "";
     return `<div class="m-split m-split--roster">
       <section class="m-panel m-list" aria-label="Top 25">
-        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span>REC</span><span>RATING</span><span>POWER</span></div>
+        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span title="Regular season; the postseason is on the team's panel">REC</span><span>RATING</span><span>POWER</span></div>
         ${top}${mineRow}
       </section>
       <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see how its power is made.</p></aside>
@@ -200,8 +204,16 @@ menuRouter.register("rankings", {
       const hit = byId.get(e.target.closest?.("[data-team]")?.dataset.team);
       if (!hit) return;
       const mine = ++token;
-      const games = (await fetchPowerGames(MENU.season))[String(hit.t.id)] || [];
-      if (mine === token) detail.innerHTML = menuPowerPanel(hit.t, hit.rank, ctx, games);
+      try {
+        const games = (await fetchPowerGames(MENU.season))[String(hit.t.id)] || [];
+        if (mine !== token) return;
+        detail.innerHTML = menuPowerPanel(hit.t, hit.rank, ctx, games);
+        // The games behind the results part come from their own file; if it failed, say so rather
+        // than let an empty table read as "no games".
+        if (dataFailed(`power_games_${MENU.season}.json`)) detail.insertAdjacentHTML("beforeend", '<p class="m-foot m-foot--warn" role="alert">The games behind this number did not load. Select the team again to retry.</p>');
+      } catch (err) {
+        if (mine === token) detail.innerHTML = `<p class="m-empty" role="alert">This explanation could not be drawn: ${_esc(err && err.message ? err.message : err)}</p>`;
+      }
     });
   },
 });
@@ -217,12 +229,16 @@ function menuPowerPanel(t, rank, ctx, games) {
   const resultsPart = live ? lv?.results_rating : t.results_rating;
   const n = live ? lv?.results_games : t.results_games;
   const st = d.standings[t.id];
-  const rows = games.map(g => `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
-      <td>W${g.week ?? "—"}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${_esc(g.opp || "—")}</td>
+  const gameRow = g => `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
+      <td>${g.post ? "POST" : `W${g.week ?? "—"}`}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${_esc(g.opp || "—")}</td>
       <td>${g.margin > 0 ? "W" : g.margin < 0 ? "L" : "T"} ${g.score}–${g.opp_score}</td>
-      <td>${menuPowerText(g.value)}</td><td>${menuPowerText(g.expected)}</td><td><b>${menuPowerText(g.over)}</b></td></tr>`).join("");
+      <td>${menuPowerText(g.value)}</td><td>${menuPowerText(g.expected)}</td><td><b>${menuPowerText(g.over)}</b></td></tr>`;
+  const rows = games.filter(g => !g.post).map(gameRow).join("");
+  // Bowls and the playoff are listed apart: power does not count them yet, so they must not sit in the
+  // table that adds up to the results part.
+  const postRows = games.filter(g => g.post).map(gameRow).join("");
   return `<h2 class="m-detail-name">${_esc(t.school)} · #${rank}</h2>
-    <div class="m-facts"><span>${st ? `${st.w}-${st.l}` : "—"}</span><span>${_esc(t.conference || "")}</span></div>
+    <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span></div>
     <div class="m-pparts">
       <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
       <i>+</i>
@@ -232,7 +248,10 @@ function menuPowerPanel(t, rank, ctx, games) {
     </div>
     ${rows ? `<table class="m-ptable"><thead><tr><th>WK</th><th>OPPONENT</th><th>RESULT</th><th title="Margin (capped at 28) plus 8 for a win or minus 8 for a loss">VALUE</th><th title="What the two teams' ratings expected the game to be worth">EXPECTED</th><th title="Value minus expected: the game's contribution to the results part">OVER</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="m-note">Value is the margin (capped at 28) plus 8 for a win or minus 8 for a loss. Expected comes from the two ratings and the home edge. The results part is about the average of OVER, pulled toward 0 for a team with few games. A loss costs its 8 and its margin; a win over a team the ratings call weak earns little.</p>`
-      : '<p class="m-note">No game-by-game table for this list.</p>'}`;
+      : '<p class="m-note">No game-by-game table for this list.</p>'}
+    ${postRows ? `<h3 class="m-h3">Postseason: shown, not counted</h3>
+      <table class="m-ptable"><tbody>${postRows}</tbody></table>
+      <p class="m-note">Bowls and the playoff are not in the results part above. How much they should weigh is still being measured, so they are listed with the same value and expected columns and left out of the sum.</p>` : ""}`;
 }
 
 // ── Transfer portal ───────────────────────────────────────────────────────

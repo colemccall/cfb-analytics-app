@@ -162,7 +162,7 @@ menuRouter.register("team-select", {
         ${menuBar("Offense", menuSide(t, lv, "offense_rating"), menuSideHint(t, lv))}
         ${menuBar("Defense", menuSide(t, lv, "defense_rating"), menuSideHint(t, lv))}
         <div class="m-facts">
-          <span>${st ? `Record ${st.w}-${st.l}` : "No results yet"}</span>
+          <span>${st ? `Record ${recordText(st)}` : "No results yet"}</span>
           <span>Rank #${menuTeamRank(t, d) ?? "—"}</span>
           ${lv ? `<span class="m-live">TO DATE · WK ${d.live.through_week}</span>` : isProjectedSeason(MENU.season) ? '<span class="m-proj">PROJECTED</span>' : ""}
         </div>`;
@@ -232,14 +232,67 @@ menuRouter.register("hub", {
     </div>
     <div class="m-hint" id="m-hint"></div>`;
   },
-  mount(stage) {
-    const hint = stage.querySelector("#m-hint");
-    stage.addEventListener("menu:select", e => {
-      const it = e.target.closest?.("[data-route],[data-href]");
-      if (it) hint.textContent = it.dataset.hint || "";
-    });
-    stage.querySelectorAll("[data-route]").forEach(b => b.addEventListener("click", () => menuRouter.go(`#/${b.dataset.route}`)));
+  mount: menuMountRouteItems,
+  prefer: () => ".m-item",
+});
+
+// Wires a menu list: the hint line follows the selection and a click opens the item's route.
+function menuMountRouteItems(stage) {
+  const hint = stage.querySelector("#m-hint");
+  stage.addEventListener("menu:select", e => {
+    const it = e.target.closest?.("[data-route],[data-href]");
+    if (it && hint) hint.textContent = it.dataset.hint || "";
+  });
+  stage.querySelectorAll("[data-route]").forEach(b => b.addEventListener("click", () => menuRouter.go(`#/${b.dataset.route}`)));
+}
+
+// ── Landing page: the whole league and the news, no team needed ─────────────
+
+// The landing page's three menu groups. League and News are the hub's lists; Dynasty is the
+// way into the team drill-down, one entry before a team is followed and two after.
+function menuHomeGroups(team) {
+  const dynasty = team
+    ? [{ label: "My Team", route: "hub", hint: `${team.school}: roster, depth chart, schedule, recruiting, transfers and history.` },
+       { label: "Switch Team", route: "team-select", hint: "Pick a different team to follow." }]
+    : [{ label: "Follow a Team", route: "team-select", hint: "Pick a team to follow: its roster, depth chart, schedule, recruiting, transfers and history." }];
+  return [
+    { id: "league", title: "League", items: menuHubItems("league", team) },
+    { id: "news", title: "News", items: menuHubItems("news", team) },
+    { id: "dynasty", title: "Dynasty", items: dynasty },
+  ];
+}
+
+// The Dynasty card's lead line: the followed team's record, rank and next game, or a note that
+// following a team is optional.
+function menuHomeTeamLine(d, team) {
+  if (!team) return '<p class="m-note">Optional. Follow a team to get its own roster, depth chart, schedule and recruiting.</p>';
+  const st = d.standings[team.id];
+  const next = menuNextGame(d.schedules[String(team.id)]);
+  const opp = next ? `${next.is_home ? "vs" : "@"} ${next.opponent || "TBD"}` : "No game scheduled";
+  return `<div class="m-homeline" style="--m-team:${_esc(team.color || "")}">${teamMark(team, "m-row-mark")}
+      <div><b>${_esc(team.school)}</b><small>${st ? recordText(st) : "No results yet"} · Rank #${menuTeamRank(team, d) ?? "—"}</small><small>Next: ${_esc(opp)}</small></div></div>`;
+}
+
+menuRouter.register("home", {
+  title: "Home",
+  crumb: () => "HOME",
+  banner: false,
+  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Select" }, { action: "season", label: "Season" }],
+  async render(ctx) {
+    const d = await menuTeams(MENU.season);
+    const team = menuMyTeam(d);
+    ctx.d = d; ctx.team = null;
+    const card = g => `<nav class="m-panel m-group" aria-label="${_esc(g.title)}"><h3 class="m-h3">${_esc(g.title)}</h3>
+        ${g.id === "dynasty" ? menuHomeTeamLine(d, team) : ""}
+        ${g.items.map(it => `<button class="m-item m-item--sm" type="button" data-nav data-nav-group="home" data-route="${it.route}" data-hint="${_esc(it.hint)}">
+          <span class="m-item-label">${_esc(it.label)}</span></button>`).join("")}</nav>`;
+    return `<div class="m-home">
+      <div class="m-home-groups">${menuHomeGroups(team).map(card).join("")}</div>
+      <div class="m-home-live">${menuHubLeaguePanel(d, 8)}${menuHubNewsPanel(d)}</div>
+    </div>
+    <div class="m-hint" id="m-hint"></div>`;
   },
+  mount: menuMountRouteItems,
   prefer: () => ".m-item",
 });
 
@@ -257,7 +310,7 @@ function menuHubTeamPanel(d, team) {
         <div><h2>${_esc(team.school)}</h2><div class="m-sub">${_esc(team.conference || "")}</div></div>
       </div>
       <div class="m-facts">
-        <span>${st ? `Record ${st.w}-${st.l}` : "No results yet"}</span>
+        <span>${st ? `Record ${recordText(st)}` : "No results yet"}</span>
         <span>Rank #${menuTeamRank(team, d) ?? "—"}</span>
         ${lv ? `<span class="m-live">TO DATE · WK ${d.live.through_week}</span>` : ""}
       </div>
@@ -270,13 +323,14 @@ function menuHubTeamPanel(d, team) {
     </section>`;
 }
 
-// The League tab's panel: the ten highest-ranked teams by power, with record and rating.
-function menuHubLeaguePanel(d) {
-  const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, 10);
+// The League tab's panel: the ten highest-ranked teams by power, with record and rating
+// (the landing page shows fewer, so it fits above the fold).
+function menuHubLeaguePanel(d, n = 10) {
+  const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, n);
   const rows = top.map((t, i) => `<div class="m-hrow"><span class="m-rank">${i + 1}</span><span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
       <span class="m-num">${d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—"}</span><span class="m-num">${menuPowerText(menuTeamPower(t, d))}</span></div>`).join("");
   return `<section class="m-panel m-teamcard" aria-label="Top ten">
-      <h2 class="m-detail-name">Top ten · ${MENU.season}</h2>
+      <h2 class="m-detail-name">Top ${n === 10 ? "ten" : n} · ${MENU.season}</h2>
       <div class="m-hrow m-hrow--head"><span>#</span><span>TEAM</span><span>REC</span><span>POWER</span></div>
       ${rows || '<p class="m-empty">No ranked teams.</p>'}
       <p class="m-note">Ranked by power: team rating plus results, in points per game above an average team.</p>

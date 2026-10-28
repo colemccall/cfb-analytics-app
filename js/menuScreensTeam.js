@@ -53,10 +53,27 @@ function menuSortPlayers(players, sort) {
 // that carries them, else the single rating. Same pills as every other table.
 function menuRatingCells(p, season) {
   if (hasTrio(p)) return ratingTrioCells(p, season).map(h => `<span class="m-rating">${h}</span>`);
-  return [`<span class="m-rating">${ovrPill(p.overall_rating, { label: `Overall rating, ${season}`, season })}</span>`];
+  return [`<span class="m-rating">${ovrPill(p.overall_rating, { label: `Overall rating, ${season}`, season, why: menuNoRatingWhy(p, season) })}</span>`];
+}
+
+// Why a player has no rating for a season, in words, for a row without the three-ratings fields
+// (a season already played). Said as what is known: an offensive lineman is withheld by design,
+// anyone else has too few counted games on file. Empty when he has a rating.
+function menuNoRatingWhy(p, season) {
+  if (p.overall_rating != null) return "";
+  if (p.rating_status === "not_rated" || p.position_group === "OL") return p.not_rated_reason || "Offensive linemen are not rated: no individual blocking data exists.";
+  return `No earned rating for ${season}: not enough counted games on file (a rating needs three games with recorded stats).`;
 }
 
 // ── Roster ────────────────────────────────────────────────────────────────
+
+// Why a roster list is empty, in words: the file did not load, the team has no roster on file
+// for the season, or only this filter matched nobody. `filtered` is the message for the last.
+function menuEmptyRosterWhy(all, team, filtered) {
+  if (all.length) return filtered;
+  if (dataFailed(`rosters_${MENU.season}.json`)) return "The roster file did not load. Use Retry.";
+  return `No roster is on file for ${team ? team.school : "this team"} in ${MENU.season}.`;
+}
 
 // The position tabs: everyone, then each position group the site filters by.
 function _menuPositionTabs() {
@@ -106,6 +123,7 @@ menuRouter.register("roster", {
     ctx.team = team; ctx.d = d;
     const pos = ctx.params[0] || "ALL";
     const all = team ? await fetchTeamRoster(team.id, MENU.season) : [];
+    const none = menuEmptyRosterWhy(all, team, "No players at this position.");
     const list = all.filter(p => pos === "ALL" || matchesPosition(p.position_group, pos));
     const sort = MENU_ROSTER_SORTS[_menuRosterSort];
     const sorted = menuSortPlayers(list, sort);
@@ -130,7 +148,7 @@ menuRouter.register("roster", {
     return `<section class="m-panel m-list m-roster" aria-label="Roster">
         <div id="m-rhead">${menuRosterHead(sorted[0], MENU.season)}</div>
         <div class="m-rowhead m-row--roster${trio ? " is-trio" : ""}"><span>#</span>${head("name", "PLAYER")}${head("pos", "POS")}${head("class", "CL")}${head("ht", "HT")}${head("wt", "WT")}<span>ST</span>${head("stars", "★")}${ratingHeads}</div>
-        <div class="m-rbody">${rows || '<p class="m-empty">No players at this position.</p>'}</div>
+        <div class="m-rbody">${rows || `<p class="m-empty">${_esc(none)}</p>`}</div>
       </section>
     <p class="m-foot">${sorted.length} player${sorted.length === 1 ? "" : "s"} · sorted by ${sort.label.toLowerCase()} · ${trio
       ? `${MENU.season - 1} is earned, PROJ is the preseason projection, LIVE is earned so far (provisional). Click a heading to sort.`
@@ -173,6 +191,7 @@ menuRouter.register("depth", {
     ctx.team = team; ctx.d = d;
     const unit = decodeURIComponent(ctx.params[0] || "Offense");
     const players = team ? await fetchTeamRoster(team.id, MENU.season) : [];
+    const none = menuEmptyRosterWhy(players, team, "No players in this unit.");
     const trio = players.some(hasTrio);
     const groups = (DEPTH_SLOTS[unit] || []).filter(([g]) => players.some(p => (p.position_group || p.position) === g));
     const cards = groups.map(([g, n]) => {
@@ -185,7 +204,7 @@ menuRouter.register("depth", {
         </button>`).join("");
       return `<section class="m-panel m-group"><div class="m-group-head">${posBadge(g)}<span>${rows.length} on roster${unrated ? " · not rated" : ""}</span></div>${list}</section>`;
     }).join("");
-    return `<div class="m-groups">${cards || '<p class="m-empty">No players in this unit.</p>'}</div>
+    return `<div class="m-groups">${cards || `<p class="m-empty">${_esc(none)}</p>`}</div>
       <p class="m-foot"><b>Not an official depth chart.</b> No source we hold has depth data, so each group is in the order of its
       ratings (best available first). Offensive linemen are not rated, so they are ordered by recruiting grade.</p>`;
   },
@@ -197,61 +216,14 @@ menuRouter.register("depth", {
 
 // ── Player card ──────────────────────────────────────────────────────────
 
-// The few season stats worth a glance per position: [stat key, label]. Keys are the
-// ones in the exported stats payload. Anything the payload lacks is left out rather
-// than shown as a zero.
-const MENU_STAT_FIELDS = {
-  QB: [["passingYDS", "Pass yds"], ["passingTD", "Pass TD"], ["passingINT", "INT"], ["rushingYDS", "Rush yds"]],
-  RB: [["rushingYDS", "Rush yds"], ["rushingTD", "Rush TD"], ["rushingCAR", "Carries"], ["receivingREC", "Catches"]],
-  WR: [["receivingREC", "Catches"], ["receivingYDS", "Rec yds"], ["receivingTD", "Rec TD"]],
-  TE: [["receivingREC", "Catches"], ["receivingYDS", "Rec yds"], ["receivingTD", "Rec TD"]],
-  EDGE: [["defensiveTOT", "Tackles"], ["defensiveSACKS", "Sacks"], ["defensiveTFL", "TFL"]],
-  DL: [["defensiveTOT", "Tackles"], ["defensiveSACKS", "Sacks"], ["defensiveTFL", "TFL"]],
-  LB: [["defensiveTOT", "Tackles"], ["defensiveTFL", "TFL"], ["defensiveSACKS", "Sacks"], ["defensivePD", "PD"]],
-  CB: [["defensiveTOT", "Tackles"], ["interceptionsINT", "INT"], ["defensivePD", "PD"]],
-  S:  [["defensiveTOT", "Tackles"], ["interceptionsINT", "INT"], ["defensivePD", "PD"]],
-  DB: [["defensiveTOT", "Tackles"], ["interceptionsINT", "INT"], ["defensivePD", "PD"]],
-  K:  [["kickingFGM", "FG made"], ["kickingFGA", "FG tried"], ["kickingLONG", "Long"]],
-  P:  [["puntingNO", "Punts"], ["puntingYDS", "Yards"], ["puntingYPP", "Avg"]],
-};
-
-// Why a card has no stat tiles, in words: a stated reason rather than a bare empty box.
+// Why a card has no stat tables, in words: a stated reason rather than a bare empty box. A career
+// file that failed to load is said first: otherwise the reason would claim no stats exist.
 function menuNoStatsWhy(p) {
+  if (dataFailed(playerCardFile(p.id ?? p.player_id))) return "His career file did not load, so his stats cannot be shown. Use Retry.";
   if (p.rating_status === "not_rated") return p.not_rated_reason || "Offensive linemen are not rated and have no box-score stats.";
   if (p.live_status === "no_games") return "No game is recorded for him this season yet.";
   if (p.live_status === "too_few_games") return `Only ${p.live_games ?? "a few"} game(s) recorded so far: not enough for a rating, and no stat line is on file.`;
   return "No stats are recorded for him in this season's data.";
-}
-
-// Fills the career strip on a player card, oldest season first, one season file at a time so the
-// card is on screen at once and the strip grows behind it. Only the last few seasons are read:
-// the full history is every season's file, which is far too much to fetch for a menu screen. Cells
-// for the season being viewed (projection and to-date, or the plain rating) come first.
-async function menuCareerFill(el, pid, p) {
-  const cells = [];
-  const draw = () => {
-    el.innerHTML = cells.length ? `<div class="m-career-row">${cells.join("")}</div>`
-      : '<p class="m-empty">No rated seasons on file for him.</p>';
-  };
-  const tail = [];
-  if (hasTrio(p)) {
-    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} PROJ</span>${projPill(p, MENU.season)}</div>`);
-    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} TO DATE</span>${livePill(p)}</div>`);
-  } else if (p.overall_rating != null) {
-    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season}</span>${ovrPill(p.overall_rating, { season: MENU.season })}</div>`);
-  }
-  el.innerHTML = `<div class="m-career-row">${tail.join("")}</div><p class="m-foot">Loading earlier seasons…</p>`;
-  const earlier = [];
-  for (let y = MENU.season - 1; y >= Math.max(2008, MENU.season - 4); y--) {
-    if (!el.isConnected) return;
-    const row = await fetchSeasonPlayer(pid, y);
-    if (row?.overall_rating != null) {
-      earlier.unshift(`<div class="m-career-cell"><span class="m-career-yr">${y}</span>${ovrPill(row.overall_rating, { season: y, label: `Rating, ${y}` })}</div>`);
-    }
-    cells.length = 0; cells.push(...earlier, ...tail); draw();
-  }
-  if (!el.isConnected) return;
-  el.insertAdjacentHTML("beforeend", `<p class="m-foot">The last four seasons. The full history is on the Players page.</p>`);
 }
 
 menuRouter.register("player", {
@@ -261,49 +233,64 @@ menuRouter.register("player", {
   async render(ctx) {
     const d = await menuTeams(MENU.season);
     const pid = parseInt(ctx.params[0]);
-    // The ratings file first; a rostered player with no ratings row there (offensive line, or no
-    // projection and no games) is read from the team roster so his card still opens, with the
-    // fields that row has and a stated reason for the rest.
-    let p = await fetchSeasonPlayer(pid, MENU.season);
+    // His whole career is one small shard (cards/NNNN.json). null means that file failed, which is
+    // not the same as "he has no ratings row": the card says which.
+    const career = await fetchPlayerCard(pid);
+    const rows = career || [];
+    let p = rows.find(r => r.season === MENU.season) || null;
+    // A rostered player with no ratings row this season (offensive line, or no projection and no
+    // games) is read from the team roster so his card still opens, with the fields that row has and a
+    // stated reason for the rest.
     if (!p) {
       const roster = await fetchTeamRoster(parseInt(ctx.params[1]) || MENU.teamId, MENU.season);
       const r = roster.find(x => x.player_id === pid);
       const t = r && d.teams.find(x => x.id === (parseInt(ctx.params[1]) || MENU.teamId));
       if (r) p = { ...r, id: r.player_id, team_id: t?.id, team: t?.school, conference: t?.conference, stats_season: null };
     }
+    if (!p && rows.length) p = rows[rows.length - 1];     // a link to a season he has no row in: his latest season
     ctx.d = d;
-    if (!p) return '<div class="m-error">This player is not on the roster file for this season.</div>';
+    if (!p) {
+      const failed = dataFailures().filter(f => f.file === playerCardFile(pid) || f.file === `rosters_${MENU.season}.json`);
+      return menuErrorPanel(failed.length
+        ? `His data did not load (${failed.map(f => `${f.file}: ${f.message}`).join(", ")}).`
+        : `He is not on the ${MENU.season} roster and has no ratings row in any season.`, true);
+    }
     ctx.player = p;
     ctx.team = d.teams.find(t => t.id === p.team_id) || null;
+    const season = p.season ?? MENU.season;
     const pg = p.position_group || "ATH";
-    const stats = p.stats_season || {};
-    const tiles = (MENU_STAT_FIELDS[pg] || []).filter(([k]) => stats[k] != null)
-      .map(([k, label]) => `<div class="m-stat"><b>${_esc(String(stats[k]))}</b><span>${_esc(label)}</span></div>`).join("");
-    const ht = p.height_in ? `${Math.floor(p.height_in / 12)}'${p.height_in % 12}"` : "—";
     const trio = hasTrio(p);
+    const ht = p.height_in ? `${Math.floor(p.height_in / 12)}'${p.height_in % 12}"` : "—";
+    const moves = (await fetchPlayerTransfers())[String(pid)] || [];
+    const hs = await fetchHeadshots();
+    const careerFailed = career === null;
+    const tables = menuStatTable(p);
     return `<section class="m-panel m-hero">
+        ${menuPhotoHtml(p, hs)}
         <div class="m-hero-main">
           <div class="m-sub">${posBadge(pg)} ${_esc(p.team || "")} · ${_esc(p.conference || "")}</div>
-          <div class="m-bio">${p.stars ? "★".repeat(p.stars) + " recruit" : "unranked recruit"} · ${ht} ${p.weight_lbs ? p.weight_lbs + " lb" : ""} · ${_esc(p.hometown_state || "—")}</div>
+          <div class="m-bio">${p.stars ? "★".repeat(p.stars) + " recruit" : "unranked recruit"} · ${ht} ${p.weight_lbs ? p.weight_lbs + " lb" : ""} · ${_esc(p.hometown_state || "—")} · ${classYearLabel(p.class_year)}</div>
           <div>${basisChip(p.rating_basis)}</div>
         </div>
       </section>
-      ${trio ? ratingTrioStrip(p, MENU.season) : `<section class="m-panel"><div class="m-big">${ovrPill(p.overall_rating, { season: MENU.season, source: p.projection_source })}</div></section>`}
+      ${trio ? ratingTrioStrip(p, season) : `<section class="m-panel"><div class="m-big">${ovrPill(p.overall_rating, { season, source: p.projection_source, why: menuNoRatingWhy(p, season) })}</div>${p.overall_rating == null ? `<p class="m-note">${_esc(menuNoRatingWhy(p, season))}</p>` : ""}</section>`}
       <div class="m-split m-split--card">
-        <section class="m-panel"><h3 class="m-h3">${MENU.season} stats${trio && p.live_through_week ? ` · through week ${p.live_through_week}` : ""}</h3>
-          <div class="m-stats">${tiles || `<p class="m-empty">${_esc(menuNoStatsWhy(p))}</p>`}</div></section>
-        <section class="m-panel"><h3 class="m-h3">What these numbers are</h3>
+        <section class="m-panel"><h3 class="m-h3">${season} stats${trio && p.live_through_week ? ` · through week ${p.live_through_week}` : ""}</h3>
+          <div class="m-stats">${tables || `<p class="m-empty">${_esc(menuNoStatsWhy(p))}</p>`}</div></section>
+        <section class="m-panel"><h3 class="m-h3">How this rating is built</h3>
+          ${menuWhyBlock(p, rows)}
           <p class="m-note">${trio
-            ? `<b>${MENU.season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional and needs three games.`
-            : "The rating is for the season viewed."}</p>
-          <a class="m-link" href="players.html?player=${p.id}&season=${MENU.season}" data-nav data-nav-group="links">Full analysis on the main site →</a>
+            ? `<b>${season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional and needs three games.`
+            : "The rating is an earned one for the season shown: production, not talent."}</p>
         </section>
       </div>
-      <section class="m-panel m-career"><h3 class="m-h3">Career ratings</h3><div id="m-career"></div></section>`;
+      <section class="m-panel m-career"><h3 class="m-h3">Career</h3>
+        ${careerFailed ? '<p class="m-empty">His career file did not load. Use Retry.</p>'
+          : rows.length ? `${menuCareerTable(rows, pg)}<p class="m-foot">Each season counts the regular season and the postseason together. Career totals sum the counts and recompute the rates.</p>`
+          : '<p class="m-empty">No rated seasons on file for him.</p>'}</section>
+      <section class="m-panel"><h3 class="m-h3">Rating history</h3>${careerFailed ? '<p class="m-empty">His career file did not load. Use Retry.</p>' : menuRatingHistory(rows, p, season)}</section>
+      ${moves.length ? `<section class="m-panel"><h3 class="m-h3">Transfer path</h3>${menuTransferPath(moves)}</section>`
+        : dataFailed("player_transfers.json") ? '<section class="m-panel"><h3 class="m-h3">Transfer path</h3><p class="m-empty">The transfer file did not load. Use Retry.</p></section>' : ""}`;
   },
-  mount(stage, ctx) {
-    stage.querySelectorAll("[data-nav-group=links]").forEach(a => a.addEventListener("click", e => e.stopPropagation()));
-    const el = stage.querySelector("#m-career");
-    if (el && ctx.player) menuCareerFill(el, ctx.player.id ?? parseInt(ctx.params[0]), ctx.player);
-  },
+  mount(stage) { menuWirePhoto(stage); },
 });

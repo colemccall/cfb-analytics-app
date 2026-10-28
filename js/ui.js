@@ -40,14 +40,15 @@ function onThemeChange(render) {
 // table spanning played and unplayed seasons — and where a value is projected
 // with no season in scope.
 function ovrPill(rating, { label = "", projected = false, season = null, source = "",
-                          pos = "" } = {}) {
+                          pos = "", why = "" } = {}) {
   // A withheld rating is not a missing one, and the two must not look alike. A
   // blank reads as a bug or a data gap; "not rated" with the reason attached
   // reads as the judgement it is. Derived from the position rather than asked of
   // the caller, for the same reason provenance is derived from the season — one
   // forgotten argument would silently present a refusal as an absence.
   if (rating == null && NOT_RATED_POSITIONS[pos]) return notRatedNote(pos);
-  if (rating == null) return '<span class="text-muted">—</span>';
+  // `why` is the reason there is no number, in the tooltip, so a blank is never unexplained.
+  if (rating == null) return `<span class="text-muted"${why ? ` title="${_esc(why)}"` : ""}>—</span>`;
   const fromSeason = season != null && isProjectedSeason(season);
   const isProj = projected || fromSeason;
   const v = Math.round(rating);

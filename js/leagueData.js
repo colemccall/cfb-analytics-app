@@ -15,7 +15,9 @@
 // a result and is not postseason. It is a CONFERENCE game when the opponent is an
 // FBS team in the same conference that season; the schedule carries no conference
 // flag, so this is derived, and independents get no conference record.
-// Returns { team, w, l, cw, cl, pf, pa } keyed by team id.
+// Returns { team, w, l, cw, cl, pf, pa, pw, pl } keyed by team id. w and l are the REGULAR
+// season (what a conference standing is); pw and pl are the postseason (bowls and the
+// playoff), kept apart so a record can be shown both ways and never mixed up.
 function computeStandings(schedules, teams) {
   const byId = {};
   for (const t of teams) byId[t.id] = t;
@@ -23,8 +25,11 @@ function computeStandings(schedules, teams) {
   for (const [tid, games] of Object.entries(schedules || {})) {
     const team = byId[tid];
     if (!team) continue;
-    const r = out[tid] = { team, w: 0, l: 0, cw: 0, cl: 0, pf: 0, pa: 0 };
+    const r = out[tid] = { team, w: 0, l: 0, cw: 0, cl: 0, pf: 0, pa: 0, pw: 0, pl: 0 };
     for (const g of games) {
+      if (g.season_type === "postseason" && (g.result === "W" || g.result === "L")) {
+        r.pw += g.result === "W" ? 1 : 0;  r.pl += g.result === "W" ? 0 : 1;
+      }
       if (g.season_type === "postseason" || (g.result !== "W" && g.result !== "L")) continue;
       const win = g.result === "W";
       r.w += win ? 1 : 0;  r.l += win ? 0 : 1;
@@ -42,6 +47,13 @@ function computeStandings(schedules, teams) {
 
 // Win percentage, 0 for a team with no games, so sorting never sees a NaN.
 function _winPct(w, l) { return w + l ? w / (w + l) : 0; }
+
+// A standing's record as text: the regular season, with the postseason beside it when the team
+// played one ("12-1 · post 1-1"). A dash for a team with no standing.
+function recordText(st) {
+  if (!st) return "—";
+  return `${st.w}-${st.l}${st.pw + st.pl ? ` · post ${st.pw}-${st.pl}` : ""}`;
+}
 
 // Flattens a season's per-team transfer lists to one row per transfer. Every
 // move appears once as "in" for its destination and once as "out" for its origin,

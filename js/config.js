@@ -28,6 +28,17 @@ const CONFIG = {
   // tests/test_frontend_config.py.
   POWER_GAME_SEASONS: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
 
+  // Player cards are served as cards/NNNN.json shards (script 12 export_player_cards): the file for a
+  // player is player_id % CARD_SHARDS, zero-padded to four digits. Guarded against the script's
+  // constant by tests/test_frontend_config.py.
+  CARD_SHARDS: 1024,
+
+  // Headshots on the player card: linked from ESPN's image host (never copied into the repo) for the
+  // players script 19 matched to an ESPN athlete (data/headshots.json). false hides every photo and
+  // the card keeps the monogram. The match rate that justified showing them is guarded by
+  // tests/test_headshots.py.
+  HEADSHOTS_ENABLED: true,
+
   // Class years with a recruiting_{year}.json (script 18; the menu's Recruiting screen).
   // Guarded against the files on disk by tests/test_frontend_config.py.
   RECRUITING_SEASONS: [2020, 2021, 2022, 2023, 2024, 2025, 2026],

@@ -28,7 +28,7 @@ function menuRewriteLinks(host) {
     else if (findingByPage[href.replace(/#.*$/, "")]) a.setAttribute("href", `#/research/${findingByPage[href.replace(/#.*$/, "")]}`);
     else if ((m = href.match(/^players\.html\?(?:.*&)?player=(\d+)/))) a.setAttribute("href", `#/player/${m[1]}`);
     else if (href === "season2026.html") a.setAttribute("href", "#/season");
-    else if (href === "index.html" || href === "index.html?classic") a.setAttribute("href", "#/hub");
+    else if (href === "index.html" || href === "index.html?classic") a.setAttribute("href", "#/home");
   });
 }
 
@@ -209,9 +209,9 @@ menuRouter.register("team-history", {
         <span class="m-num">${h.offense_rating == null ? "—" : Math.round(h.offense_rating)}</span>
         <span class="m-num">${h.defense_rating == null ? "—" : Math.round(h.defense_rating)}</span></div>`).join("");
     return `<section class="m-panel m-list" aria-label="History">
-        <div class="m-rowhead m-row--hist"><span>YEAR</span><span>CONFERENCE</span><span>RECORD</span><span>RATING</span><span>OFF</span><span>DEF</span></div>
+        <div class="m-rowhead m-row--hist"><span>YEAR</span><span>CONFERENCE</span><span title="Every game, the postseason included">RECORD</span><span>RATING</span><span>OFF</span><span>DEF</span></div>
         ${rows}
       </section>
-      <p class="m-foot">Each season's team rating, built from that season's own players and stats. The conference is the one the team was in that year. A projected season has no record and no separate offense or defense from results.</p>`;
+      <p class="m-foot">Each season's team rating, built from that season's own players and stats. RECORD counts every game, bowls and the playoff included (the Standings screen is regular season only). The conference is the one the team was in that year. A projected season has no record and no separate offense or defense from results.</p>`;
   },
 });
