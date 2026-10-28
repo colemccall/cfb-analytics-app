@@ -1234,6 +1234,67 @@ check("menu: a rostered player with no ratings row still opens a card, with a st
   return page;
 });
 
+
+check("menu: Back at the hub and the H key open the quick menu, which Back closes", async ctx => {
+  const page = await openMenu(ctx);
+  await waitCount(page, ".m-item", 6);
+  await page.keyboard.press("Escape");
+  await page.waitForSelector(".m-overlay .m-item", { timeout: 5000 });
+  assert(await page.locator(".m-overlay [data-go]").count() >= 10, "the quick menu lists too few screens");
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector(".m-overlay"), null, { timeout: 5000 });
+  await page.keyboard.press("h");
+  await page.waitForSelector(".m-overlay", { timeout: 5000 });
+  await page.locator('.m-overlay [data-go="playoff"]').click();
+  await page.waitForFunction(() => location.hash.startsWith("#/playoff"), null, { timeout: 10000 });
+  assert(!(await page.locator(".m-overlay").count()), "the quick menu stayed open after a choice");
+  return page;
+});
+
+check("menu: every screen's prompt bar always offers Back, Year and Menu", async ctx => {
+  const page = await openMenu(ctx, "#/roster");
+  await waitCount(page, ".m-row", 5);
+  const bar = (await page.locator(".m-prompts").innerText()).toUpperCase();
+  for (const w of ["BACK", "YEAR", "MENU"]) assert(bar.includes(w), `prompt bar lacks ${w}: ${bar}`);
+  return page;
+});
+
+check("menu: the playoff picture fields 4, 8, 12 and 24 teams, seeded by rating", async ctx => {
+  for (const n of [4, 8, 12, 24]) {
+    const page = await openMenu(ctx, `#/playoff/${n}`);
+    await waitCount(page, "button.m-row--seed", n);
+    assert(await page.locator("button.m-row--seed").count() === n, `expected ${n} seeds`);
+    const seeds = await page.locator("button.m-row--seed .m-rank").allInnerTexts();
+    assert(seeds.every((s, i) => Number(s) === i + 1), `seeds not 1..${n}: ${seeds}`);
+    assert(!(await page.locator("body").innerText()).includes("win probability:"), "a win probability appeared");
+    await page.close();
+  }
+  return null;
+});
+
+check("menu: a team's recruiting class and transfers show a state map", async ctx => {
+  const page = await openMenu(ctx, "#/team-recruiting");
+  await waitCount(page, ".m-row--prospect", 5);
+  assert(await page.locator(".m-state.has").count() > 0, "no state is lit on the recruiting map");
+  const t = await openMenu(ctx, "#/team-portal");
+  await t.waitForSelector(".m-statemap", { timeout: 30000 });
+  return t;
+});
+
+check("menu: the schedule shows a bye week and the roster is ordered by the to-date rating", async ctx => {
+  const page = await openMenu(ctx, "#/schedule");
+  await waitCount(page, ".m-row--sched", 8);
+  assert(await page.locator(".m-row.is-bye").count() >= 1, "no bye week row");
+  const r = await openMenu(ctx, "#/roster");
+  await waitCount(r, ".m-row--roster", 10);
+  const lives = await r.locator(".m-row--roster").evaluateAll(rows => rows.slice(0, 12).map(row => {
+    const b = row.querySelectorAll(".ovr-badge"); const v = Number(b[b.length - 1]?.textContent); return Number.isFinite(v) ? v : null;
+  }));
+  const nums = lives.filter(v => v != null);
+  assert(nums.length >= 5 && nums.every((v, i) => i === 0 || v <= nums[i - 1]), `roster not in to-date order: ${lives}`);
+  return r;
+});
+
 const selected = checks.filter(c => !ONLY || c.name.startsWith(ONLY));
 const t0 = Date.now();
 for (const c of selected) {

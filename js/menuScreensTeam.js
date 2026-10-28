@@ -19,17 +19,25 @@
 // else his projection, else last season's. Used only to ORDER a list and colour a
 // row's edge — it is never shown as a single number.
 function menuLeadRating(p) {
-  return p.live_rating ?? p.overall_rating ?? p.rating_prev ?? null;
+  // Earned this season outranks everything: any player with a to-date rating sorts above any
+  // player without one, then the projection, then last season.
+  if (p.live_rating != null) return 1000 + p.live_rating;
+  return p.overall_rating ?? p.rating_prev ?? null;
 }
 
-// Ways the roster can be ordered; the alt button (X / Space) cycles through them.
+// Ways the roster can be ordered. The alt button (X / Space) cycles through them and a click on a
+// column heading picks one; `col` ties a sort to its heading.
 const MENU_ROSTER_SORTS = [
-  { id: "lead",  label: "Best available", key: p => menuLeadRating(p) },
-  { id: "live",  label: "To date",        key: p => p.live_rating },
-  { id: "proj",  label: "Projection",     key: p => p.overall_rating },
-  { id: "prev",  label: "Last season",    key: p => p.rating_prev },
-  { id: "stars", label: "Recruit stars",  key: p => p.stars },
-  { id: "name",  label: "Name",           key: p => p.name, text: true },
+  { id: "lead",  col: "",      label: "Best available", key: p => menuLeadRating(p) },
+  { id: "live",  col: "live",  label: "To date",        key: p => p.live_rating },
+  { id: "proj",  col: "proj",  label: "Projection",     key: p => p.overall_rating },
+  { id: "prev",  col: "prev",  label: "Last season",    key: p => p.rating_prev },
+  { id: "stars", col: "stars", label: "Recruit stars",  key: p => p.stars },
+  { id: "class", col: "class", label: "Class",          key: p => p.class_year },
+  { id: "ht",    col: "ht",    label: "Height",         key: p => p.height_in },
+  { id: "wt",    col: "wt",    label: "Weight",         key: p => p.weight_lbs },
+  { id: "pos",   col: "pos",   label: "Position",       key: p => p.position_group, text: true },
+  { id: "name",  col: "name",  label: "Name",           key: p => p.name, text: true },
 ];
 let _menuRosterSort = 0;
 
@@ -48,16 +56,40 @@ function menuRatingCells(p, season) {
   return [`<span class="m-rating">${ovrPill(p.overall_rating, { label: `Overall rating, ${season}`, season })}</span>`];
 }
 
-// Column heading labels matching menuRatingCells.
-function menuRatingHeads(trio, season) {
-  return trio ? [`<span>${season - 1}</span>`, "<span>PROJ</span>", "<span>LIVE</span>"] : ["<span>OVR</span>"];
-}
-
 // ── Roster ────────────────────────────────────────────────────────────────
 
 // The position tabs: everyone, then each position group the site filters by.
 function _menuPositionTabs() {
   return ["ALL", ...CONFIG.FILTER_POSITIONS].map(p => ({ id: p, label: p }));
+}
+
+// A height in inches as 6'2", or a dash.
+function menuHeight(inches) {
+  return inches ? `${Math.floor(inches / 12)}'${inches % 12}"` : "—";
+}
+
+// The strip above the roster table, in the manner of a roster editor's header: the selected
+// player's position, name, class, hometown, size and stars on the left, and on the right the
+// rating he is best known by now in a large box, with all three ratings small beneath it.
+function menuRosterHead(p, season) {
+  if (!p) return '<p class="m-empty">No players at this position.</p>';
+  const lead = menuLeadRating(p);
+  const leadVal = p.live_rating ?? p.overall_rating ?? p.rating_prev;
+  const leadCap = p.live_rating != null ? "TO DATE" : p.overall_rating != null ? (isProjectedSeason(season) ? "PROJ" : "OVR") : p.rating_prev != null ? String(season - 1) : "";
+  return `<div class="m-rhead">
+      <div class="m-rhead-pos">${posBadge(p.position_group)}</div>
+      <div class="m-rhead-name"><b>${_esc(p.name || "—")}</b><span>${p.stars ? "★".repeat(p.stars) + " recruit" : "unranked recruit"}</span></div>
+      <dl class="m-rhead-facts">
+        <div><dt>CLASS</dt><dd>${classYearLabel(p.class_year)}</dd></div>
+        <div><dt>HEIGHT</dt><dd>${menuHeight(p.height_in)}</dd></div>
+        <div><dt>WEIGHT</dt><dd>${p.weight_lbs ? p.weight_lbs + " lb" : "—"}</dd></div>
+        <div><dt>FROM</dt><dd>${_esc(p.hometown_state || "—")}</dd></div>
+      </dl>
+      <div class="m-rhead-ovr" title="${_esc(lead == null ? "No rating yet" : "")}">
+        <span class="m-rhead-cap">${leadCap}</span><b>${leadVal == null ? "—" : Math.round(leadVal)}</b>
+        ${hasTrio(p) ? `<span class="m-rhead-trio">${ratingTrioCells(p, season).join("")}</span>` : ""}
+      </div>
+    </div>`;
 }
 
 menuRouter.register("roster", {
@@ -75,46 +107,49 @@ menuRouter.register("roster", {
     const pos = ctx.params[0] || "ALL";
     const all = team ? await fetchTeamRoster(team.id, MENU.season) : [];
     const list = all.filter(p => pos === "ALL" || matchesPosition(p.position_group, pos));
-    const sorted = menuSortPlayers(list, MENU_ROSTER_SORTS[_menuRosterSort]);
+    const sort = MENU_ROSTER_SORTS[_menuRosterSort];
+    const sorted = menuSortPlayers(list, sort);
     ctx.players = sorted;
     const trio = all.some(hasTrio);
-    const heads = menuRatingHeads(trio, MENU.season).join("");
+    const head = (col, label, cls = "") => `<button class="m-th${cls}${sort.col === col ? " is-sorted" : ""}" type="button" tabindex="-1" data-col="${col}">${label}${sort.col === col ? " ▾" : ""}</button>`;
+    const ratingHeads = trio
+      ? [head("prev", MENU.season - 1, " m-th--c"), head("proj", "PROJ", " m-th--c"), head("live", "LIVE", " m-th--c")].join("")
+      : head("proj", "OVR", " m-th--c");
     const rows = sorted.map((p, i) => `
-      <button class="m-row${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="roster" data-pid="${p.player_id}">
+      <button class="m-row m-row--roster${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="roster" data-pid="${p.player_id}">
         <span class="m-rank">${i + 1}</span>
-        <span class="m-pos">${posBadge(p.position_group)}</span>
         <span class="m-pname">${_esc(p.name || "—")}</span>
+        <span class="m-pos">${posBadge(p.position_group)}</span>
+        <span class="m-num">${classYearLabel(p.class_year)}</span>
+        <span class="m-num">${menuHeight(p.height_in)}</span>
+        <span class="m-num">${p.weight_lbs || "—"}</span>
+        <span class="m-num">${_esc(p.hometown_state || "—")}</span>
         <span class="m-pmeta">${p.stars ? "★".repeat(p.stars) : ""}</span>
         ${menuRatingCells(p, MENU.season).join("")}
       </button>`).join("");
-    return `<div class="m-split m-split--roster">
-      <section class="m-panel m-list" aria-label="Roster">
-        <div class="m-rowhead${trio ? " is-trio" : ""}"><span>#</span><span>POS</span><span>PLAYER</span><span></span>${heads}</div>
-        ${rows || '<p class="m-empty">No players at this position.</p>'}
+    return `<section class="m-panel m-list m-roster" aria-label="Roster">
+        <div id="m-rhead">${menuRosterHead(sorted[0], MENU.season)}</div>
+        <div class="m-rowhead m-row--roster${trio ? " is-trio" : ""}"><span>#</span>${head("name", "PLAYER")}${head("pos", "POS")}${head("class", "CL")}${head("ht", "HT")}${head("wt", "WT")}<span>ST</span>${head("stars", "★")}${ratingHeads}</div>
+        <div class="m-rbody">${rows || '<p class="m-empty">No players at this position.</p>'}</div>
       </section>
-      <aside class="m-panel m-detail" id="m-detail" aria-live="polite"></aside>
-    </div>
-    <p class="m-foot">${sorted.length} player${sorted.length === 1 ? "" : "s"} · ${trio
-      ? `${MENU.season - 1} is earned, PROJ is the preseason projection, LIVE is earned so far (provisional).`
-      : "Ratings shown are for the season viewed."}</p>`;
+    <p class="m-foot">${sorted.length} player${sorted.length === 1 ? "" : "s"} · sorted by ${sort.label.toLowerCase()} · ${trio
+      ? `${MENU.season - 1} is earned, PROJ is the preseason projection, LIVE is earned so far (provisional). Click a heading to sort.`
+      : "Ratings shown are for the season viewed. Click a heading to sort."}</p>`;
   },
   mount(stage, ctx) {
-    const detail = stage.querySelector("#m-detail");
+    const head = stage.querySelector("#m-rhead");
     const byId = new Map(ctx.players.map(p => [String(p.player_id), p]));
-    // The detail panel follows the selection: the three ratings, bio, and what the number is built from.
+    // The strip follows the selection, whether it moves by mouse, key or stick.
     stage.addEventListener("menu:select", e => {
       const p = byId.get(e.target.closest?.("[data-pid]")?.dataset.pid);
-      if (!p) return;
-      const ht = p.height_in ? `${Math.floor(p.height_in / 12)}'${p.height_in % 12}"` : "—";
-      detail.innerHTML = `
-        <h2 class="m-detail-name">${_esc(p.name)}</h2>
-        <div class="m-sub">${posBadge(p.position_group)} ${p.stars ? "★".repeat(p.stars) : "unranked recruit"} · ${ht} ${p.weight_lbs ? p.weight_lbs + " lb" : ""} · ${_esc(p.hometown_state || "—")}</div>
-        ${hasTrio(p) ? ratingTrioStrip(p, MENU.season) : `<div class="m-big">${ovrPill(p.overall_rating, { season: MENU.season })}</div>`}
-        <div>${basisChip(p.rating_basis)}</div>
-        <p class="m-note">Press <b>${menuInput.device === "pad" ? "A" : "Enter"}</b> for the full card.</p>`;
+      if (p) head.innerHTML = menuRosterHead(p, MENU.season);
     });
     stage.querySelectorAll("[data-pid]").forEach(b => b.addEventListener("click", () =>
       menuRouter.go(`#/player/${b.dataset.pid}/${MENU.teamId}`)));
+    stage.querySelectorAll(".m-th[data-col]").forEach(b => b.addEventListener("click", () => {
+      const i = MENU_ROSTER_SORTS.findIndex(x => x.col === b.dataset.col);
+      if (i >= 0) { _menuRosterSort = i; menuRouter.render(); }
+    }));
     ctx.cleanups.push(menuInput.on("alt", () => {
       _menuRosterSort = (_menuRosterSort + 1) % MENU_ROSTER_SORTS.length;
       menuRouter.render();
@@ -188,22 +223,35 @@ function menuNoStatsWhy(p) {
   return "No stats are recorded for him in this season's data.";
 }
 
-// The career strip on a player card: one cell per season he has a rating, oldest first,
-// then this season's projection and to-date number when it is a season in progress. The
-// seasons come from the per-season files, so a transfer's earlier seasons at other schools
-// are included.
-async function menuCareerRows(pid, p) {
-  const hist = (await fetchPlayerRatingHistory(pid)).filter(h => h.overall_rating != null && h.season < MENU.season)
-    .sort((a, b) => a.season - b.season);
-  const cells = hist.map(h => `<div class="m-career-cell"><span class="m-career-yr">${h.season}</span>${ovrPill(h.overall_rating, { season: h.season, label: `Rating, ${h.season}` })}</div>`);
+// Fills the career strip on a player card, oldest season first, one season file at a time so the
+// card is on screen at once and the strip grows behind it. Only the last few seasons are read:
+// the full history is every season's file, which is far too much to fetch for a menu screen. Cells
+// for the season being viewed (projection and to-date, or the plain rating) come first.
+async function menuCareerFill(el, pid, p) {
+  const cells = [];
+  const draw = () => {
+    el.innerHTML = cells.length ? `<div class="m-career-row">${cells.join("")}</div>`
+      : '<p class="m-empty">No rated seasons on file for him.</p>';
+  };
+  const tail = [];
   if (hasTrio(p)) {
-    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} PROJ</span>${projPill(p, MENU.season)}</div>`);
-    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} TO DATE</span>${livePill(p)}</div>`);
+    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} PROJ</span>${projPill(p, MENU.season)}</div>`);
+    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season} TO DATE</span>${livePill(p)}</div>`);
   } else if (p.overall_rating != null) {
-    cells.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season}</span>${ovrPill(p.overall_rating, { season: MENU.season })}</div>`);
+    tail.push(`<div class="m-career-cell"><span class="m-career-yr">${MENU.season}</span>${ovrPill(p.overall_rating, { season: MENU.season })}</div>`);
   }
-  return cells.length ? `<div class="m-career-row">${cells.join("")}</div>`
-    : '<p class="m-empty">No rated seasons on file for him.</p>';
+  el.innerHTML = `<div class="m-career-row">${tail.join("")}</div><p class="m-foot">Loading earlier seasons…</p>`;
+  const earlier = [];
+  for (let y = MENU.season - 1; y >= Math.max(2008, MENU.season - 4); y--) {
+    if (!el.isConnected) return;
+    const row = await fetchSeasonPlayer(pid, y);
+    if (row?.overall_rating != null) {
+      earlier.unshift(`<div class="m-career-cell"><span class="m-career-yr">${y}</span>${ovrPill(row.overall_rating, { season: y, label: `Rating, ${y}` })}</div>`);
+    }
+    cells.length = 0; cells.push(...earlier, ...tail); draw();
+  }
+  if (!el.isConnected) return;
+  el.insertAdjacentHTML("beforeend", `<p class="m-foot">The last four seasons. The full history is on the Players page.</p>`);
 }
 
 menuRouter.register("player", {
@@ -233,7 +281,6 @@ menuRouter.register("player", {
       .map(([k, label]) => `<div class="m-stat"><b>${_esc(String(stats[k]))}</b><span>${_esc(label)}</span></div>`).join("");
     const ht = p.height_in ? `${Math.floor(p.height_in / 12)}'${p.height_in % 12}"` : "—";
     const trio = hasTrio(p);
-    const career = await menuCareerRows(pid, p);
     return `<section class="m-panel m-hero">
         <div class="m-hero-main">
           <div class="m-sub">${posBadge(pg)} ${_esc(p.team || "")} · ${_esc(p.conference || "")}</div>
@@ -252,9 +299,11 @@ menuRouter.register("player", {
           <a class="m-link" href="players.html?player=${p.id}&season=${MENU.season}" data-nav data-nav-group="links">Full analysis on the main site →</a>
         </section>
       </div>
-      <section class="m-panel m-career"><h3 class="m-h3">Career ratings</h3>${career}</section>`;
+      <section class="m-panel m-career"><h3 class="m-h3">Career ratings</h3><div id="m-career"></div></section>`;
   },
-  mount(stage) {
+  mount(stage, ctx) {
     stage.querySelectorAll("[data-nav-group=links]").forEach(a => a.addEventListener("click", e => e.stopPropagation()));
+    const el = stage.querySelector("#m-career");
+    if (el && ctx.player) menuCareerFill(el, ctx.player.id ?? parseInt(ctx.params[0]), ctx.player);
   },
 });

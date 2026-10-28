@@ -40,11 +40,23 @@ menuRouter.register("schedule", {
       .sort((a, b) => String(a.game_date || "9").localeCompare(String(b.game_date || "9")));
     ctx.games = games;
     const next = menuNextGame(games);
+    // A week with no game between a team's first and last regular-season week is a bye, shown as
+    // its own row so the schedule reads week by week.
+    const regWeeks = games.filter(g => g.season_type === "regular" && g.week).map(g => g.week);
+    const firstWk = Math.min(...regWeeks), lastWk = Math.max(...regWeeks);
+    const haveWk = new Set(regWeeks);
+    const byeRow = wk => `<div class="m-row m-row--sched is-bye"><span class="m-rank">W${wk}</span><span class="m-pname">BYE WEEK</span><span class="m-pmeta"></span><span></span><span class="m-result">—</span></div>`;
+    let nextWk = firstWk;
     const rows = games.map(g => {
+      let byes = "";
+      if (g.season_type === "regular" && g.week && Number.isFinite(firstWk)) {
+        for (; nextWk < g.week; nextWk++) if (!haveWk.has(nextWk)) byes += byeRow(nextWk);
+        nextWk = g.week + 1;
+      }
       const oppId = String(g.home_team_id) === String(team.id) ? g.away_team_id : g.home_team_id;
       const opp = menuTeamById(d, oppId);
       const played = g.result === "W" || g.result === "L";
-      return `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}">
+      return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}">
         <span class="m-rank">${g.week ? `W${g.week}` : "Bowl"}</span>
         <span class="m-pname">${g.is_home ? "vs" : "@"} ${_esc(g.opponent || "TBD")}${g.neutral_site ? " (N)" : ""}</span>
         <span class="m-pmeta">${_esc(String(g.game_date || "").slice(0, 10))}</span>

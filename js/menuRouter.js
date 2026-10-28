@@ -63,9 +63,14 @@ menuRouter.go = function (path) {
   if (location.hash === next) this.render(); else location.hash = next;
 };
 
-// One step back: the browser's history if there is any, else the hub.
+// One step back: the browser's history if there is any. At the top of the menu (the hub, or
+// team select with a team already chosen) there is nowhere to go back to, so back opens the
+// quick menu instead of doing nothing.
 menuRouter.back = function () {
-  if (history.length > 1 && this.current && this.current.id !== "hub" && this.current.id !== "team-select") history.back();
+  const id = this.current && this.current.id;
+  if (id === "hub") { menuChrome.openMenu(); return; }
+  if (id === "team-select") { if (MENU.teamId) this.go("#/hub"); return; }
+  if (history.length > 1 && this.current) history.back();
   else this.go("#/hub");
 };
 
@@ -130,7 +135,7 @@ menuRouter.render = async function () {
 menuRouter.start = function () {
   menuLoadState();
   menuInput.on("back", () => { this.back(); return true; });
-  menuInput.on("home", () => { this.go("#/hub"); return true; });
+  menuInput.on("home", () => { menuChrome.openMenu(); return true; });
   menuInput.on("season", () => { this.stepSeason(1); return true; });
   const shift = delta => {
     const t = this.tabs;

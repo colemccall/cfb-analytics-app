@@ -103,7 +103,14 @@ menuChrome.setPrompts = function (prompts) {
 menuChrome.renderPrompts = function () {
   const g = MENU_GLYPHS[menuInput.device === "pad" ? "pad" : "keys"];
   const run = { select: "select", back: "back", home: "home", season: "season", alt: "alt", mode: "mode" };
-  const all = [...this.prompts, { action: "mode", label: this.mode === "light" ? "Dark mode" : "Light mode" }];
+  // Back, Year and Menu are on every screen, whatever the screen lists, so the way out and the
+  // way to change season are never a guess on a controller.
+  const have = new Set(this.prompts.map(p => p.action));
+  const fixed = [];
+  if (!have.has("back")) fixed.push({ action: "back", label: "Back" });
+  if (!have.has("season")) fixed.push({ action: "season", label: "Year" });
+  if (!have.has("home")) fixed.push({ action: "home", label: "Menu" });
+  const all = [...this.prompts, ...fixed, { action: "mode", label: this.mode === "light" ? "Dark mode" : "Light mode" }];
   this.el.prompts.innerHTML = all.map(p => {
     const act = run[p.action];
     const glyph = `<span class="m-glyph m-glyph--${menuInput.device === "pad" ? "pad" : "key"}">${_esc(g[p.action] || "")}</span>`;
@@ -160,4 +167,45 @@ menuChrome.loadTicker = async function () {
     }).join("");
     this.el["ticker-track"].innerHTML = one + one;
   } catch (e) { /* no ticker */ }
+};
+
+// The quick menu: an overlay reachable from anywhere (Back at the top of the menu, Start or H,
+// or the Menu prompt) listing every screen, split into the team's own and the league's, plus
+// the season and the light/dark switch. It takes over the selection while it is open, and Back,
+// Menu or choosing an item closes it. Opening it twice does nothing.
+menuChrome.openMenu = function () {
+  if (this.overlay) return;
+  const mine = MENU.teamId ? "THIS TEAM" : "TEAM";
+  const item = (route, label) => `<button class="m-item" type="button" data-nav data-nav-group="ovl" data-go="${route}"><span class="m-item-label">${_esc(label)}</span></button>`;
+  const el = document.createElement("div");
+  el.className = "m-overlay";
+  el.innerHTML = `<div class="m-ovl-panel m-panel" role="dialog" aria-label="Menu">
+      <h2 class="m-ovl-title">MENU</h2>
+      <div class="m-ovl-cols">
+        <div><h3 class="m-ovl-h">${mine}</h3>${item("hub", "Dynasty Hub")}${item("roster", "Roster")}${item("depth", "Depth Chart")}${item("schedule", "Schedule")}${item("team-recruiting", "Recruiting Class")}${item("team-portal", "Transfers")}</div>
+        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("standings", "Standings")}${item("rankings", "Rankings")}${item("playoff", "Playoff Picture")}${item("recruiting", "Recruiting")}${item("portal", "Transfer Portal")}${item("library", "Analytics")}</div>
+        <div><h3 class="m-ovl-h">OPTIONS</h3>${item("team-select", "Switch Team")}
+          <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>
+          <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="mode"><span class="m-item-label">${this.mode === "light" ? "Dark Mode" : "Light Mode"}</span></button>
+          <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button></div>
+      </div></div>`;
+  this.root.appendChild(el);
+  this.overlay = el;
+  const prev = menuFocus.current;
+  menuFocus.scope = el;
+  const close = () => {
+    for (const off of offs) off();
+    el.remove(); this.overlay = null; menuFocus.scope = null;
+    if (prev && prev.isConnected) menuFocus.set(prev, { scroll: false });
+    return true;
+  };
+  const offs = [menuInput.on("back", close), menuInput.on("home", close)];
+  el.addEventListener("click", e => { if (e.target === el) close(); });
+  el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { close(); menuRouter.go(`#/${b.dataset.go}`); }));
+  el.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+    const act = b.dataset.act;
+    close();
+    if (act === "mode") menuInput.dispatch("mode"); else if (act === "season") menuRouter.stepSeason(1);
+  }));
+  menuFocus.set(el.querySelector("[data-go]"), { scroll: false });
 };

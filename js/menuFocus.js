@@ -47,7 +47,8 @@ menuFocus._usable = function (el) {
 // Every selectable item currently on screen, in DOM order.
 menuFocus.items = function () {
   if (!this.root) return [];
-  return [...this.root.querySelectorAll("[data-nav]")].filter(el => this._usable(el));
+  // While the quick menu is open the selection is confined to it.
+  return [...(this.scope || this.root).querySelectorAll("[data-nav]")].filter(el => this._usable(el));
 };
 
 // Selects `el`: moves the highlight, gives it real focus (so screen readers and

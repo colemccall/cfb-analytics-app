@@ -176,8 +176,9 @@ const MENU_HUB_ITEMS = [
   { id: "schedule",   label: "Schedule",        hint: "Every game, the result so far, and what is next." },
   { id: "standings",  label: "Standings",       hint: "Conference records, derived from the results." },
   { id: "rankings",   label: "Rankings",        hint: "The top 25 by our team rating — earned to date and preseason." },
-  { id: "recruiting", label: "Recruiting",      hint: "Class rankings and the prospect board." },
-  { id: "portal",     label: "Transfer Portal", hint: "Every move, with the rating before and after." },
+  { id: "playoff",    label: "Playoff Picture", hint: "Who would be in a 4, 8, 12 or 24-team playoff by our ratings." },
+  { id: "team-recruiting", label: "Recruiting", hint: "This team's recruiting class, with a map of where the players come from." },
+  { id: "team-portal", label: "Transfers",       hint: "Players coming in and going out, with the rating before and after." },
   { id: "team-select", label: "Switch Team",    hint: "Pick a different team to follow." },
   { id: "library",    label: "Analytics",       hint: "Players, teams, ratings, research, methods and the build log: the full analytics pages." },
 ];

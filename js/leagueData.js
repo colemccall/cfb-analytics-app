@@ -67,8 +67,13 @@ const DEPTH_SLOTS = {
 // a position we do not rate (OL) goes by recruiting grade, which is all there is,
 // and the group says so. Unrated players always come last.
 function _depthOrder(a, b) {
+  // A season in progress orders by what has been earned so far (live_rating), then the
+  // projection, then last season: a starter is whoever is playing best now.
+  const la = a.live_rating, lb = b.live_rating;
+  if (la != null || lb != null) return (lb ?? -1) - (la ?? -1);
   const ra = a.overall_rating, rb = b.overall_rating;
   if (ra != null || rb != null) return (rb ?? -1) - (ra ?? -1);
+  if (a.rating_prev != null || b.rating_prev != null) return (b.rating_prev ?? -1) - (a.rating_prev ?? -1);
   return (b.stars || 0) - (a.stars || 0) || (b.composite_score || 0) - (a.composite_score || 0);
 }
 

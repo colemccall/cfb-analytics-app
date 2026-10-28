@@ -33,6 +33,122 @@
 
 const CHANGES = [
   {
+    id: "v4.11-team-ratings-and-team-screens",
+    version: "v4.11",
+    date: "2026-10-28",
+    title: "Team ratings from each season's own players and stats; conferences by year; team recruiting, transfers and a map; a playoff picture",
+    summary: `The owner's rule: every season's team rating should come from that year's player ratings and stats,
+      and a season in progress should be built the same way and move with results. That removed SP+ from the
+      team rating, at a measured cost. The same review found conferences were wrong in every season but the
+      current one, player cards that took too long to open, and a roster screen that ordered by the
+      projection in a season with earned ratings. Team-scoped recruiting and transfers (with a state map),
+      a playoff picture, bye weeks and a quick menu were added.`,
+    motivation: `The owner asked that team ratings follow the player ratings and stats of the same year, said
+      Boise State showed as Pac-12 in every season, that player cards were not loading from the roster or
+      depth chart, that the roster and depth chart should sort by the 2026 to-date rating, that bye weeks were
+      missing, that controller back and year changes were awkward, that recruiting and transfers should be
+      scoped to a team from inside a team, and asked about one quarterback's rating.`,
+    did: [
+      { what: "Team rating without SP+ (script 10)",
+        why: `Overall is 0.60 roster plus 0.40 the team's own stats; offense and defense are the same two readings
+          split into halves. SP+ stays as a reference column. The cost was measured on 2016 to 2025 before the
+          change and is on the Methods page: same-season fit to scoring margin 0.884 to 0.880, next-season
+          prediction 0.545 to 0.518 (below carrying last year's margin forward, 0.529), offense 0.847 to 0.806,
+          defense 0.857 to 0.827. A placebo that shuffles the roster ratings across teams drops the fit from 0.880
+          to 0.659, so the roster signal is real. Every played season from 2008 to 2025 was recomputed from the
+          local cache with no API call; 2026 was recomputed and re-exported.`,
+        cost: "Forward prediction is weaker. 2,309 team-seasons moved by +1.5 on average (sd 4.1, largest 11.9) and 2 lost their row. Team ratings stopped using SP+; the player ratings still use it for opponent adjustment." },
+      { what: "Team stats are refreshed before they are read",
+        why: "The order was reversed, so a season's first run blended no per-game stats. Checked on the 2,309 stored team-seasons: identical before and after.",
+        cost: "None measured." },
+      { what: "Conferences by season",
+        why: `teams.json only has a team's current conference, so every season showed it: Boise State was a Pac-12
+          team in 2008. Script 12 now reads each season's conference from the harvested season records (Western
+          Athletic 2008 to 2010, Mountain West 2011 to 2025, Pac-12 in 2026). 733 of 2,447 team-seasons changed.
+          A contract test checks every team-season against its record.`,
+        cost: "The 2026 season has no record yet and falls back to the current conference, which is correct for it." },
+      { what: "Player cards open at once",
+        why: `The card read the whole career, which is every season's file, before it drew. It now draws
+          immediately and fills a career strip from the last four seasons behind it. A rostered player with no
+          ratings row opens from the roster row with a stated reason.`,
+        cost: "The strip shows four seasons, not the whole career; the Players page has the full history." },
+      { what: "Roster and depth chart ordered by the to-date rating",
+        why: `A player with a 2026 to-date rating sorts above one without; then the projection; then last season.
+          The roster screen is redesigned around a header strip for the selected player (class, size, home state,
+          the three ratings) over a table with sortable columns: class, height, weight, state, stars and the three ratings.`,
+        cost: "A starter with too few games for a to-date rating sorts below a rated backup. That follows the rule as asked." },
+      { what: "Bye weeks, a quick menu, and controller prompts",
+        why: `A week with no game shows as a BYE row in the schedule. Back at the top of the menu, Start or H, and a
+          Menu prompt open a quick menu listing every screen. Back, Year and Menu are on every prompt bar so the
+          way out and the year change are never a guess.`,
+        cost: "H now opens the quick menu instead of jumping to the hub (the hub is its first item)." },
+      { what: "Team recruiting class, team transfers and a state map; the league screens stay league-wide",
+        why: `From a team's menu, Recruiting and Transfers show that team's class and moves. From the quick menu,
+          Recruiting and Transfer Portal show the whole league. Each team screen has a tile map of the states
+          lit by home state, and selecting a player lights his state. Script 18 now exports each team's class
+          list and its state counts; script 12 adds the home state to every transfer row.`,
+        cost: "The data has the home STATE only, so this is a state map, not a map of towns." },
+      { what: "Playoff picture",
+        why: `Who would be in a 4, 8, 12 or 24-team field by our ratings, seeded, with byes and the first-round
+          pairings. The 12 reserves five places for conference leaders and seeds straight by rating; the 24 is the
+          owner's description (top 24, top 8 on a bye) and is marked as an assumption.`,
+        cost: "No game is predicted and no win probability is shown: no playoff model has been backtested." },
+    ],
+    tried: [
+      { what: "Keeping SP+ at a smaller weight",
+        result: "Not built: any SP+ weight is an outside number in the headline, which the owner's rule excludes. The full cost of removing it is measured and published instead.",
+        verdict: "rejected" },
+      { what: "Changing the quarterback interception weight to fit one player",
+        result: "Not done. A single player is a reason to look at the data, not at a weight. The review is below.",
+        verdict: "rejected" },
+      { what: "Running the live chain with a placeholder API key to avoid any call",
+        result: "It silently dropped SP+ from the player opponent adjustment (the subprocess output is hidden) and moved 3,726 to-date player ratings by 1.2 on average. Caught by comparing the two runs; reran with the real key, which reads the cache and makes no call.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Fit to same-season scoring margin, old / new team rating", before: "0.884", after: "0.880" },
+      { label: "Prediction of next-season margin, old / new (last season's margin: 0.529)", before: "0.545", after: "0.518" },
+      { label: "Team-seasons whose conference changed", before: "wrong in every season but the current", after: "733 of 2,447 corrected" },
+      { label: "2026 preseason teams with offense = defense = overall", before: "138", after: "0" },
+      { label: "Pipeline tests", before: "331 passed", after: "336 passed" },
+      { label: "UI smoke checks", before: "118", after: "123 / 123" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "336 passed" },
+      { check: "isolation of the re-export against the app's data", result: "player and roster files identical; team_ratings and team_history differ by the rating change; conference by season; transfers gain hometown_state" },
+      { check: "cd tools/ui-smoke && npm run smoke", result: "123/123" },
+    ],
+    unfixed: `**Sam Leavitt (LSU QB), reviewed, not changed.** He has thrown 8 interceptions in 8 games (3.1% of 256
+      attempts; the median rated QB is 2.1%, the 90th percentile 3.6%; 10 is the most). The rating charges each
+      interception 20 yards-equivalent against 25 for a touchdown: 160 of his 2,823 raw composite points
+      (5.7%). The rest of the line is strong: 70.3% completions, 8.5 yards an attempt, 2,171 passing yards,
+      17 passing and 8 rushing touchdowns. His strongest games came against the best defenses (Clemson 1.36,
+      Auburn 1.29, Texas A&M 1.27, Kentucky 1.19 opponent multipliers), which lifts his composite from 2,823 to
+      3,284 (+16%). On the raw per-game composite he is 9th of 134 QBs and 7th after the schedule adjustment, but he
+      is rated 2nd (91.9). My replay of his games gives an EDGE near 1,422, about 89.6 on the QB anchors, so
+      2.3 points of his published rating are not explained and the gap is open. Whether 20 is the right
+      interception cost is a calibration question that needs a backtest, not a one-player change.
+
+      **The home page content is not redone.** The menu is the front door; the classic home still holds the old
+      storylines. The playoff picture is the first new front-door content.
+
+      **The old pages are not yet in the new look.** Players, Teams, Ratings, Research, Methods, Build Log and the
+      rest still use the classic styling, and the theme switch is still there. Folding them into the menu's look is the next large piece of work.
+
+      **The preseason team rating is still roster-only** and still ranks teams worse than last year's rating did.
+
+      **Players' ratings still use SP+ for the opponent adjustment** (script 06).
+
+      **A real controller is still untested.**
+
+      **Everything is uncommitted** in both repositories.`,
+    methods: ["team-ratings", "three-ratings", "live-season", "recruiting-class-rank"],
+    files: ["scripts/10_compute_team_ratings.py", "scripts/12_export_frontend_json.py", "scripts/18_export_recruiting.py",
+            "tests/test_team_ratings.py", "tests/test_export_contract.py", "js/menuScreensClass.js", "js/menuScreensTeam.js",
+            "js/menuScreensLeague.js", "js/menuScreens.js", "js/menuChrome.js", "js/menuRouter.js", "js/menuFocus.js",
+            "js/leagueData.js", "css/menu.css", "menu.html", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.10-menu-primary-and-rating-audit",
     version: "v4.10",
     date: "2026-10-28",

@@ -262,8 +262,8 @@ const GUIDE = [
       projection, and earned to date. They are never combined.`,
     controls: [
       { name: "Mouse", what: "Hover moves the highlight, click selects. Tabs along the top are clickable." },
-      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H returns to the hub." },
-      { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start returns to the hub. The prompt bar at the bottom switches to controller labels." },
+      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc at the top of the menu opens the quick menu too." },
+      { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start opens the quick menu; Select switches light and dark. The prompt bar at the bottom switches to controller labels." },
     ],
     tips: [
       "The bar along the bottom always lists what the buttons do on the current screen.",

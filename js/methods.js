@@ -912,42 +912,77 @@ making the engine more optimistic makes the larger problem worse.`,
   {
     id: "team-ratings",
     group: "team",
-    title: "Team ratings",
-    summary: `Three signals blended, renormalised when one is absent — which is how a season
-      with neither SP+ nor team stats still produces a rating. v4.3 made that renormalisation
-      universal, because the OL withdrawal exposed a trap in it.`,
-    formula: `team_rating = 0.50 SP+ + 0.30 our player ratings + 0.20 team stats
+    title: "Team ratings: built from that season's own players and team stats",
+    summary: `A team's rating for any season is built from two things that season produced: its players'
+      ratings and its own team stats. SP+ is not an input; it is published beside the rating as a
+      reference. The same formula rates a played season, a season in progress (on the games played so far)
+      and, with no stats, a projected one. Offense and defense are the same two readings split into their
+      offensive and defensive halves. Until v4.11 the headline was half SP+ and offense and defense were SP+'s own.`,
+    formula: `overall = 0.60 roster + 0.40 team stats        (renormalised when one is absent)
+roster  = 0.60 roster_to_ovr(mean of the top 22 starters) + 0.40 roster_to_ovr(position-weighted composite)
+stats   = 0.50 offense + 0.50 defense (yards, 3rd down, havoc) + a turnover-margin adjustment
+offense = 0.60 roster_to_ovr(0.50 pass_off + 0.50 run_off) + 0.40 team-stat offense
+defense = 0.60 roster_to_ovr(0.55 pass_def + 0.45 run_def) + 0.40 team-stat defense
 
 pass_off = 0.45 avg_top(QB,2) + 0.35 avg_top(WR+TE,5) + 0.20 line_unit
 run_off  = 0.40 avg_top(RB,3) + 0.40 line_unit + 0.10 QB + 0.10 WR/TE
 
 Every term renormalises out when absent. avg_top() returns None, never 50.`,
-    why: `\`avg_top()\` used to return a hard-coded 50.0 for a position with nobody rated. That
-was a trap rather than a default: an empty position became an average position. With OL
-withdrawn it would have made 40% of every team's run offence an identical constant — the
-rating would have silently stopped varying with the thing it claimed to measure.
+    reality: `A team with no roster rating and no team stats for the season gets no row; SP+ alone no longer
+      rates it (2 team-seasons in the archive lost their row). For a projected season there are no stats, so
+      overall, offense and defense come from the projected roster alone and differ from each other. The
+      stored per-game team stats are now refreshed BEFORE the rating reads them (the order was reversed
+      until v4.11, so a season's first run blended none); on the 2,309 stored team-seasons the refresh
+      changed nothing.`,
+    why: `The owner's rule: each season's team rating should come from that year's player ratings and stats.
+      SP+ is a model we did not build, and a rating anchored to it cannot be explained from the roster and the
+      box score. The cost was measured before the change and is not small, so it is stated here instead of
+      assumed away. The roster component carries the schedule, because the player ratings are
+      opponent-adjusted per game; the team stats are opponent-blind.
 
-So avg_top returns None and the weights renormalise across whatever is present. That rule now
-applies to every position, not just OL: a team with no rated kicker no longer gets a fabricated
-50 for special teams either. And the OL term is not simply deleted — it is replaced by the
-line-unit rating, which is a more honest input than the average of five recruiting ranks ever
-was.`,
+      \`avg_top()\` used to return a hard-coded 50.0 for a position with nobody rated. That was a trap
+      rather than a default: an empty position became an average position. So avg_top returns None and the
+      weights renormalise across whatever is present, for every position. The OL term is replaced by the
+      line-unit rating, a more honest input than the average of five recruiting ranks.`,
     evidence: [
-      { label: "The trap", value: "avg_top() returned a hard-coded 50.0 when a position had no rated players" },
-      { label: "Why it mattered", value: "OL is 40% of run offence — withdrawing OL ratings without renormalising makes 40% of every team's run offence an identical constant" },
-      { label: "Line ratings computed", value: "2,295 team-seasons, 2008–2025, median 61–73 per season with no era trend" },
-      { label: "Unplayed seasons", value: "no line rating at all — the metrics measure games that have not happened, so the term renormalises out" },
+      { label: "Fit to what the team did that season (Spearman vs mean scoring margin, 2016-2025, n = 1,255 team-seasons)", value: "old blend (0.5 SP+, 0.3 roster, 0.2 stats) 0.884; new (0.6 roster, 0.4 stats) 0.880; roster alone 0.785; team stats alone 0.875; SP+ alone 0.844" },
+      { label: "Prediction of the NEXT season's margin (n = 1,118)", value: "old blend 0.545; new 0.518; last season's own margin carried forward 0.529. The new rating is 0.011 below the dumb baseline here; the old one was 0.016 above it. This is the cost of removing SP+." },
+      { label: "Placebo: roster ratings shuffled across teams within a season", value: "same-season fit falls from 0.880 to 0.659 and next-season from 0.518 to 0.400, so the roster signal is real, not a re-weighting of what the stats already say" },
+      { label: "Offense vs points scored per game (2016-2025)", value: "SP+ offense 0.847; new offense 0.806; roster offense alone 0.697; team-stat offense alone 0.840" },
+      { label: "Defense vs points allowed per game (2016-2025)", value: "SP+ defense 0.857; new defense 0.827; roster defense alone 0.697; team-stat defense alone 0.822" },
+      { label: "What moved", value: "2,309 played team-seasons: mean change +1.5 points, sd 4.1, largest 11.9; 2 team-seasons lost their row; sp_overall, sp_offense and sp_defense are unchanged" },
+      { label: "2026 to date, through week 8, vs scoring margin (n = 135)", value: "0.792 (0.809 before); live offense 0.640 and defense 0.593 against points for and against" },
+      { label: "2026 preseason, offense = defense = overall", value: "138 of 138 teams before; 0 of 138 now" },
+      { label: "The trap", value: "avg_top() returned a hard-coded 50.0 when a position had no rated players; with OL withdrawn that makes 40% of run offence an identical constant" },
+      { label: "Line ratings computed", value: "2,295 team-seasons, 2008-2025, median 61-73 per season with no era trend; none for an unplayed season" },
     ],
-    limits: `SP+ is half the rating and is itself a model we did not build. The roster component
-      is only as good as the player ratings feeding it, which means it is weakest exactly where
-      the player ratings are — the defensive front seven and, until v4.3, the offensive line.`,
+    limits: `**Forward prediction is weaker without SP+.** On the next season's margin the new rating scores
+      0.518 against 0.545 and sits below carrying last year's margin forward (0.529). It describes a season
+      well (0.880) and predicts the next less well. A preseason rating that also looked at last year's team
+      result would likely help; that is a separate, unbuilt and untested change.
+
+      **Offense and defense are less sharp than SP+'s** (0.806 and 0.827 against 0.847 and 0.857).
+
+      **The roster is only as good as the player ratings,** weakest in the defensive front seven and
+      without any offensive-line player rating. The team stats are opponent-blind. The 60/40 weights were
+      chosen once and not tuned to the outcome used to judge them.
+
+      **A season in progress is provisional** and a part-season sample.
+
+      **The player ratings still use SP+ internally:** the opponent adjustment in script 06 scales each
+      game by the opponent's SP+. Team ratings no longer do. Removing SP+ from the player ratings is a separate pass.`,
     alternatives: [
+      { label: "Keep SP+ in the headline (0.5 / 0.3 / 0.2)", basis: "the previous formula",
+        status: "rejected", note: "Fits and predicts better (0.884 and 0.545 against 0.880 and 0.518) but is half an outside number; the owner chose the explainable rating. The cost is stated above." },
+      { label: "Rebuild preseason offense and defense from the position sub-ratings alone", basis: "points per game, weeks 1-8 of 2026",
+        status: "rejected", note: "Spearman 0.364 against 0.360 for the overall repeated; the old preseason split carried no information. Superseded: the split now uses the roster's offensive and defensive halves directly." },
       { label: "Substitute the line-unit rating for the OL term", basis: "/stats/season/advanced",
         status: "shipped", note: "v4.3. More honest than averaging five recruiting ranks." },
       { label: "Renormalise instead of defaulting to 50", basis: "nothing new",
         status: "shipped", note: "v4.3, and now universal rather than an OL special case." },
     ],
-    source: "docs/FORMULAS.md §6",
+    changelog: [{ version: "v4.11", change: "SP+ removed from the headline and from offense and defense; team stats refreshed before they are read; preseason offense and defense now differ." }],
+    source: "scripts/10_compute_team_ratings.py (compute_team_splits) · tests/test_team_ratings.py · docs/FORMULAS.md §6",
   },
 
   // ── Research ──────────────────────────────────────────────────────────────
