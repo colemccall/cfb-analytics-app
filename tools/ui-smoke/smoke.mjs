@@ -760,7 +760,7 @@ check("players: a projected season shows the model's range on the card, and no E
 });
 
 // ═══════════════════════════════════════════════════════════════
-// v4.8 — the League hub and the retro skin
+// v4.8 — the League hub; v4.12 — one skin for every page
 // ═══════════════════════════════════════════════════════════════
 
 check("league: standings list every conference, best record first", async ctx => {
@@ -799,8 +799,8 @@ check("league: a tab and a season arrive from the URL, and the portal clamps to 
   return page;
 });
 
-check("shell: the retro skin turns the side rail into a top tab strip", async ctx => {
-  const page = await openPage(ctx, "index.html?classic&theme=retro", { width: 1400, height: 900 });
+check("shell: every page is the console skin: a top tab strip with Menu first", async ctx => {
+  const page = await openPage(ctx, "index.html?classic", { width: 1400, height: 900 });
   await waitCount(page, "#storylines .story-card", 1);
   const box = await page.locator(".sidebar").boundingBox();
   assert(box.y === 0 && box.width >= 1390 && box.height < 80, `sidebar is ${Math.round(box.width)}x${Math.round(box.height)} at y=${box.y}`);
@@ -808,24 +808,29 @@ check("shell: the retro skin turns the side rail into a top tab strip", async ct
   assert(ml === "0px", `main content still offset by ${ml}`);
   const items = await page.locator(".snav-item").evaluateAll(els => els.map(e => e.getBoundingClientRect().top));
   assert(new Set(items.map(Math.round)).size === 1, "tabs are not on one row");
+  const first = await page.locator(".snav-item").first().getAttribute("href");
+  assert(first === "menu.html", `the first tab is ${first}, not the menu`);
+  assert(await page.getAttribute("html", "data-skin") === "console", "the console skin is not on");
   return page;
 });
 
-check("shell: retro is reachable from the swatches and survives a reload", async ctx => {
+check("shell: there are two looks, Dusk and Daylight, and the old retro one is gone", async ctx => {
   const page = await openPage(ctx, "methods.html");
-  await page.click('.theme-swatch[data-theme-pick="retro"]');
-  assert(await page.getAttribute("html", "data-theme") === "retro", "swatch did not switch to retro");
+  assert(await page.locator(".theme-swatch").count() === 2, "expected two theme swatches");
+  assert(await page.locator('.theme-swatch[data-theme-pick="retro"]').count() === 0, "the retro swatch is still there");
+  await page.click('.theme-swatch[data-theme-pick="light"]');
+  assert(await page.getAttribute("html", "data-theme") === "light", "swatch did not switch to daylight");
   await page.reload({ waitUntil: "domcontentloaded" });
-  assert(await page.getAttribute("html", "data-theme") === "retro", "retro did not survive a reload");
+  assert(await page.getAttribute("html", "data-theme") === "light", "daylight did not survive a reload");
   return page;
 });
 
-check("shell: retro does not scroll sideways at 1280px or on a phone", async ctx => {
+check("shell: the skin does not scroll sideways at 1280px or on a phone", async ctx => {
   for (const [w, h] of [[1280, 800], [375, 800]]) {
     for (const rel of ["index.html?classic", "players.html", "teams.html", "league.html", "methods.html"]) {
-      const page = await openPage(ctx, `${rel}${rel.includes("?") ? "&" : "?"}theme=retro`, { width: w, height: h });
+      const page = await openPage(ctx, `${rel}${rel.includes("?") ? "&" : "?"}theme=dark`, { width: w, height: h });
       await page.waitForTimeout(1500);
-      assert(await noHorizontalScroll(page), `${rel} scrolls sideways at ${w}px in retro`);
+      assert(await noHorizontalScroll(page), `${rel} scrolls sideways at ${w}px in the skin`);
       await page.close();
     }
   }

@@ -252,9 +252,10 @@ const GUIDE = [
     id: "page-menu",
     group: "pages",
     title: "The Dynasty menu",
-    summary: `A second front door at menu.html, laid out like the franchise menus of an early-2010s console
-      football game: pick a team, land on a hub, and move through Roster, Depth Chart, Schedule, Standings,
-      Rankings, Recruiting and the Transfer Portal one screen at a time. It reads the same data as the rest of
+    summary: `The home page: a hub laid out like the franchise menus of an early-2010s console football game,
+      with Team, League and News tabs. Team drills into one team (roster, depth chart, schedule, recruiting,
+      transfers); League is everything across teams (rankings, standings, players, stats, recruiting, the portal);
+      News is the playoff bracket, the season page, research and how the app works. Every other page wears the same look. It reads the same data as the rest of
       the site, so a number here is the same number there. The look is original; the layout is from the
       author's memory of that style and may not match it exactly.
 

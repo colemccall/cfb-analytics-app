@@ -161,8 +161,11 @@ menuRouter.register("rankings", {
       return `<section class="m-panel"><p class="m-empty">Polls (AP, Coaches, CFP) are not shown: no poll data is on disk, and fetching it
         needs a CollegeFootballData /rankings harvest. The lists beside this one are our own team ratings.</p></section>`;
     }
+    // Ranked by power (quality plus results), not by the rating alone: the rating never looks at a
+    // scoreboard. The rating is still shown beside it.
     const val = t => ctx.list === "live" ? d.liveById[t.id]?.overall_rating : t.overall_rating;
-    const ranked = d.teams.filter(t => val(t) != null).sort((a, b) => val(b) - val(a));
+    const pw = t => ctx.list === "live" ? d.liveById[t.id]?.power_rating : t.power_rating;
+    const ranked = d.teams.filter(t => pw(t) != null).sort((a, b) => pw(b) - pw(a));
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
     const row = (t, i) => `
       <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank">
@@ -171,18 +174,18 @@ menuRouter.register("rankings", {
         <span class="m-pmeta">${_esc(t.conference || "")}</span>
         <span class="m-num">${d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—"}</span>
         <span class="m-rating">${ctx.list === "live" ? livePill({ live_rating: val(t), live_through_week: d.live.through_week }) : ovrPill(val(t), { season: MENU.season, label: "Team rating" })}</span>
-        <span class="m-rating">${ctx.list === "live" && t.overall_rating != null && d.liveById[t.id]
-          ? deltaChip(d.liveById[t.id].overall_rating - t.overall_rating, { title: "To date minus preseason" }) : ""}</span>
+        <span class="m-num" title="Points per game above an average team: team rating plus results">${menuPowerText(pw(t))}</span>
       </button>`;
     const top = ranked.slice(0, 25).map(row).join("");
     const mineRow = mineIdx >= 25 ? `<div class="m-gap">· · ·</div>${row(ranked[mineIdx], mineIdx)}` : "";
     return `<section class="m-panel m-list" aria-label="Top 25">
-        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span>REC</span><span>OVR</span><span>VS PRESEASON</span></div>
+        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span>REC</span><span>RATING</span><span>POWER</span></div>
         ${top}${mineRow}
       </section>
-      <p class="m-foot">Our own team ratings, not a poll. ${ctx.list === "live"
-        ? "To date is earned through the games played, blended with this season's SP+; provisional."
-        : isProjectedSeason(MENU.season) ? "Preseason is the projection made before a game was played." : "Final ratings for a played season."}</p>`;
+      <p class="m-foot">Ranked by <b>power</b>: the team rating (how good its players and stats are) plus a results rating (an opponent-adjusted scoring margin from the games played), in points per game above an average team.
+        Our own numbers, not a poll. ${ctx.list === "live"
+        ? "To date is built from this season's games so far; provisional."
+        : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season."}</p>`;
   },
 });
 

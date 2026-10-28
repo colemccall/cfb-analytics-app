@@ -51,8 +51,11 @@ menuRouter.parse = function (hash) {
   const parts = String(hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   let id = parts[0] || "hub";
   if (!menuScreens[id]) id = "hub";
-  if (id !== "team-select" && !MENU.teamId && id !== "hub") id = "hub";
-  if (id === "hub" && !MENU.teamId) id = "team-select";
+  // Screens that are about the league, not a team, open without one chosen. The Team tab of the
+  // hub and every team screen need a team, so they send you to pick one.
+  const leagueOnly = ["standings", "rankings", "playoff", "recruiting", "portal", "library", "team-select"];
+  const openTab = id === "hub" && ["league", "news"].includes(parts[1]);
+  if (!MENU.teamId && !leagueOnly.includes(id) && !openTab) id = "team-select";
   return { id, params: parts.slice(1) };
 };
 

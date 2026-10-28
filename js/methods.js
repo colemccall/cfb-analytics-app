@@ -985,6 +985,59 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
     source: "scripts/10_compute_team_ratings.py (compute_team_splits) · tests/test_team_ratings.py · docs/FORMULAS.md §6",
   },
 
+  {
+    id: "power-rating",
+    group: "team",
+    title: "Power: the number teams are ranked by (team rating plus results)",
+    summary: `The team rating says how good a team's players and stats are. It never looks at a scoreboard,
+      so ranked on its own it put LSU first with two losses and Kansas State eighth at 3-3. Rankings now use
+      power: the team rating plus a results rating, in points per game above an average FBS team. The results
+      rating is an opponent-adjusted scoring margin (beating a good team moves it more than beating a weak one),
+      solved from the season's games with margins capped and the rating shrunk toward average for a team with
+      few games. Power is the ranking number; the team rating is still shown beside it.`,
+    inputs: [
+      { name: "Team rating", source: "script 10 (the season's own roster ratings and team stats)", coverage: "every rated team-season" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS", coverage: "2008-2026; 2026 through week 8" },
+    ],
+    formula: `results = argmin  sum over games (clip(margin, +-28) - (r_home - r_away) - h*home)^2 + 4 * sum r^2
+power   = 0.408 * (team rating - mean team rating) + 1.303 * results       (points per game vs an average team)`,
+    reality: `The two weights were fitted on 2016-2025 with the PREVIOUS season's team rating as the quality
+      reading, because that is the only quality reading that exists at the cut for a past season. For a season in
+      progress the quality term is the current season's rating, which already reflects some of this season's play,
+      so the quality term is partly counted twice. A projected season has no games and is ranked on quality alone.`,
+    why: `A ranking has to answer both how good a team is and what it has done. The backtest asks which of
+      those predicts games that have not been played: with the season cut after week 8 and every later FBS
+      game scored (2,781 games, 9 seasons, models fitted leave-one-season-out), results alone predict the
+      winner 70.5% of the time against 62.5% for last season's rating and 56.8% for always picking the home
+      team. The blend is best on margin (error 13.18 points against 14.80 and 13.35). Capping margins at 28
+      costs nothing against 21 or 35, and a cap of 7 (nearly win/loss only) is a little worse (69.1%, 13.44).`,
+    evidence: [
+      { label: "Winner picked correctly, later FBS games, 2016-2025 (not 2020), n = 2,781", value: "home team always 56.8%; last season's rating 62.5%; results only 70.5%; rating + results 70.0%; placebo (results dealt to the wrong teams) 62.2%" },
+      { label: "Margin error (mean absolute, points)", value: "always the average 15.75; last season's rating 14.80; results only 13.35; rating + results 13.18; placebo 14.81" },
+      { label: "Margin cap", value: "7: 69.1% / 13.44; 14: 69.6% / 13.31; 21: 70.0% / 13.25; 28: 70.0% / 13.18; 35 (ridge 8): 70.0% / 13.22" },
+      { label: "2026 through week 8", value: "LSU: rating rank 1, power rank 2 (results rank 5: beat Clemson 51-10, Texas A&M 35-6, Auburn 38-17; lost 24-32 and 34-35); Kansas State: rating rank 8, power rank 54 (4-3, results rank 75)" },
+      { label: "Reproduction", value: "python scripts/validate_rankings.py refits the weights and exits 1 if they drift more than 10% from the constants in utils/results_rating.py" },
+    ],
+    limits: `**Not a resume.** Power is a prediction-weighted ranking: it credits margin as well as winning, so a
+      team that wins big can rank above an unbeaten team that wins close. A ranking that put wins first would be
+      a different, unbuilt and untested rule.
+
+      **The weights come from one back-test** on a quality input (last season's rating) that is not the quality
+      input used for a season in progress. They are constants, derived once.
+
+      **Early in a season results are thin.** After a few games the ridge keeps a team near average and the
+      quality term dominates; the games-counted field says how many games stand behind it.
+
+      **Only games between two FBS teams count.** A game against an FCS team, or one with no score, adds nothing.`,
+    alternatives: [
+      { label: "Rank by the team rating alone", basis: "the previous rule", status: "rejected", note: "It ignores every result; LSU first with two losses, Kansas State eighth at 3-3." },
+      { label: "Rank by results alone", basis: "the same back-test", status: "rejected", note: "Predicts slightly better by winner (70.5% vs 70.0%) but worse on margin (13.35 vs 13.18), and it is blind to a team's players before the games exist." },
+      { label: "Rank by win-loss record", basis: "wins first", status: "rejected", note: "Not built or backtested; a nearly win/loss rating (cap 7) is measurably a little worse." },
+    ],
+    changelog: [{ version: "v4.12", change: "Added: power and results ratings, exported with every team rating and used by Rankings, the ticker, rank on the hub and the playoff picture." }],
+    source: "utils/results_rating.py · scripts/validate_rankings.py · scripts/10_compute_team_ratings.py (attach_power)",
+  },
+
   // ── Research ──────────────────────────────────────────────────────────────
   {
     id: "research-team-performance",

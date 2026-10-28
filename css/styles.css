@@ -26,38 +26,47 @@
   --font-display: 'Barlow Condensed', var(--font-ui);
   --num-font: 'Barlow Condensed', 'Inter', sans-serif;
 
-  /* Dark surfaces — true neutral grays, no navy cast */
-  --bg:           #0e1116;
-  --surface:      #161a21;
-  --surface-deep: #0a0d12;
-  --surface-lift: #1d232d;
-  --input-bg:     #10141b;
-  --sidebar-bg:   #12161d;
+  /* Dusk — the console-menu look: near-black glass over a stadium at dusk. The menu
+     (css/menu.css) and every page share it. */
+  --bg:           #0b0d11;
+  --bg-1:         #232a33;
+  --sky:          #b9774a;
+  --surface:      #1a1f27;
+  --surface-deep: #0b0d11;
+  --surface-lift: #2a313b;
+  --input-bg:     #12161c;
+  --sidebar-bg:   #0b0d11;
+  /* The black glossy title/nav bar and the one red that marks the selection */
+  --bar-top:      #000000;
+  --bar-bot:      #1c2026;
+  --bar-text:     #f6f8fa;
+  --hot:          #a80f17;
+  --on-hot:       #ffffff;
 
-  /* Ink — muted passes AA on every surface (7.1:1 on --surface) */
-  --text:         #e8ecf2;
-  --text-muted:   #9aa7b8;
+  /* Ink */
+  --text:         #f6f8fa;
+  --text-muted:   #b7c0cb;
 
-  /* Edges — solid, actually visible (1.85:1 / 3.2:1 vs surface) */
-  --border:        #3d4754;
-  --border-strong: #5d6b7d;
+  /* Edges */
+  --border:        #5d6672;
+  --border-strong: #8a929d;
 
-  /* Voice — the editorial gold. --accent aliases it app-wide; entity scopes
-     override --accent to ink. */
-  --voice:      #f0a830;
-  --voice-dim:  rgba(240,168,48,0.12);
+  /* Voice — the accent: coral on dark (the menu's accent text). --accent aliases it app-wide;
+     entity scopes override --accent to ink. */
+  --voice:      #ff8f84;
+  --voice-dim:  rgba(255,143,132,0.14);
   --accent:     var(--voice);
   --accent-dim: var(--voice-dim);
-  --border-accent: rgba(240,168,48,0.45);
+  --border-accent: rgba(255,143,132,0.5);
   --warning:    var(--voice);
 
-  /* Data colors — all ≥ 7:1 on --surface in dark */
-  --stars:     #f0b345;
-  --positive:  #43d17c;
-  --negative:  #ff7d78;
-  --info:      #6cb8ff;
-  --projected:     #a99df0;
-  --projected-dim: rgba(169,157,240,0.16);
+  /* Data colors — all >= 4.5:1 on --surface */
+  --stars:     #ffd75e;
+  --positive:  #52e08c;
+  --negative:  #ff7771;
+  --info:      #7fc7ff;
+  --projected:     #b9acff;
+  --projected-dim: rgba(185,172,255,0.18);
   --delta-up:   var(--positive);
   --delta-down: var(--negative);
 
@@ -68,8 +77,8 @@
      theme and with entity scopes, where --accent is re-pointed to ink. */
   --scrim:     rgba(0,0,0,0.80);
   --on-accent: var(--bg);
-  --radius:      8px;
-  --radius-sm:   4px;
+  --radius:      3px;
+  --radius-sm:   2px;
   --radius-pill: 999px;
   --nav-height:   60px;
   --sidebar-width: 240px;
@@ -81,23 +90,25 @@
 }
 
 [data-theme="light"] {
-  --bg:           #f2f4f7;
+  /* Daylight — the same look in daylight: silver and white panels, the black bar kept. */
+  --bg:           #dfe3e8;
+  --bg-1:         #f2f4f6;
+  --sky:          #f0cfa6;
   --surface:      #ffffff;
-  --surface-deep: #e7eaef;
-  --surface-lift: #f7f9fc;
+  --surface-deep: #cfd5dc;
+  --surface-lift: #eef1f4;
   --input-bg:     #ffffff;
-  --sidebar-bg:   #eceff4;
+  --sidebar-bg:   #cfd5dc;
 
-  --text:         #171c26;
-  --text-muted:   #4a5568;
+  --text:         #12161c;
+  --text-muted:   #4a525d;
 
-  --border:        #a5afbe;
-  --border-strong: #808c9f;
+  --border:        #8a929d;
+  --border-strong: #5d6672;
 
-  /* Deep ochre — the gold voice survives on paper (6.9:1 on white) */
-  --voice:      #7a5200;
-  --voice-dim:  rgba(122,82,0,0.08);
-  --border-accent: rgba(122,82,0,0.45);
+  --voice:      #a80f17;
+  --voice-dim:  rgba(168,15,23,0.08);
+  --border-accent: rgba(168,15,23,0.45);
 
   --stars:     #946200;
   --positive:  #15803d;
@@ -108,44 +119,6 @@
 
   --shadow:    0 1px 4px rgba(23,28,38,0.14);
   --shadow-lg: 0 6px 20px rgba(23,28,38,0.16);
-}
-
-/* Retro — a skin in the manner of the early-2010s console football menus: a deep
-   navy field, steel-blue panels, white condensed type, one hot orange for the
-   selected item, square corners. Colours only here; the top tab strip and the
-   banded boards are in the desktop block at the END of this file (media blocks
-   must stay last). Phones keep the normal mobile layout with these colours.
-   Held to the same contrast floors as dark and light by tools/contrast-check.mjs. */
-[data-theme="retro"] {
-  --bg:           #0a1119;
-  --surface:      #132033;
-  --surface-deep: #0c1623;
-  --surface-lift: #1c3049;
-  --input-bg:     #0d1928;
-  --sidebar-bg:   #0f2036;
-
-  --text:         #f5f8fc;
-  --text-muted:   #aebfd6;
-
-  --border:        #3d587a;
-  --border-strong: #6486ad;
-
-  --voice:      #ffa51f;
-  --voice-dim:  rgba(255,165,31,0.16);
-  --border-accent: rgba(255,165,31,0.55);
-
-  --stars:     #ffc933;
-  --positive:  #52e08c;
-  --negative:  #ff7771;
-  --info:      #7fc7ff;
-  --projected:     #b9acff;
-  --projected-dim: rgba(185,172,255,0.18);
-
-  --shadow:    0 2px 0 rgba(0,0,0,0.55);
-  --shadow-lg: 0 10px 28px rgba(0,0,0,0.65);
-  --radius:      0;
-  --radius-sm:   0;
-  --radius-pill: 0;
 }
 
 /* Entity context: team/player identity provides the color; chrome goes
@@ -163,7 +136,10 @@
 html { font-size: 16px; scroll-behavior: smooth; }
 body {
   font-family: var(--font-ui);
-  background: var(--bg);
+  background:
+    radial-gradient(110% 60% at 50% -8%, color-mix(in srgb, var(--sky) 55%, transparent) 0%, transparent 68%),
+    linear-gradient(var(--bg-1), var(--bg)) fixed;
+  background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
   line-height: 1.55;
@@ -966,58 +942,59 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
    into a top tab strip. Below 901px nothing here applies, so phones get the normal
    bottom tab bar. Everything is expressed in tokens. */
 @media (min-width: 901px) {
-  [data-theme="retro"] { --sidebar-width: 0px; }
-  [data-theme="retro"] .sidebar {
+  [data-skin="console"] { --sidebar-width: 0px; }
+  [data-skin="console"] .sidebar {
     width: auto; right: 0; bottom: auto; height: var(--nav-height);
     flex-direction: row; align-items: stretch; overflow: visible;
-    background: linear-gradient(var(--surface-lift), var(--sidebar-bg));
-    border-right: none; border-bottom: 3px solid var(--accent);
+    background: linear-gradient(var(--bar-top), var(--bar-bot));
+    border-right: none; border-bottom: 4px solid var(--hot); color: var(--bar-text);
   }
-  [data-theme="retro"] .sidebar-nav {
+  [data-skin="console"] .sidebar-nav {
     flex-direction: row; gap: 0; padding: 0; align-items: stretch;
     min-width: 0; overflow-x: auto; scrollbar-width: none;
   }
-  [data-theme="retro"] .snav-item {
+  [data-skin="console"] .snav-item {
     align-items: center; padding: 0 11px; gap: 0; border-radius: 0;
-    border-left: none; border-right: 1px solid var(--border); white-space: nowrap;
+    border-left: none; border-right: 1px solid color-mix(in srgb, var(--bar-text) 18%, transparent); white-space: nowrap;
+    color: var(--bar-text);
     font-family: var(--font-display); font-size: var(--fs-base); font-weight: 700;
     letter-spacing: 0.04em; text-transform: uppercase; transform: none;
   }
-  [data-theme="retro"] .snav-item:hover { transform: none; background: var(--surface-lift); color: var(--text); }
-  [data-theme="retro"] .snav-item.active { background: var(--accent); color: var(--on-accent); }
-  [data-theme="retro"] .snav-icon { display: none; }
+  [data-skin="console"] .snav-item:hover { transform: none; background: color-mix(in srgb, var(--bar-text) 14%, transparent); color: var(--bar-text); }
+  [data-skin="console"] .snav-item.active { background: linear-gradient(var(--hot), color-mix(in srgb, var(--hot) 70%, #000)); color: var(--on-hot); }
+  [data-skin="console"] .snav-icon { display: none; }
   /* Swatches on the left, version above the data credit on the right */
-  [data-theme="retro"] .sidebar-bottom {
+  [data-skin="console"] .sidebar-bottom {
     display: grid; grid-template-columns: auto auto; grid-template-rows: 1fr 1fr;
     align-items: center; column-gap: 14px; row-gap: 0; flex-shrink: 0;
     padding: 0 16px; border-top: none; border-left: 1px solid var(--border);
   }
-  [data-theme="retro"] .sidebar-bottom > :first-child { grid-row: 1 / span 2; }
-  [data-theme="retro"] .sidebar-theme-label { display: none; }
-  [data-theme="retro"] .sidebar-version,
-  [data-theme="retro"] .sidebar-credit { padding: 0; white-space: nowrap; text-align: left; line-height: 1.3; }
-  [data-theme="retro"] .main-content { margin-left: 0; padding-top: var(--nav-height); }
-  [data-theme="retro"] .teams-layout { height: calc(100vh - var(--nav-height)); }
+  [data-skin="console"] .sidebar-bottom > :first-child { grid-row: 1 / span 2; }
+  [data-skin="console"] .sidebar-theme-label { display: none; }
+  [data-skin="console"] .sidebar-version,
+  [data-skin="console"] .sidebar-credit { padding: 0; white-space: nowrap; text-align: left; line-height: 1.3; }
+  [data-skin="console"] .main-content { margin-left: 0; padding-top: var(--nav-height); }
+  [data-skin="console"] .teams-layout { height: calc(100vh - var(--nav-height)); }
 
   /* Headings and section rules read as menu banners */
-  [data-theme="retro"] :is(h1, h2) {
+  [data-skin="console"] :is(h1, h2) {
     font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em;
   }
-  [data-theme="retro"] .section-rule {
+  [data-skin="console"] .section-rule {
     background: linear-gradient(90deg, var(--surface-lift), transparent);
     border-left: 4px solid var(--accent); padding-left: 0.75rem;
   }
 
   /* Boards: banded header with a heavy rule, striped rows, hard drop shadow */
-  [data-theme="retro"] .draft-board-header {
+  [data-skin="console"] .draft-board-header {
     background: linear-gradient(var(--surface-lift), var(--surface));
     border-bottom: 2px solid var(--accent);
     text-transform: uppercase; letter-spacing: 0.06em;
   }
-  [data-theme="retro"] .draft-row:nth-child(even) {
+  [data-skin="console"] .draft-row:nth-child(even) {
     background: color-mix(in srgb, var(--surface-lift) 45%, transparent);
   }
-  [data-theme="retro"] .draft-row:hover { background: var(--accent-dim); }
+  [data-skin="console"] .draft-row:hover { background: var(--accent-dim); }
 }
 
 

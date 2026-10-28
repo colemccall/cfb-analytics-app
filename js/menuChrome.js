@@ -147,7 +147,7 @@ menuChrome.savedMode = function () {
 menuChrome.setMode = function (mode, redraw) {
   this.mode = mode;
   this.root.dataset.mode = mode;
-  document.documentElement.setAttribute("data-theme", mode === "light" ? "light" : "retro");
+  document.documentElement.setAttribute("data-theme", mode === "light" ? "light" : "dark");
   try { localStorage.setItem("cfb-menu-mode", mode); } catch (e) { /* the mode still applies */ }
   this.renderPrompts();
   if (redraw) { menuRouter.render(); this.toast(mode === "light" ? "Light mode" : "Dark mode"); }
@@ -159,8 +159,7 @@ menuChrome.setMode = function (mode, redraw) {
 menuChrome.loadTicker = async function () {
   try {
     const d = await menuTeams(MENU.season);
-    const val = t => d.liveById[t.id]?.overall_rating ?? t.overall_rating;
-    const top = d.teams.filter(t => val(t) != null).sort((a, b) => val(b) - val(a)).slice(0, 25);
+    const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, 25);
     const one = top.map((t, i) => {
       const s = d.standings[t.id];
       return `<span>#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</span>`;

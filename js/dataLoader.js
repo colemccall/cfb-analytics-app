@@ -108,7 +108,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
         const subRatings = typeof teamRating.sub_ratings === "string"
           ? JSON.parse(teamRating.sub_ratings)
           : (teamRating.sub_ratings || {});
-        teamRatingsMap[teamRating.team_id] = { live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
+        teamRatingsMap[teamRating.team_id] = { live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, power: teamRating.power_rating, livePower: teamRating.live_power_rating, results: teamRating.results_rating, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
       }
     }
   }
@@ -121,6 +121,9 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
       overall_rating: teamRating.ovr || null,
       live_overall_rating: teamRating.live ?? null,   // earned so far, in a season being played
       live_through_week:   teamRating.liveWeek ?? null,
+      power_rating:        teamRating.power ?? null,       // ranks teams: quality plus results, points per game above average
+      live_power_rating:   teamRating.livePower ?? null,
+      results_rating:      teamRating.results ?? null,
       offense_rating: teamRating.off || null,
       defense_rating: teamRating.def || null,
       sub_ratings:    teamRating.sub || {},

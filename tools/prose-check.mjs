@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ctx = vm.createContext({
-  document: { readyState: "complete", addEventListener() {}, documentElement: { getAttribute: () => "dark" } },
+  document: { readyState: "complete", addEventListener() {}, documentElement: { getAttribute: () => "dark", setAttribute() {} } },
   window: { addEventListener() {} }, console,
 });
 // Registries are loaded as the browser loads them: script files sharing one scope.

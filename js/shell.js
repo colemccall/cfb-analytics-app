@@ -23,12 +23,12 @@
   document.documentElement.setAttribute("data-theme", theme);
   if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v4.11.0";
+  const VERSION = "v4.12.0";
 
   // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
   // so anything longer than ~8 characters gets an abbreviation here.
   const PAGES = [
-    { id: "home",     href: "index.html?classic",      icon: "⬡",  label: "Home" },
+    { id: "menu",     href: "menu.html",       icon: "⬡",  label: "Menu" },
     { id: "season26", href: "season2026.html", icon: "🏈", label: "'26 Season", short: "'26" },
     { id: "teams",    href: "teams.html",      icon: "🏟",  label: "Teams" },
     { id: "players",  href: "players.html",    icon: "👤", label: "Players" },
@@ -40,7 +40,7 @@
     { id: "info",     href: "info.html",       icon: "ℹ",  label: "How It Works" },
   ];
   // Five slots on mobile — the core destinations.
-  const MOBILE = ["home", "season26", "teams", "players", "research"];
+  const MOBILE = ["menu", "season26", "teams", "players", "research"];
 
   const active = document.body.dataset.page || "";
 
@@ -62,7 +62,6 @@
         </div>
         <div class="sidebar-version">${VERSION}</div>
         <a class="sidebar-credit" href="https://collegefootballdata.com" target="_blank" rel="noopener">Data: CollegeFootballData.com</a>
-        <a class="sidebar-credit" href="menu.html">Dynasty menu →</a>
       </div>
     </aside>`;
 

@@ -33,6 +33,91 @@
 
 const CHANGES = [
   {
+    id: "v4.12-menu-home-one-skin-power-rankings",
+    version: "v4.12",
+    date: "2026-10-28",
+    title: "The menu is the home page; one skin on every page; rankings by power; a playoff bracket",
+    summary: `The owner found the app out of order: the menu was hard to reach, the other pages looked like a
+      different product, and the rankings put LSU first with two losses and Kansas State eighth at 3-3. The
+      cause of the last was plain: the team rating never reads a scoreboard. Rankings now use power (team rating
+      plus an opponent-adjusted results rating), the menu is the home page with Team, League and News tabs, every
+      page wears the menu's look, and the playoff picture is a bracket.`,
+    motivation: `The owner said the menu should be the home page with tabs for team (a dynasty-style drill-down),
+      league and news, that every page should be connected and wear the new skin, and asked how LSU and Kansas
+      State could rank where they did. They also gave the field rules for a 12 and a 24-team playoff and two bracket
+      pictures to follow.`,
+    did: [
+      { what: "Power rating for rankings (new: utils/results_rating.py, validate_rankings.py)",
+        why: `A results rating (opponent-adjusted scoring margin, margins capped at 28, ridge-shrunk) is combined with
+          the team rating as power, in points per game above an average team. The weights were fitted and scored on
+          2,781 later games from 2016-2025, leave-one-season-out: results predict the winner 70.5% of the time against
+          62.5% for last season's rating and 56.8% for the home team; a placebo that deals results to the wrong teams
+          drops back to 62.2%. 2026 through week 8: LSU is rating 1, power 2 (its results rank 5th: big wins over Clemson,
+          Texas A&M and Auburn, and losses by 8 and 1); Kansas State drops from 8 to 54. Rankings, the ticker, the hub
+          and the playoff all use it; the team rating is still shown. Recomputed for 2008-2025 from cache with no API call
+          and checked: no team rating, offense, defense or SP+ value changed.`,
+        cost: "Power credits margin, so it is a predictive ranking, not a resume. LSU is still second: the data says its results are strong. A wins-first ranking would be a different, untested rule." },
+      { what: "The menu is the home page, with Team, League and News tabs",
+        why: `index.html opens the menu. Team is the drill-down (roster, depth chart, schedule, recruiting, transfers, the
+          team page); League is everything across teams (rankings, standings, all teams, players, stats, recruiting,
+          transfer portal, conferences); News is the playoff picture, the season page, research, how it works, methods and
+          the build log. Each page that is not a menu screen is marked PAGE. The league screens open without a team.`,
+        cost: "The old home page content is no longer linked (it is still at index.html?classic)." },
+      { what: "One skin on every page",
+        why: `Dusk and Daylight, the menu's two looks, are now the site's only two themes. Retro is deleted. Every page gets the
+          black glossy top bar with the red active tab, the dusk background and the same tokens; the first tab is
+          Menu. Both themes are held to the contrast floors.`,
+        cost: "Page layouts are the old ones in the new colours and bar; only the menu screens are laid out like the console menus." },
+      { what: "Playoff bracket and your field rules",
+        why: `A bracket drawn like the two pictures: top half left, bottom half right, byes already in round two, no winners
+          picked. The 12-team field is the four Power-4 conference champions, the top Group-of-6 team, Notre Dame if it is
+          in the top 12 by power, then the best remaining; the 24-team field is the top Group-of-6 team and the 23 best others.`,
+        cost: "Champions are the current conference leaders; the 24-team bye count (8) is an assumption." },
+    ],
+    tried: [
+      { what: "Ranking by the team rating and adding a note that it ignores results",
+        result: "Rejected: a ranking that ignores results is the defect, not something to caption.",
+        verdict: "rejected" },
+      { what: "A near win/loss ranking (margin cap 7)",
+        result: "Measured: 69.1% winners and 13.44 margin error against 70.0% and 13.18 at a cap of 28. A little worse, so margins stay in.",
+        verdict: "rejected" },
+      { what: "Rebuilding every classic page as a menu screen",
+        result: "Not done: re-skinning them is the part that makes the app one product; rebuilding them is a much larger piece of work.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Winner picked correctly on later games (n = 2,781): rating only / rating + results", before: "62.5%", after: "70.0%" },
+      { label: "Margin error, points: rating only / rating + results", before: "14.80", after: "13.18" },
+      { label: "LSU's rank, 2026 through week 8: rating / power", before: "1", after: "2" },
+      { label: "Kansas State's rank: rating / power", before: "8", after: "54" },
+      { label: "Pipeline tests", before: "336 passed", after: "347 passed" },
+      { label: "UI smoke checks", before: "123", after: "123 / 123" },
+    ],
+    gates: [
+      { check: "python scripts/validate_rankings.py", result: "fitted weights 0.408 / 1.303 equal the constants (drift 0.0%)" },
+      { check: "re-export against the app's data", result: "only the new power and results fields differ" },
+      { check: "node tools/contrast-check.mjs and theme-check.mjs", result: "dark and light themes and the menu in both modes, green" },
+    ],
+    unfixed: `**LSU is still second.** Power says its results are strong. If you want a ranking that puts wins first, that is
+      a different rule and needs its own backtest.
+
+      **The weights are from one back-test** whose quality input (last season's rating) is not the one used in a season in
+      progress, so the quality term is partly counted twice there.
+
+      **The other pages still use their old layouts** in the new colours. Players, Teams, Ratings, Research, Methods, the
+      Build Log and the rest are not laid out as console screens.
+
+      **The classic home page is unlinked, not deleted.**
+
+      **A real controller is still untested.**
+
+      **Everything is uncommitted** in both repositories.`,
+    methods: ["power-rating", "team-ratings"],
+    files: ["utils/results_rating.py", "scripts/validate_rankings.py", "scripts/10_compute_team_ratings.py", "scripts/12_export_frontend_json.py",
+            "scripts/17_live_season.py", "js/menuScreens.js", "js/menuScreensClass.js", "js/menuScreensLeague.js", "js/menuRouter.js",
+            "js/menuChrome.js", "js/shell.js", "js/config.js", "js/dataLoader.js", "css/styles.css", "css/menu.css", "index.html", "menu.html"],
+  },
+  {
     id: "v4.11-team-ratings-and-team-screens",
     version: "v4.11",
     date: "2026-10-28",

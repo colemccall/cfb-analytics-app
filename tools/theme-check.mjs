@@ -27,7 +27,7 @@ const css = readFileSync(join(root, "css", "styles.css"), "utf8").replace(/\/\*[
 // config.js declares `const CONFIG`, which a vm script does not export to its
 // context, so evaluate it as an expression.
 const src = readFileSync(join(root, "js", "config.js"), "utf8");
-const CONFIG = vm.runInNewContext(`${src}\n;CONFIG`, { document: { documentElement: { getAttribute: () => null }, addEventListener() {} }, window: {}, localStorage: {} });
+const CONFIG = vm.runInNewContext(`${src}\n;CONFIG`, { document: { documentElement: { getAttribute: () => null, setAttribute() {} }, addEventListener() {} }, window: {}, localStorage: {} });
 
 // Names of the custom properties a selector's blocks declare.
 function tokenNames(selectorRe) {

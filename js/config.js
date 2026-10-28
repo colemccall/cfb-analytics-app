@@ -67,9 +67,8 @@ const CONFIG = {
   // POS_COLORS and RATING_RAMP — no page code. `swatch`/`edge` paint the picker
   // button; they live here because colour literals are only allowed in palettes.
   THEMES: [
-    { id: "dark",  label: "Dark",  swatch: "#161a21", edge: "#5d6b7d" },
-    { id: "light", label: "Light", swatch: "#ffffff", edge: "#808c9f" },
-    { id: "retro", label: "Retro", swatch: "#132033", edge: "#ffa51f" },
+    { id: "dark",  label: "Dusk",     swatch: "#1a1f27", edge: "#a80f17" },
+    { id: "light", label: "Daylight", swatch: "#ffffff", edge: "#a80f17" },
   ],
 
   // ── Domain palettes — the SINGLE source of position/tier/rating color.
@@ -87,14 +86,6 @@ const CONFIG = {
       OL: "#546e7a", EDGE: "#bf360c", DL: "#b71c1c", LB: "#e65100",
       CB: "#6a1b9a", S: "#3949ab",   K: "#0277bd",  P: "#01579b",
       DB: "#3949ab", ATH: "#455a64",
-    },
-    // Retro sits on navy panels, so it reuses the dark fills (all contrast-checked
-    // against the retro surface by tools/contrast-check.mjs).
-    retro: {
-      QB: "#FFB300", RB: "#43A047", WR: "#1E88E5", TE: "#26C6DA",
-      OL: "#8D9AA8", EDGE: "#FF5722", DL: "#E53935", LB: "#FB8C00",
-      CB: "#AB47BC", S: "#5C6BC0",   K: "#039BE5",  P: "#0288D1",
-      DB: "#5C6BC0", ATH: "#607D8B",
     },
   },
 
@@ -114,7 +105,6 @@ const CONFIG = {
   RATING_RAMP: {
     dark:  [[90, "#F2C230"], [80, "#E8973C"], [70, "#90A4AE"], [55, "#A1887F"], [40, "#D9705F"], [0, "#F0574A"]],
     light: [[90, "#7d6300"], [80, "#8f5300"], [70, "#546e7a"], [55, "#6d4c41"], [40, "#a13d2d"], [0, "#b91c1c"]],
-    retro: [[90, "#FFC933"], [80, "#FFA51F"], [70, "#9DB4CE"], [55, "#B59A8B"], [40, "#E8806F"], [0, "#FF6A5E"]],
   },
 
   // Tier labels (colors come from RATING_RAMP at the tier threshold)
@@ -384,3 +374,7 @@ if (document.readyState === "loading") {
 } else {
   initEntityLinks();
 }
+
+// One skin for every page: the console-menu look. Themes are only its two palettes (dusk and
+// daylight); the layout (a top tab strip above ~900px) is keyed on this attribute.
+document.documentElement.setAttribute("data-skin", "console");

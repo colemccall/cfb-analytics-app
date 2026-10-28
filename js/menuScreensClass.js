@@ -147,45 +147,124 @@ menuRouter.register("team-portal", {
 
 // ── The playoff picture ───────────────────────────────────────────────────
 
-// The four formats. `field` is how many teams are in, `byes` how many skip the first round and
-// `champs` how many places are reserved for conference leaders (0 = none). The 4-team format is
-// the original top four, the 8-team a straight top eight, the 12 the current format (the five
-// highest-ranked champions plus seven at-large, the top four seeds with byes, seeded straight by
-// rank), and the 24 the owner's description of the coming format, which is an ASSUMPTION here:
-// the top 24 with the top eight getting byes.
+// The four formats. `byes` is how many top seeds skip the first round. How the field is picked is
+// in menuPlayoffField. The 4-team format is the original top four and the 8-team a straight top
+// eight. The 12-team format is the current one as the owner described it: the four Power-4
+// conference champions and the top Group-of-6 team get in, Notre Dame gets in if it is ranked in the
+// top 12, and the best of the rest fill the field; seeded straight by rank with the top four on a
+// bye. The 24-team format is the coming one as described: the top Group-of-6 team plus the 23 best
+// others, with the top eight on a bye (the bye count is an assumption).
 const MENU_PLAYOFF_FORMATS = {
-  "4":  { field: 4,  byes: 0, champs: 0, note: "The original four-team format: the top four, 1 plays 4 and 2 plays 3." },
-  "8":  { field: 8,  byes: 0, champs: 0, note: "A straight top eight: 1 plays 8, 2 plays 7, 3 plays 6, 4 plays 5." },
-  "12": { field: 12, byes: 4, champs: 5, note: "The current twelve-team format: the five highest-ranked conference champions plus seven at-large, seeded straight by rank, the top four seeds with a first-round bye." },
-  "24": { field: 24, byes: 8, champs: 0, note: "The coming format, as described to me: the top 24 with the top eight on a bye. This is an assumption; check it against the real rules." },
+  "4":  { field: 4,  byes: 0, note: "The original four-team format: the top four, 1 plays 4 and 2 plays 3." },
+  "8":  { field: 8,  byes: 0, note: "A straight top eight: 1 plays 8, 2 plays 7, 3 plays 6, 4 plays 5." },
+  "12": { field: 12, byes: 4, note: "The four Power-4 conference champions and the top Group-of-6 team, Notre Dame if it is in the top 12, then the best remaining teams. Seeded straight by rank; the top four seeds get a first-round bye." },
+  "24": { field: 24, byes: 8, note: "The top Group-of-6 team and the 23 best other teams. Seeded straight by rank; the top eight seeds get a first-round bye (an assumption: check it against the real rules)." },
 };
+const MENU_POWER4 = ["ACC", "Big 12", "Big Ten", "SEC"];
 
-// Picks and seeds the field for a format from the teams, best rating first. Conference leaders
-// (best conference record, then overall, then rating: the same order as the Standings screen) are
-// the "champions" for a format that reserves places for them. Returns the seeded teams, each with
-// whether it got in as a leader.
-function menuPlayoffField(d, fmt) {
-  const val = t => menuTeamOvr(t, d);
+// Picks and seeds the field for a format, best power first. Conference champions are the current
+// conference leaders (the Standings screen's order). Returns [{ team, seed, why }] where `why` is
+// how the team got in: "champion", "top G6", "Notre Dame" or "" for an at-large place.
+function menuPlayoffField(d, key) {
+  const fmt = MENU_PLAYOFF_FORMATS[key];
+  const val = t => menuTeamPower(t, d);
   const ranked = d.teams.filter(t => val(t) != null).sort((a, b) => val(b) - val(a));
-  const leaders = new Map();
-  for (const conf of [...new Set(d.teams.map(t => t.conference).filter(Boolean))]) {
-    const rows = Object.values(d.standings).filter(r => r.team.conference === conf && r.w + r.l > 0).sort(standingsOrder);
-    if (rows.length && conf !== "FBS Independents") leaders.set(rows[0].team.id, conf);
-  }
-  let picked;
-  if (fmt.champs) {
-    const champs = ranked.filter(t => leaders.has(t.id)).slice(0, fmt.champs);
-    const ids = new Set(champs.map(t => t.id));
-    picked = [...champs, ...ranked.filter(t => !ids.has(t.id)).slice(0, fmt.field - champs.length)];
+  const rankOf = new Map(ranked.map((t, i) => [t.id, i + 1]));
+  const isG6 = t => t.conference && !MENU_POWER4.includes(t.conference) && t.conference !== "FBS Independents";
+  const picked = new Map();
+  const take = (t, why) => { if (t && !picked.has(t.id)) picked.set(t.id, why); };
+  if (key === "12") {
+    for (const conf of MENU_POWER4) {
+      const rows = Object.values(d.standings).filter(r => r.team.conference === conf && r.w + r.l > 0).sort(standingsOrder);
+      take(rows[0]?.team, "champion");
+    }
+    take(ranked.find(isG6), "top G6");
+    const nd = ranked.find(t => t.school === "Notre Dame");
+    if (nd && rankOf.get(nd.id) <= 12) take(nd, "Notre Dame");
+    for (const t of ranked) if (picked.size < fmt.field) take(t, "");
+  } else if (key === "24") {
+    take(ranked.find(isG6), "top G6");
+    for (const t of ranked) if (picked.size < fmt.field) take(t, "");
   } else {
-    picked = ranked.slice(0, fmt.field);
+    for (const t of ranked.slice(0, fmt.field)) take(t, "");
   }
-  return picked.sort((a, b) => val(b) - val(a)).map((t, i) => ({ team: t, seed: i + 1, leader: leaders.has(t.id) }));
+  return ranked.filter(t => picked.has(t.id)).map((t, i) => ({ team: t, seed: i + 1, why: picked.get(t.id) }));
+}
+
+// The seed order of a single-elimination bracket of `size` (a power of two), top to bottom, so
+// that adjacent pairs meet in round one and 1 and 2 can only meet in the final: [1,16,8,9,5,12,...].
+function _bracketOrder(size) {
+  let order = [1];
+  while (order.length < size) {
+    const n = order.length * 2;
+    order = order.flatMap(s => [s, n + 1 - s]);
+  }
+  return order;
+}
+
+// One team in a bracket box: seed, mark and name; or an empty box for a game not yet played.
+function _bracketSlot(entry, label = "") {
+  if (!entry) return `<div class="m-bslot is-empty" title="${_esc(label)}"><span>${_esc(label)}</span></div>`;
+  const mine = entry.team.id === MENU.teamId;
+  return `<div class="m-bslot${mine ? " is-mine" : ""}"><i>${entry.seed}</i>${teamMark(entry.team, "m-bmark")}<b>${_esc(entry.team.school)}</b></div>`;
+}
+
+// Lays the field out as a bracket in the manner of the printed ones: the top half of the bracket on
+// the left, the bottom half on the right, each round a column closing in on the champion in the
+// middle. A seed with a bye is drawn already in the second round, opposite an empty box that stands
+// for the winner of the first-round game it is waiting on. No winner is chosen: this is the field
+// and its pairings, not a forecast.
+function menuBracketHtml(field) {
+  const n = field.length;
+  let size = 1;
+  while (size < n) size *= 2;
+  const bySeed = new Map(field.map(f => [f.seed, f]));
+  const order = _bracketOrder(size);
+  // Level 0: one node per first-round pair, a game when both seeds exist, else a bye for the one that does.
+  let nodes = [];
+  for (let i = 0; i < order.length; i += 2) {
+    const a = bySeed.get(order[i]), b = bySeed.get(order[i + 1]);
+    nodes.push(a && b ? { game: [a, b] } : { team: a || b });
+  }
+  const levels = [nodes];
+  while (nodes.length > 1) {
+    const next = [];
+    for (let i = 0; i < nodes.length; i += 2) next.push({ match: [nodes[i], nodes[i + 1]] });
+    levels.push(next);
+    nodes = next;
+  }
+  const slot = node => {
+    if (node.team) return _bracketSlot(node.team);
+    if (node.game) return _bracketSlot(null, `W ${node.game[0].seed}/${node.game[1].seed}`);
+    return _bracketSlot(null, "Winner");
+  };
+  const gameBox = g => `<div class="m-bmatch">${_bracketSlot(g[0])}${_bracketSlot(g[1])}</div>`;
+  const matchBox = m => `<div class="m-bmatch">${slot(m[0])}${slot(m[1])}</div>`;
+  const total = levels[0].length;
+  // Columns for one half, from the outside in: its first-round games, then each later round.
+  const columns = (side) => {
+    const cols = [];
+    const lo = side === "L" ? 0 : total / 2, hi = side === "L" ? total / 2 : total;
+    const r1 = levels[0].slice(lo, hi).filter(x => x.game).map(x => gameBox(x.game));
+    if (r1.length) cols.push(r1);
+    for (let L = 1; L < levels.length - 1; L++) {
+      const half = levels[L].length / 2;
+      const part = levels[L].slice(side === "L" ? 0 : half, side === "L" ? half : levels[L].length);
+      cols.push(part.map(m => matchBox(m.match)));
+    }
+    return cols;
+  };
+  const col = (items, cls) => `<div class="m-bcol ${cls}">${items.join("")}</div>`;
+  const final = levels[levels.length - 1][0].match;
+  const mid = `<div class="m-bcol m-bcol--final"><div class="m-bchamp">NATIONAL<br>CHAMPION</div><div class="m-bmatch m-bmatch--final">${slot(final[0])}${slot(final[1])}</div></div>`;
+  return `<div class="m-bracket" role="img" aria-label="${n}-team playoff bracket">
+      ${columns("L").map(c => col(c, "m-bcol--l")).join("")}${mid}${columns("R").reverse().map(c => col(c, "m-bcol--r")).join("")}
+    </div>`;
 }
 
 menuRouter.register("playoff", {
   title: "Playoff Picture",
-  crumb: () => "DYNASTY › PLAYOFF",
+  crumb: () => "NEWS › PLAYOFF",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "Format" }, { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   tabs: ctx => ({ items: Object.keys(MENU_PLAYOFF_FORMATS).map(k => ({ id: k, label: `${k} teams` })),
                   active: ctx.params[0] || "12", go: id => menuRouter.go(`#/playoff/${id}`) }),
@@ -194,41 +273,28 @@ menuRouter.register("playoff", {
     ctx.team = menuMyTeam(d); ctx.d = d;
     const key = MENU_PLAYOFF_FORMATS[ctx.params[0]] ? ctx.params[0] : "12";
     const fmt = MENU_PLAYOFF_FORMATS[key];
-    const field = menuPlayoffField(d, fmt);
-    if (field.length < fmt.field) return '<section class="m-panel"><p class="m-empty">Not enough rated teams for this season.</p></section>';
+    const field = menuPlayoffField(d, key);
+    if (field.length < fmt.field) return '<section class="m-panel"><p class="m-empty">Not enough ranked teams for this season.</p></section>';
     const mineIn = field.find(f => f.team.id === MENU.teamId);
+    const next = d.teams.filter(t => menuTeamPower(t, d) != null && !field.some(f => f.team.id === t.id))
+      .sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d))[0];
     const seedRow = f => `
       <button class="m-row m-row--seed${f.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="seeds">
         <span class="m-rank">${f.seed}</span>
-        <span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}${f.seed <= fmt.byes ? ' <span class="m-tag">BYE</span>' : ""}${f.leader && fmt.champs ? ' <span class="m-tag m-tag--c">CONF LEADER</span>' : ""}</span>
+        <span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}${f.seed <= fmt.byes ? ' <span class="m-tag">BYE</span>' : ""}${f.why ? ` <span class="m-tag m-tag--c">${_esc(f.why.toUpperCase())}</span>` : ""}</span>
         <span class="m-pmeta">${_esc(f.team.conference || "")}</span>
         <span class="m-num">${d.standings[f.team.id] ? `${d.standings[f.team.id].w}-${d.standings[f.team.id].l}` : "—"}</span>
-        <span class="m-rating">${menuTeamPill(f.team, d, MENU.season)}</span>
+        <span class="m-num">${menuPowerText(menuTeamPower(f.team, d))}</span>
       </button>`;
-    // First-round pairings: the bye seeds wait; the rest meet best against worst of what is left.
-    const play = field.filter(f => f.seed > fmt.byes);
-    const pairs = [];
-    for (let i = 0; i < Math.floor(play.length / 2); i++) pairs.push([play[i], play[play.length - 1 - i]]);
-    const pair = ([a, b]) => `<div class="m-pair"><span><b>${a.seed}</b> ${_esc(a.team.school)}</span><i>vs</i><span><b>${b.seed}</b> ${_esc(b.team.school)}</span></div>`;
-    const cut = field[field.length - 1], next = d.teams.filter(t => menuTeamOvr(t, d) != null && !field.some(f => f.team.id === t.id))
-      .sort((a, b) => menuTeamOvr(b, d) - menuTeamOvr(a, d))[0];
-    const label = CONFIG.LIVE_SEASONS.includes(MENU.season) ? `to date, through week ${d.live?.through_week}` : isProjectedSeason(MENU.season) ? "preseason projection" : "final ratings";
-    return `<div class="m-split m-split--roster">
+    const label = CONFIG.LIVE_SEASONS.includes(MENU.season) ? `to date, through week ${d.live?.through_week}` : isProjectedSeason(MENU.season) ? "preseason projection" : "final";
+    return `<section class="m-panel m-bracketpanel" aria-label="Bracket">${menuBracketHtml(field)}</section>
+      <p class="m-note m-bnote">${_esc(fmt.note)} ${mineIn ? `<b>${_esc(mineIn.team.school)}</b> is in, seed ${mineIn.seed}.` : ctx.team ? `<b>${_esc(ctx.team.school)}</b> is out.` : ""}
+        ${next ? `First team out: ${_esc(next.school)}.` : ""}</p>
       <section class="m-panel m-list" aria-label="Seeds">
-        <div class="m-rowhead m-row--seed"><span>SEED</span><span>TEAM</span><span>CONF</span><span>REC</span><span>RATING</span></div>
+        <div class="m-rowhead m-row--seed"><span>SEED</span><span>TEAM</span><span>CONF</span><span>REC</span><span>POWER</span></div>
         ${field.map(seedRow).join("")}
       </section>
-      <aside class="m-panel m-detail">
-        <h2 class="m-detail-name">${key}-team field</h2>
-        <p class="m-note">${_esc(fmt.note)}</p>
-        <h3 class="m-h3">${fmt.byes ? "First round" : "Opening round"}</h3>
-        ${pairs.map(pair).join("")}
-        ${fmt.byes ? `<p class="m-note">Byes: ${field.slice(0, fmt.byes).map(f => _esc(f.team.school)).join(", ")}.</p>` : ""}
-        <p class="m-note">${mineIn ? `<b>${_esc(mineIn.team.school)}</b> is in, seed ${mineIn.seed}.` : ctx.team ? `<b>${_esc(ctx.team.school)}</b> is out.` : ""}
-          Last in: ${_esc(cut.team.school)}${next ? `; first out: ${_esc(next.school)}` : ""}.</p>
-      </aside>
-    </div>
-    <p class="m-foot">Who would be in by our team ratings (${label}), not a prediction of any game: no playoff model has been backtested, so no win probabilities are shown.
-      A format that reserves places for conference champions uses the current conference leader as the champion.</p>`;
+      <p class="m-foot">Who would be in by our power ranking (${label}), not a prediction of any game: no playoff model has been backtested, so no winners or win probabilities are shown.
+        Conference champions are the current conference leaders.</p>`;
   },
 });
