@@ -15,6 +15,9 @@
 
 const _statusChip = statusChip;
 
+// The "Alternatives considered" list: each option with its status chip
+// (shared with the build log via statusChip), what it would need, and why
+// it was or wasn't taken. Rejected options stay published on purpose.
 function _alternatives(alts) {
   if (!alts || !alts.length) return "";
   return `
@@ -34,6 +37,7 @@ function _alternatives(alts) {
     </div>`;
 }
 
+// The "Measured" table: each evidence row as label → value. Values are numbers, not adjectives, by the registry contract.
 function _evidence(rows) {
   if (!rows || !rows.length) return "";
   return `
@@ -72,6 +76,7 @@ function _inputs(rows) {
     </div>`;
 }
 
+// The "What changed" table for one METHODS entry: version → change.
 function _changelog(rows) {
   if (!rows || !rows.length) return "";
   return `
@@ -86,6 +91,10 @@ function _changelog(rows) {
     </div>`;
 }
 
+// One METHODS entry as an <article> anchored by its id, in contract order:
+// summary → inputs → formula ("As computed") → reality ("What the code
+// actually does", shown only when it differs) → why → evidence → limits →
+// alternatives → changelog → source.
 function _entry(m) {
   return `
     <article class="method-entry animate-up" id="${_esc(m.id)}">
@@ -119,6 +128,11 @@ function _entry(m) {
     </article>`;
 }
 
+// The generated data-availability section at the bottom of Methods, from
+// data/api_availability.json (written by the pipeline's explore_api.py): how
+// many endpoints answer and are used, what is verified absent and how we
+// know, and every endpoint's record count. An empty state names the command
+// to run when the survey is missing.
 async function _availability() {
   let d = null;
   try { d = await _load("api_availability.json"); } catch (_) { d = null; }
@@ -160,6 +174,10 @@ async function _availability() {
     </div>`;
 }
 
+// Entry point for methods.html: renders the masthead, a TOC of METHOD_GROUPS
+// and each group's entries into #methods-root, then fills the availability
+// table asynchronously. A group with no entries is skipped, except "data",
+// which always carries the generated table.
 async function initMethods() {
   const root = document.getElementById("methods-root");
   if (!root) return;

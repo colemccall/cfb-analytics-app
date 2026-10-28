@@ -10,6 +10,10 @@ let _filterTeam = "ALL";
 // Init
 // ---------------------------------------------------------------------------
 
+// Load a season (or the current one) into the scatter: reset state, show the
+// provenance notice, fetch the season's players, build the position chips
+// and team list, and draw. The theme repaint is bound once, however many
+// times the season changes.
 async function initRatings(season) {
   if (season !== undefined) _ratingSeason = season;
   renderSeasonProvenance(_ratingSeason);
@@ -51,6 +55,9 @@ async function initRatings(season) {
 // Filter controls
 // ---------------------------------------------------------------------------
 
+// Position chips (FILTER_POSITIONS, so DB covers CB ∪ S ∪ DB) and the team
+// dropdown for the loaded season. Chips are rebuilt each time; the dropdown's
+// change listener is bound once — see the note inline.
 function buildFilters() {
   const posBar = document.getElementById("pos-filter-bar");
   const teamSel = document.getElementById("team-filter-select");
@@ -77,12 +84,20 @@ function buildFilters() {
   teamSel.innerHTML = `<option value="ALL">All Teams</option>` +
     teams.map(t => `<option value="${t}">${t}</option>`).join("");
   teamSel.value = _filterTeam;
-  teamSel.addEventListener("change", () => {
-    _filterTeam = teamSel.value;
-    applyFilters();
-  });
+  // buildFilters() runs on every season change; the <select> outlives it. Binding
+  // here unguarded stacked one listener per season visited, so after two season
+  // changes a single team pick redrew the scatter three times.
+  if (!teamSel._bound) {
+    teamSel._bound = true;
+    teamSel.addEventListener("change", () => {
+      _filterTeam = teamSel.value;
+      applyFilters();
+    });
+  }
 }
 
+// Filter the season's players by the active position chip and team, update
+// the "N players" label, and redraw the scatter.
 function applyFilters() {
   let players = _ratingsAllPlayers;
   if (_filterPos !== "ALL") {
@@ -102,6 +117,11 @@ function applyFilters() {
 // Scatter plot: Rating vs Recruiting Stars
 // ---------------------------------------------------------------------------
 
+// The talent-vs-production scatter as inline SVG: recruiting stars (jittered)
+// on x, OVR on y, with an OLS trend line of OVR on stars. A dot more than 8
+// OVR above the line is drawn larger in the positive colour; the rest are
+// coloured by position. Needs at least 5 players with stars. Dot data
+// attributes feed the tooltip and click-through.
 function renderScatterPlot(players) {
   const container = document.getElementById("scatter-chart");
   if (!container) return;
@@ -112,7 +132,10 @@ function renderScatterPlot(players) {
     return;
   }
 
-  const W = container.clientWidth || 680;
+  // clientWidth includes the container's padding; the svg lives in the content
+  // box, so sizing it to clientWidth overflowed a phone viewport by the padding.
+  const cs = getComputedStyle(container);
+  const W = (container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) || 680;
   const H = 420;
   const PAD = { top: 24, right: 24, bottom: 56, left: 56 };
   const PW = W - PAD.left - PAD.right;
@@ -149,8 +172,7 @@ function renderScatterPlot(players) {
       fill="${color}" opacity="0.82" stroke="${stroke}" stroke-width="1.2"
       class="scatter-dot" data-id="${p.id}"
       data-name="${name}" data-ovr="${Math.round(p.overall_rating)}"
-      data-pg="${p.position_group || ""}" data-team="${team}"
-      data-traj="${(p.trajectory || 0).toFixed(1)}" data-stars="${p.stars}"/>`;
+      data-pg="${p.position_group || ""}" data-team="${team}" data-stars="${p.stars}"/>`;
   }).join("");
 
   // Regression line
@@ -210,6 +232,9 @@ let _boardPos = "QB";
 let _boardSeason = CONFIG.CURRENT_SEASON;
 let _boardData = null;
 
+// Load ratings_by_position_{season}.json and render one tab per filter
+// position that has rows (DB merges CB, S and DB — see _boardRows), keeping
+// the current tab when it still exists.
 async function initPositionBoard(season) {
   if (season !== undefined) _boardSeason = season;
   const container = document.getElementById("position-board");
@@ -252,9 +277,11 @@ function _boardRows(pos) {
   return merged.sort((a, b) => (b.overall_rating ?? 0) - (a.overall_rating ?? 0));
 }
 
+// The active tab's leaderboard: rank, player link (🔥 for breakout ≥ 35%),
+// team, conference, class year, stars and OVR pill, through the shared
+// sortable table.
 function _renderPositionBoard(container) {
   const rows = _boardRows(_boardPos).map((r, i) => ({ ...r, rank: i + 1 }));
-  const yearLabels = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" };
 
   createDataTable(container, {
     rows,
@@ -268,7 +295,7 @@ function _renderPositionBoard(container) {
         fmt: (v, r) => `${playerLink(r.id, v, { season: _boardSeason })}${r.breakout_prob >= 0.35 ? " 🔥" : ""}` },
       { key: "team", label: "Team", fmt: (v) => v ? teamLink(v, { season: _boardSeason }) : "—" },
       { key: "conference", label: "Conf", fmt: v => _esc(v || "—") },
-      { key: "year", label: "Yr", fmt: v => yearLabels[v] || "—" },
+      { key: "class_year", label: "Yr", fmt: v => classYearLabel(v) },
       { key: "stars", label: "Recruit", fmt: v => v ? starsHtml(v) : "—" },
       { key: "overall", label: "OVR", num: true,
         fmt: (v, r) => ovrPill(v, { label: `Overall rating, ${_boardSeason}`, season: _boardSeason, source: r.projection_source }) },
@@ -276,6 +303,9 @@ function _renderPositionBoard(container) {
   });
 }
 
+// Scatter interactions: hover shows the tooltip (name, position, team, stars,
+// OVR) following the cursor; click opens the player modal for the ratings
+// page's season.
 function _bindScatterDots(container, tt) {
   container.querySelectorAll(".scatter-dot").forEach(dot => {
     dot.style.cursor = "pointer";
@@ -283,8 +313,12 @@ function _bindScatterDots(container, tt) {
       const d = e.target.dataset;
       tt.querySelector(".tooltip-name").textContent = d.name;
       tt.querySelector(".tooltip-meta").textContent = `${d.pg} · ${d.team} · ${d.stars}★`;
-      tt.querySelector(".tooltip-ovr").textContent  =
-        `OVR ${d.ovr}  ${+d.traj > 0 ? "↑" : +d.traj < 0 ? "↓" : "→"} ${Math.abs(+d.traj).toFixed(1)}`;
+      // OVR only. The tooltip used to add "→ 0.0" movement from `trajectory`,
+      // which the export carries as exactly 0.0 for every played-season row
+      // (22,523 of 22,523 in 2024–25) and null for 2026 — a number with no
+      // evidence behind it, so it is withdrawn rather than shown. Real movement
+      // is the modal's rating-history chart.
+      tt.querySelector(".tooltip-ovr").textContent  = `OVR ${d.ovr}`;
       tt.style.display = "block";
     });
     dot.addEventListener("mousemove", e => {

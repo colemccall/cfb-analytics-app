@@ -33,6 +33,482 @@
 
 const CHANGES = [
   {
+    id: "v4.8-live-and-retro",
+    version: "v4.8",
+    date: "2026-10-27",
+    title: "The 2026 season in progress, a retro skin, and the League screens",
+    summary: `Three requests in one pass: pull this season's games and rate players and teams on them, build the
+      roadmap's menu patterns with a retro skin, and finish the EA and Supabase cleanup. Rating a half-played
+      season turned out to need a correction nobody had measured, because EDGE divides by the square root of
+      games played and so a part-season scores low for the same play. The correction was back-tested on 2025
+      cut at week 8 before it was used, and the whole live chain runs in a private data copy so a provisional
+      row cannot reach anything that trains on history.`,
+    motivation: `The owner asked for three things: implement the roadmap, especially the menu patterns and the
+      retro skin; clean up EA and Supabase; and grab 2026 data and calculate ratings. The CFBD cache had no
+      expiry, so a re-harvest would have silently returned August's preseason responses.`,
+    did: [
+      { what: "2026 harvested and rated to date, in isolation (script 17)",
+        why: `Weeks 1 to 8: 2,321 of 3,681 regular-season games with a result, 35,182 per-game rows for 8,076
+          players, rosters refreshed from 15,171 to 16,882 player-seasons. 442 of 30,000 monthly API calls used.
+          Script 17 copies the data, points the store at the copy (CFB_DATA_DIR), runs 06 --in-progress, 07 and 10
+          there, and exports live_2026.json: 138 teams and 5,468 rated players beside their preseason projections.
+          Nothing was written to ratings.json, team_ratings.json or player_edge.json (checked afterwards: no 2026
+          engine=edge player rows, 2026 team ratings still projected only).`,
+        cost: "Players with under 3 games have no earned rating yet and are absent; more players sit on a recruiting basis than at season's end (TE 43% vs 31%)." },
+      { what: "The pace correction, measured before use",
+        why: `Final EDGE is 1.277x the week-8 EDGE at the median, so an unscaled part-season makes everyone look about
+          28% worse. Multiplying by sqrt(games scheduled / games completed) brings the median to 0.933, about 7%
+          above where players end up. Week-8 rank agrees with final rank at Spearman 0.857 (CB) to 0.949 (QB).
+          scripts/validate_pace.py reproduces this on a private copy in 80 seconds.`,
+        cost: "The overshoot is disclosed, not tuned away: one back-tested season is too few to fit a constant." },
+      { what: "CFB_REFRESH_YEARS and CFB_DATA_DIR",
+        why: `Two small switches with tests. CFB_REFRESH_YEARS=2026 makes the API client skip its cache for that
+          year's requests, which the no-expiry cache could not do. CFB_DATA_DIR points the whole store at another
+          folder, which is what makes provisional runs safe.` },
+      { what: "The retro skin: a third theme, in the manner of the early-2010s console football menus",
+        why: `One CONFIG.THEMES row, one token block (deep navy field, steel panels, white condensed type, one orange
+          for the selected item, square corners), two palette keys, and a desktop-only layout block that turns the
+          side rail into a top tab strip with banded boards. No page code. The contrast gate now iterates
+          CONFIG.THEMES, so the new skin is held to the same floors. The 11 colour literals left outside the token
+          blocks were moved to tokens (the roadmap's estimate of 35 was wrong) and a dead rule removed.`,
+        cost: "A new --on-accent token replaces a fixed #000 on accent fills, which also improves the light theme. Design changes, stated here: a third theme, a top-strip layout, and square corners." },
+      { what: "League: standings and the league-wide transfer portal (one nav entry, two tabs)",
+        why: `Standings are derived from every team's schedule results and the season's conference membership,
+          so they work for every season back to 2008 and for 2026 as it is played. The portal flattens the
+          existing per-team transfer files to one row per move with the rating before and after. One hub rather
+          than a page per screen, because a top tab strip holds about ten tabs.`,
+        cost: "A new page and module: a design change, stated here." },
+      { what: "Depth tab on the team page",
+        why: `Position groups in the layout of a game-day depth chart, ordered by rating, empty groups omitted.
+          It says it is not an official depth chart, because no source we hold has depth data.` },
+      { what: "The '26 Season page rates the games played, and the copy that said otherwise is corrected",
+        why: `A new Earned to date section (teams, players, the back-test numbers, a provisional notice). The home
+          page and the global notice had said the season had not been played; they now say the ratings shown are
+          preseason projections and point to the live section.` },
+      { what: "Cleanup finished",
+        why: "The five dead Supabase and database keys are out of the pipeline .env, which now holds only the CFBD key. The EA data stays removed; the archived copies are in archive/removed-ea." },
+    ],
+    tried: [
+      { what: "Writing the part-season ratings into the normal edge engine",
+        result: `Rejected before it was built. Script 15 trains on engine=edge, so a 2026 row built from eight
+          games would have been read as a finished season. The private data copy makes that impossible by
+          construction.`,
+        verdict: "rejected" },
+      { what: "No pace correction",
+        result: "Measured, not assumed: 28% low at the median on the 2025 week-8 cut.",
+        verdict: "rejected" },
+      { what: "Re-running the whole export (script 12) to refresh 2026",
+        result: `It would also have exported the half-landed class year and a roster that grew by 1,711 players,
+          neither measured. Only the schedule file was regenerated, from the last commit's code, to carry the
+          results.`,
+        verdict: "rejected" },
+      { what: "A nav entry per screen (Standings, Portal, Recruiting, Rankings)",
+        result: "Four more tabs would not fit the retro top strip. One League hub with tabs instead.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Final EDGE / unscaled week-8 EDGE, 2025, median", before: "—", after: "1.277" },
+      { label: "Final EDGE / rescaled week-8 EDGE, 2025, median", before: "1.277 unscaled", after: "0.933" },
+      { label: "Live 2026 players rated of rostered", before: "0 earned", after: "5,468 of 16,882" },
+      { label: "Live 2026 teams rated", before: "projection only", after: "138, through week 8" },
+      { label: "Colour literals outside the CSS token blocks", before: "11", after: "0" },
+      { label: "Themes held to the contrast floors", before: "2", after: "3" },
+      { label: "API calls used (monthly limit 30,000)", before: "0", after: "442" },
+      { label: "Pipeline tests", before: "309 passed, 3 failed", after: "317 passed, 3 failed (the same class-year three)" },
+      { label: "UI smoke checks", before: "96 / 97", after: "105 / 106 (the class year)" },
+      { label: "App functions documented", before: "138 / 138", after: "148 / 148" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "317 passed, 3 failed: the TestClassYear three, unchanged" },
+      { check: "cd tools/ui-smoke && npm run smoke", result: "105/106; the failure is the un-exported class year" },
+      { check: "node tools/contrast-check.mjs", result: "all floors green, dark + light + retro" },
+      { check: "node tools/theme-check.mjs, doc-check, prose-check, node --check js/*.js", result: "PASS, 148/148, clean, clean" },
+      { check: "production data untouched by the live run", result: "no 2026 engine=edge player rows; 2026 team ratings still engine=projected only" },
+      { check: "python scripts/validate_pace.py", result: "reproduces the back-test: 1.277 unscaled, 0.933 rescaled" },
+    ],
+    unfixed: `**The reference for the retro skin is from memory.** It is my reading of the early-2010s console
+      football menus (navy, steel, top tab strip, orange selection), not something I have seen. It needs your
+      eye. It has been checked on five pages and the team, depth and League screens, not on every component.
+
+      **The class year is still not exported** (3 contract tests, 1 UI check). Landing it now would have meant
+      moving ratings with no measurement.
+
+      **The app's 2026 players and rosters are still the August export**, while the harvested rosters have 1,711
+      more player-seasons. Only the schedule file was refreshed. Re-exporting is blocked on the class year.
+
+      **Not re-harvested:** the 2026 transfer portal, the 2026 recruiting class, and the supplemental datasets
+      other than team_advanced_season.
+
+      **Not built from the roadmap:** the recruiting board (needs an export), prestige, the development-trait
+      and redshirt analogues, M0.7 (the 186 MB first player card), and rankings from polls, which need an API
+      call and your approval.
+
+      **The pace correction runs about 7% high** and has been back-tested on one season.
+
+      **30 FBS-team games** have no opponent score and count as neither a win nor a loss.
+
+      **The retro layout applies above 900px only;** phones get the normal mobile layout in retro colours.`,
+    methods: ["live-season", "ea-removed"],
+    files: ["scripts/17_live_season.py", "scripts/validate_pace.py", "scripts/06_compute_edge_scores.py",
+            "utils/store.py", "utils/api_client.py", "tests/test_api_cache.py", "tests/test_store_data_dir.py",
+            "tests/test_frontend_config.py", "js/leaguePage.js", "league.html", "js/season2026.js", "js/teamsPage.js",
+            "js/config.js", "js/shell.js", "js/dataLoader.js", "js/ui.js", "js/home.js", "css/styles.css",
+            "css/components.css", "tools/contrast-check.mjs", "tools/ui-smoke/smoke.mjs",
+            "data/live_2026.json", "data/schedules_2026.json"],
+  },
+  {
+    id: "v4.7-ea-removed",
+    version: "v4.7",
+    date: "2026-10-27",
+    title: "EA CFB 27 removed from the project, and Supabase moved out of the repos",
+    summary: `Two removals, both at the owner's request. The EA Sports CFB 27 ratings (9,013 players,
+      54 attributes each, one scraped season) are gone from the data, the pipeline and every screen. The
+      retired Supabase files left the working repos. Removing EA turned up a dependency nobody had
+      listed: for 273 players it had been the last-resort source of a projection, and those projections
+      fed 93 teams' ratings.`,
+    motivation: `The owner asked for the EA ratings to be removed and for the Supabase project to be
+      archived and taken out of the main repos. The project is personal and shared with friends. The
+      facts that bear on the EA decision: it was scraped rather than licensed, and was published whole in
+      a public repo.`,
+    did: [
+      { what: "Measured before changing anything: the chain reproduced the committed export",
+        why: `The pipeline had uncommitted class-year edits in scripts 07, 12, 15 and 16, and re-running
+          16 would have landed them silently along with the EA removal. So the data run used an unmodified
+          copy of the last commit. Control run first: 124 of 125 exported files reproduced exactly, the
+          other being a timestamp. Only then was EA removed and the chain re-run, so the EA effect is
+          the whole of the data diff.`,
+        cost: "The class-year change is still not landed, and the 3 contract tests and 1 UI check for it still fail." },
+      { what: "EA removed from the pipeline",
+        why: `Script 16 loses its fourth source (ea_cfb27) and every ea_ovr field. Script 12 stops
+          reading, slimming and exporting EA, and the ea_ovr column leaves every player and roster row.
+          validate_ratings.py loses its EA agreement section. Script 08, the harvester, is gone. The
+          test that checked EA_SEASONS against files on disk became a guard that fails if EA data is ever
+          exported again.`,
+        cost: "The only per-position cross-section the ratings had is gone. What remains outside is the draft backtest, reliability and the distribution report." },
+      { what: "EA removed from the app, and its slot in the projected board filled with data we own",
+        why: `The published ea_ratings_2026.json, the EA comparison on the '26 page, the whole
+          "Where we disagree with EA" story, the EA block on the player card and the EA column are gone.
+          On a projected season that column now shows the model's own 80% interval (projectionRangeCell),
+          which already existed in the data and was shown nowhere. The attribute-bar CSS had been named
+          for EA and is shared with our own archetype bars, so it was renamed.`,
+        cost: "Players with no projection and no EA now show a dash in that column." },
+      { what: "EA data archived outside the repos, not destroyed",
+        why: "The raw harvest, the published file and the harvest script are in archive/removed-ea with byte-verified copies. The owner can delete them." },
+      { what: "Supabase moved out",
+        why: `The nine retired SQL files and the one-time dump script moved to the portfolio
+          archive/supabase (copies verified before removal). Two README references repointed.`,
+        cost: "The five dead connection keys in the pipeline .env were NOT removed: that file is not in git, an edit cannot be undone, and the automatic safety check declined it. They are listed under unfixed." },
+    ],
+    tried: [
+      { what: "Re-running the chain in the working tree, class-year edits and all",
+        result: `Rejected. Script 16 uses the derived class year to pick cohort deltas, so the
+          projections would have moved for two reasons at once and neither could be measured.`,
+        verdict: "rejected" },
+      { what: "A first control run from a scratch copy of the pipeline",
+        result: `It silently read no trajectory file, because script 16 finds it by a path relative
+          to its own location, and wrote a degraded set of projected rows into the shared ratings file:
+          engine_d 0 instead of 3,987. Caught from the printed source mix and restored byte-identical
+          from a backup taken beforehand. The folder layout was then corrected and the control re-run.`,
+        verdict: "rejected" },
+      { what: "Keeping EA as a last-resort projection source, but hidden from the UI",
+        result: "It would keep feeding team ratings with a number the rule says EA never supplies, so it was removed.",
+        verdict: "rejected" },
+      { what: "Deleting the raw EA file and the harvester outright",
+        result: "Irreversible for a one-season, not-backfillable dataset. Archived and then removed from the repos instead.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Control run vs the committed export", before: "—", after: "124 of 125 files identical (manifest timestamp only)" },
+      { label: "Player and roster files, 2008 to 2026", before: "carry ea_ovr", after: "identical except the ea_ovr field removed; 2026 also loses 273 rows' projections" },
+      { label: "2026 projected rows", before: "12,428", after: "12,155" },
+      { label: "2026 projection source mix", before: "engine_d 3,987 / carry 1,818 / recruiting 3,448 / ea_cfb27 273 / no signal 2,743", after: "engine_d 3,987 / carry 1,818 / recruiting 3,448 / ea_cfb27 0 / no signal 3,016" },
+      { label: "2026 projected team rating", before: "—", after: "93 of 138 teams changed; mean −0.91, largest −4.17" },
+      { label: "2026 projected Top 25", before: "—", after: "Colorado out, Vanderbilt in; Oregon and Texas A&M swap 8th and 9th" },
+      { label: "Projected spread vs last season's earned spread", before: "75–77%", after: "77% (gate band 60–140%)" },
+      { label: "Pipeline tests", before: "309 passed, 3 failed", after: "309 passed, 3 failed (the same class-year three)" },
+      { label: "UI smoke checks", before: "97 / 98", after: "96 / 97 (one EA check removed, one range check added; the failure is the class year)" },
+      { label: "App functions documented", before: "143 / 143", after: "138 / 138 (five EA functions deleted)" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "309 passed, 3 failed: the TestClassYear three, unchanged" },
+      { check: "cd tools/ui-smoke && npm run smoke", result: "96/97; the failure is the un-exported class year" },
+      { check: "projection distribution gate (script 16)", result: "passed, spread 77% of last season's earned" },
+      { check: "node tools/doc-check.mjs, prose-check, contrast-check, theme-check", result: "138/138, clean, green, PASS" },
+      { check: "node --check js/*.js", result: "clean" },
+      { check: "a scan of every changed file for stray control characters", result: "none (an escaping slip had planted backspace characters in one test and was caught and fixed)" },
+    ],
+    unfixed: `**The five dead Supabase connection keys are still in cfb-analytics-pipeline/.env**, and the
+      Supabase project itself still exists. Archiving it is a dashboard action. The project URL and a
+      public anon-role key remain in the app repo's git history, which was not rewritten.
+
+      **The class-year change is still half-landed**, and this pass deliberately did not touch it.
+
+      **Per-position outside validation is gone.** Nothing now says whether a position is rated too high
+      or low against any opinion but our own. A replacement would need a new outside source.
+
+      **Historical figures that quote EA remain in METHODS, the pipeline docs and the older Build Log
+      entries.** They were true when measured and cannot be reproduced; the ea-removed entry says so
+      rather than editing history.
+
+      **273 players now have no 2026 projection**, mostly JUCO arrivals and reserves with no production.
+
+      **The raw EA files are still on disk** in archive/removed-ea until the owner deletes them.`,
+    methods: ["ea-removed"],
+    files: ["scripts/12_export_frontend_json.py", "scripts/16_project_ratings.py", "scripts/validate_ratings.py",
+            "tests/test_frontend_config.py", "tests/test_export_contract.py", "js/ui.js", "js/playerSearch.js",
+            "js/teamsPage.js", "js/season2026.js", "js/findings.js", "js/dataLoader.js", "js/config.js",
+            "js/guide.js", "js/methods.js", "css/components.css", "season2026.html", "js/shell.js",
+            "tools/ui-smoke/smoke.mjs", "data/ (43 exports regenerated, ea_ratings_2026.json removed)"],
+  },
+  {
+    id: "v4.6-foundations",
+    version: "v4.6",
+    date: "2026-10-27",
+    title: "Foundations for an EA-style shell: school marks, keyboard access, and a skin contract",
+    summary: `No rating or projection moved. The product roadmap (docs/ROADMAP.md at the portfolio
+      root) puts four things ahead of any EA-style screen: a logo system that survives missing marks,
+      a site a keyboard can operate, a theme list that is data instead of a hard-coded pair, and
+      stale claims removed. This pass does those four, offline, and nothing that needs new data.`,
+    motivation: `A read-only evaluation found 139 of 139 team logos are plain http:// ESPN URLs with
+      no handling for a failed load, player rows that are clickable divs a keyboard cannot reach,
+      a theme switcher that accepted exactly "dark" or "light" in four places, a sidebar that said
+      v3.2.0 against a v4.5 registry, and no attribution to CollegeFootballData.com anywhere.`,
+    did: [
+      { what: "teamMark() in ui.js: the logo, or a monogram, at every call site",
+        why: `All twelve places that drew a logo now call one helper. It upgrades http to https,
+          renders the abbreviation on the team colour with text colour from the luminance guard
+          when there is no logo, and a capture-phase error listener swaps the monogram in place when
+          a logo fails to load. School marks are trademarks, so the app has to look complete with
+          every logo switched off; the logo is now the optional upgrade.`,
+        cost: "Four-letter abbreviations widen the 28px tile mark to fit. A design change, stated here: one new component class (team-mark) on existing tokens." },
+      { what: "Keyboard access: makeActivatable(), dialog semantics, focus trap and return, skip link, focus ring",
+        why: `Player rows on the Players board, the team roster, the Ratings top-performer rows and
+          the similar-player rows were divs with click handlers, so no player could be opened without a
+          mouse. They are now focusable buttons (Enter and Space; a key pressed on a link inside the row
+          still follows the link). The player modal has role=dialog, aria-modal, a Tab trap and returns focus
+          to the row that opened it. Roster and board sort headers are focusable and sortable from the
+          keyboard. A skip link leads the tab order, and :focus-visible draws one ring on every control.`,
+        cost: "A visible focus ring now appears for keyboard users on every control. A design change, stated here." },
+      { what: "The skin contract: CONFIG.THEMES, and tools/theme-check.mjs",
+        why: `The theme list lived as a dark/light pair in shell.js, _activeTheme() and two CSS
+          swatch rules with colour literals. It is now one array in config.js; shell.js builds its
+          swatches and validates saved choices from it, and the swatch colours moved out of CSS into the
+          palette file where literals are allowed. theme-check.mjs fails if a listed theme lacks a CSS
+          token block (and the colour core of it), a POS_COLORS or RATING_RAMP entry, or hex swatch
+          colours. Adding a skin is now one row, one CSS block and two palette keys.`,
+        cost: "None visually. It proves the seam for what is tokenised; see unfixed for what is not." },
+      { what: "Sidebar version v3.2.0 to v4.6.0, and a CollegeFootballData.com credit",
+        why: `The version was three releases stale. The credit is attribution, not a licensing
+          decision: whether the site may republish CFBD-derived data is still unresolved.` },
+      { what: "Four new smoke checks (94 to 98)",
+        why: "Skin contract and credit, logo failover to monogram, keyboard open with focus trap and return, keyboard sort." },
+    ],
+    tried: [
+      { what: "Roadmap item M2 as first written: add sortable roster headers",
+        result: `They already existed (makeGridSortable, May 2026). The roadmap said the roster was
+          sorted by OVR only because an exploration report said so and it was not checked against the
+          code. The real gap was that the headers were click-only, so that is what was fixed. The
+          roadmap was corrected in the same pass.`,
+        verdict: "shipped" },
+      { what: "Marking the main column as the skip-link target from shell.js at injection time",
+        result: `The shell runs at the top of body, before the main column exists, so the query
+          returned null and the link navigated to nothing. Caught by the new smoke check; the marking
+          now waits for DOMContentLoaded.`,
+        verdict: "rejected" },
+      { what: "A 14px colour dot with the letters hidden, as the monogram for inline marks",
+        result: "Needs font-size 0 or text under 12px, which the type floor forbids. The inline monogram is a 12px uppercase label instead, slightly wider than the logo it replaces.",
+        verdict: "rejected" },
+      { what: "Making each player row a real button or link",
+        result: "The row is a grid with a team link inside it, and a link inside a button is invalid. A focusable row that ignores keys pressed on its inner links does the job without changing the markup.",
+        verdict: "rejected" },
+      { what: "Re-running scripts 07 to 12 to land the class year in this pass",
+        result: `Not done. It is local compute but it moves ratings and projections under a change that
+          still has no measurement and no entry. The one failing UI check is left failing on purpose.`,
+        verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Team logo URLs that are plain http", before: "139 of 139", after: "0 rendered (upgraded to https in teamMark)" },
+      { label: "Player entry points reachable by keyboard (board, roster, top performers, similar rows)", before: "0", after: "all four" },
+      { label: "Places that hard-code the theme pair", before: "4 (shell.js, _activeTheme, two CSS swatch rules)", after: "1 (CONFIG.THEMES)" },
+      { label: "UI smoke checks passing", before: "93 / 94", after: "97 / 98 - the class-year export" },
+      { label: "App functions documented (doc-check)", before: "138 / 138", after: "143 / 143" },
+      { label: "Sidebar version", before: "v3.2.0", after: "v4.6.0" },
+    ],
+    gates: [
+      { check: "cd tools/ui-smoke && npm run smoke", result: "97/98; the failure is the un-exported class year (see tried)" },
+      { check: "node tools/theme-check.mjs", result: "PASS - dark and light have token blocks, palette keys and swatches" },
+      { check: "node tools/contrast-check.mjs", result: "all floors green, dark + light" },
+      { check: "node tools/doc-check.mjs", result: "143/143" },
+      { check: "node tools/prose-check.mjs", result: "all registry prose renders clean" },
+      { check: "node --check js/*.js", result: "clean" },
+      { check: "pytest (pipeline)", result: "not run for this pass; the pipeline was not touched" },
+    ],
+    unfixed: `**The class year is still not exported.** Every Yr cell still shows a dash and the one
+      failing UI check and three pipeline contract tests are the same defect. It needs a measurement,
+      its own entry, then a rerun of 07 to 12.
+
+      **A retro skin is not yet only a token block.** theme-check proves the contract for what is
+      tokenised. Still outside it: about 35 colour literals left in styles.css and components.css, the
+      Google Fonts link in every HTML file, emoji icons in the navigation, and layout markup baked into
+      template strings in shell.js and teamsPage.js. A skin that changes only colour works today; one
+      that changes layout or type needs those moved first.
+
+      **Keyboard access is partial.** Rows, sort headers and the modal are covered. Arrow-key
+      movement within lists, hotkeys for switching tabs, and several other click-only elements (the
+      conference-standing chip, for one) are not.
+
+      **The first player card still downloads every season's player file, 186 MB.** The per-player
+      history index is a pipeline export change and was not attempted here.
+
+      **No depth chart, redshirt flag, development trait, league-wide standings table or poll
+      rankings exist.** The roadmap sequences them; each needs a derived definition with its own
+      backtest or, for the polls, an API call that this phase excludes.
+
+      **No licensing position.** The EA ratings file is still published whole and CFBD terms are
+      unchecked; the new credit does not settle either. Both repos still hold uncommitted work,
+      including the untracked guide files that info.html needs.`,
+    methods: [],
+    files: ["js/ui.js", "js/config.js", "js/shell.js", "js/playerSearch.js", "js/teamsPage.js",
+            "js/home.js", "js/season2026.js", "js/findings.js", "css/components.css", "css/styles.css",
+            "tools/theme-check.mjs", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
+    id: "v4.5.1-site",
+    version: "v4.5.1",
+    date: "2026-09-23",
+    title: "Documenting the code, writing the site's own guide, and testing every control",
+    summary: `No rating moved in this pass. It measured three things nobody had measured: how much of
+      the code explains itself, whether the site's own explanation page still matched the code, and
+      whether every panel and control on every page actually works. The answers were 60%, no, and
+      no — 21 of the first 90 automated UI checks failed: three on bugs in the test, eighteen on
+      real defects with twelve distinct causes. More turned up while writing the guide.`,
+    motivation: `A request to bring the in-code documentation and coding standard up, write
+      documentation into the app, and confirm every UI panel and action works. Measured first: 167
+      of 383 pipeline functions and 86 of 213 app functions had no docstring or comment; no coding
+      standard existed in either repo; there was no browser test of any kind. Reading info.html
+      against the code found it wrong in at least six places.`,
+    did: [
+      { what: "A headless UI suite: every page, panel and control (tools/ui-smoke/smoke.mjs)",
+        why: `94 checks driving system Chrome against a static server that 404s exactly as GitHub
+          Pages does. A check fails on its own assertion, or on ANY script error, console error or
+          failed request during it — so a broken panel nobody looked at still fails. Covers the shell
+          (nav, theme, 375px layout on 9 pages), every filter, chip, tab, sort, picker, modal close
+          path and deep link, every registry page, and every internal link and #anchor.`,
+        cost: "A dev-only package.json under tools/; nothing the site serves loads it." },
+      { what: "Fifteen UI defects fixed",
+        why: `Theme switch doubled the Players position chips and reset the active one (14 → 28).
+          Escape stopped closing the player card after any other keypress. players.html?player=ID —
+          the link every page emits — did not open the player; teams.html?season= was ignored. The DB
+          chip showed only bare-"DB" rows, dropping every corner and safety. Teams conference chips
+          never followed the season picker. The Ratings team picker stacked one listener per season
+          visited. The phone layout scrolled sideways on Ratings (616px) and the Build Log (409px).
+          Three kinds of file were requested for seasons that have none (similar_players, team_stats,
+          ea_ratings) — a 404 on every card or Ratings tab opened on those seasons. A dead #anchor. Home's "Last Season's
+          Standard" showed 2026 projections. A filter click during a fetch was dropped.`,
+        cost: "None to any number; the Players DB board now lists up to 300 rows (100 per member group)." },
+      { what: "Two displays withdrawn rather than fixed",
+        why: `The scatter tooltip's movement and the card's "rating up N from last season" line both
+          read \`trajectory\`, which the export carries as exactly 0.0 on all 22,523 played-season rows
+          and null on 2026. The tooltip said "→ 0.0" for every player; the card line could never
+          appear. A number that cannot show its evidence does not ship.`,
+        cost: "The tooltip no longer shows movement. Real movement is the card's rating-history chart." },
+      { what: "info.html rebuilt as a registry-driven user guide (GUIDE, js/guide.js)",
+        why: `The old page restated formulas and had drifted: a symmetric [0.55, 1.45] opponent
+          multiplier (the code is 0.76–1.70), defensive weights wrong in three of five cards (CB
+          interceptions ×8 against ×12 in the code) and blind to fumble recoveries and the secondary's
+          archetype scoring, a 45/35/15/5 team blend (live: 50/30/20, no recruiting term), "team
+          ratings for 2025 only", and three different version numbers. The guide restates no formula:
+          it links every number to its METHODS entry, reads accuracy live from trajectory.json, and
+          draws its glossary of every mark with the same helpers the site uses, so the example cannot
+          disagree with the page. It documents each page's panels and controls, deep links, and what
+          each page cannot tell you. #projections and #ol still resolve.`,
+        cost: "A design change, stated here: a new registry, renderer and six CSS rules on existing tokens. The per-position weight cards are gone from the site; they live on in docs/FORMULAS.md and the code." },
+      { what: "prose() lets **bold** wrap a line",
+        why: `Registry prose is hard-wrapped, and a bold span that wrapped rendered as literal
+          asterisks. Three fields in two live Build Log entries did (v4.5-basis, v4.3-ratings). tools/prose-check.mjs
+          now runs every registry field through prose() and fails on leftover markup.` },
+      { what: "Inline documentation to 100% under a written rule, with the rule enforced",
+        why: `Pipeline: 282/282 functions over five lines (and every main) now have docstrings, from
+          180/282, enforced by tests/test_docstrings.py. App: 138/138 from 71/135, enforced by
+          tools/doc-check.mjs. Each docstring was written from the code, and where the code differs
+          from what its name suggests the docstring says so — which is how the script 10, 02, 13 and 14
+          items in "did not fix" were found.`,
+        cost: "Comment and docstring lines only; the insertion tool adds lines and never edits one." },
+      { what: "CODING_STANDARDS.md in both repos",
+        why: "Every rule paired with its enforcement, and every rule that exists because something broke names the break." },
+      { what: "Dead code removed",
+        why: `Script 10's W_SP / W_ROSTER / W_RAW (0.45/0.30/0.25), declared, never read, and
+          disagreeing with the live 0.50/0.30/0.20 blend; an unused modalLoadingHtml(); two direct
+          fetch() calls with private caches, now through _load().` },
+    ],
+    tried: [
+      { what: "Correcting the six stale facts in info.html and keeping it hand-written",
+        result: `Rejected. It drifted because it was a second copy of the formulas; correcting it
+          restores the copy and the drift. The guide links to the one copy instead.`,
+        verdict: "rejected" },
+      { what: "Routing the DB chip through matchesPosition() inside fetchPlayers()",
+        result: `Rejected. The ALL board also fetches the "DB" group, and with group matching its
+          top-100 batch fills with corners and safeties already counted, dropping the bare-DB players
+          it exists to include. The group is expanded at the call site instead.`,
+        verdict: "rejected" },
+      { what: "Rewrapping the three broken Build Log entries onto single lines",
+        result: `Rejected in favour of fixing prose(): rewrapping fixes three entries and leaves the
+          trap for the next one.`,
+        verdict: "rejected" },
+      { what: "Reading EA seasons from manifest.json instead of a new CONFIG.EA_SEASONS",
+        result: `Blocked. The manifest carries no EA field; adding one needs an export change and a
+          re-export. CONFIG.EA_SEASONS is guarded against the files on disk by
+          tests/test_frontend_config.py in the meantime.`,
+        verdict: "blocked" },
+      { what: "Finishing the class-year change by re-running 07 → 12",
+        result: `Not done. The code for a derived class year has sat uncommitted since 2026-08-18
+          (scripts 07/12/15/16, utils/class_year.py, four app files); the app reads class_year but the
+          export was never re-run, so every Yr cell on the site shows "—" (1,120/1,120 on the default
+          board) and three contract tests fail. Re-running would move ratings and projections under a
+          change with no CHANGES entry and no measurement. The UI check that catches it is left failing.`,
+        verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Pipeline functions documented (module-level, > 5 lines or main)", before: "180 / 282", after: "282 / 282" },
+      { label: "App functions documented (top-level, > 5 lines)", before: "71 / 135", after: "138 / 138" },
+      { label: "UI smoke checks passing", before: "69 / 90 (first run)", after: "93 / 94 — the class-year export" },
+      { label: "Failed requests per player card, default season", before: "1 (similar_players_2026)", after: "0" },
+      { label: "Page width at 375px, Ratings / Build Log", before: "616px / 409px", after: "375px / 375px" },
+      { label: "Registry prose fields rendering literal **", before: "3", after: "0" },
+      { label: "Factual contradictions of the code on info.html", before: "≥ 6", after: "0 — it states no formula" },
+    ],
+    gates: [
+      { check: "cd tools/ui-smoke && npm run smoke", result: "93/94; the failure is the un-exported class year (see tried)" },
+      { check: "node tools/doc-check.mjs", result: "138/138" },
+      { check: "node tools/prose-check.mjs", result: "all registry prose renders clean" },
+      { check: "node --check js/*.js", result: "clean" },
+      { check: "node tools/contrast-check.mjs", result: "all floors green, dark + light" },
+      { check: "pytest tests/ -q (pipeline)", result: "the 3 TestClassYear failures only — pre-existing, same cause" },
+    ],
+    unfixed: `**The class-year change is half-landed** and the site shows "—" for every class year until
+      someone owns it: measure it, write its CHANGES entry, and run 07 → 12.
+
+      **Script 10 blends the previous run's team stats.** \`run_season\` reads team_season_stats
+      before refreshing it for the season, so each run uses the last run's numbers and a season's
+      first run uses none. Fixing it moves team ratings and needs its own measured pass.
+
+      **The first player card on any page downloads every season's player file** — 186 MB over 19
+      files — to draw one career. The slim/detail export split on the backlog is the fix.
+
+      Recorded in docstrings, not changed: script 02's name matcher guesses on an ambiguous exact
+      name where 03's refuses; script 13's P5 flag reads each team's current conference for every
+      season; script 14's \`maturing\` flag depends on the date it runs. modalContentHtml() is still
+      one 300-line function. The sidebar still says v3.2.0. 🔥 cannot appear on 2026, which carries
+      no breakout probability.`,
+    methods: [],
+    files: ["tools/ui-smoke/smoke.mjs", "tools/doc-check.mjs", "tools/prose-check.mjs",
+            "js/guide.js", "js/guidePage.js", "info.html", "CODING_STANDARDS.md",
+            "js/playerSearch.js", "js/teamsPage.js", "js/ratingsDisplay.js", "js/home.js",
+            "js/ui.js", "js/config.js", "js/dataLoader.js", "css/styles.css",
+            "pipeline: docs/CODING_STANDARDS.md", "pipeline: tests/test_docstrings.py",
+            "pipeline: tests/test_frontend_config.py", "pipeline: scripts/*.py docstrings"],
+  },
+  {
     id: "v4.5-basis",
     version: "v4.5",
     date: "2026-08-13",

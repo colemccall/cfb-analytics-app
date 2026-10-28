@@ -22,6 +22,11 @@
 // createFilterBar(barEl, defs, onChange) renders <select>/<input> filters and
 // reports {id: value} on every change — filtering logic stays with the caller.
 
+// Render `opts.rows` into `container` as a sortable .data-table and return
+// { update(rows), refresh(), rows() }. See the contract at the top of this
+// file. Clicking a header sorts by that column (descending first, then
+// toggles); missing values always sort last; at most maxRows (default 500)
+// render, with a "Showing N of M" note when truncated.
 function createDataTable(container, opts) {
   const columns = opts.columns || [];
   const state = {

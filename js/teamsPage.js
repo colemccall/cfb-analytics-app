@@ -23,7 +23,12 @@ let _currentSeason = CONFIG.CURRENT_SEASON;
 let _rosterPosFilter = "ALL";
 
 // ── Init ───────────────────────────────────────────────────────────────────
+// Entry point for teams.html. Honours ?season=YYYY (teamHref() emits it on every
+// team link — without this, a link from a 2013 research row opened the team in
+// 2026), then opens a team from #slug or ?team=Name when present.
 async function initTeamsPage() {
+  const linkedSeason = Number(new URLSearchParams(location.search).get("season"));
+  if (seasonList().includes(linkedSeason)) _currentSeason = linkedSeason;
   buildYearSelect();
 
   try {
@@ -57,6 +62,9 @@ async function initTeamsPage() {
   }
 }
 
+// Season picker. A change refetches the team list for that season (conference
+// membership is per season), rebuilds the conference chips to match, and
+// re-renders the open team in the new season.
 function buildYearSelect() {
   const sel = document.getElementById("year-select");
   fillSeasonSelect(sel, _currentSeason);
@@ -64,6 +72,7 @@ function buildYearSelect() {
     _currentSeason = parseInt(sel.value);
     document.getElementById("team-list").innerHTML = skeletonRows(8);
     try { _allTeams = await fetchTeams(_currentSeason); } catch (e) { return; }
+    buildConfFilter();
     renderTeamList();
     // Reload current team if one is selected
     const main = document.getElementById("teams-main");
@@ -74,13 +83,19 @@ function buildYearSelect() {
   });
 }
 
+// A school name as a URL hash slug ("Ohio State" → "ohio-state"). Hash deep links match on it.
 function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
 
+// Conference chips, built from the conferences present in _allTeams — i.e. the
+// season being viewed. Realignment makes any fixed list wrong for most of the
+// archive (no Big East chip in 2013 was the bug this replaced). The selected
+// conference survives a season change when it still exists, otherwise ALL.
 function buildConfFilter() {
   const confs = ["ALL", ...[...new Set(_allTeams.map(t => t.conference).filter(Boolean))].sort()];
+  if (!confs.includes(_activeConf)) _activeConf = "ALL";
   const bar = document.getElementById("conf-filter");
   bar.innerHTML = confs.map(c =>
-    `<button class="pos-chip${c === "ALL" ? " active" : ""}" data-conf="${_esc(c)}">${_esc(c)}</button>`
+    `<button class="pos-chip${c === _activeConf ? " active" : ""}" data-conf="${_esc(c)}">${_esc(c)}</button>`
   ).join("");
   bar.querySelectorAll(".pos-chip").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -92,6 +107,9 @@ function buildConfFilter() {
   });
 }
 
+// The team tile wall for the active conference chip and search text, sorted
+// by team OVR. Clicking a tile opens that team and, on a phone, closes the
+// picker overlay.
 function renderTeamList() {
   const query = document.getElementById("team-search").value.toLowerCase();
   const filtered = _allTeams.filter(t => {
@@ -114,9 +132,7 @@ function renderTeamList() {
     return `
       <button class="team-tile" data-id="${t.id}" type="button"
               title="${_esc(t.school)}${t.conference ? ` · ${_esc(t.conference)}` : ""}">
-        ${t.logo_url
-          ? `<img src="${_esc(t.logo_url)}" class="team-tile-logo" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
-          : `<span class="team-tile-logo"></span>`}
+        ${teamMark(t, "team-tile-logo")}
         <span class="team-tile-abbr">${_esc(label)}</span>
         ${ovr ? `<span class="team-tile-ovr" style="background:${ratingColor(Math.round(ovr))};color:${ratingTextColor(ratingColor(Math.round(ovr)))}">${Math.round(ovr)}</span>` : ""}
       </button>`;
@@ -157,6 +173,7 @@ function pickerToggleHtml(team) {
     </button>`;
 }
 
+// The team search box, debounced 150 ms.
 function bindSidebarEvents() {
   let debounce;
   document.getElementById("team-search").addEventListener("input", () => {
@@ -188,8 +205,12 @@ function confStandingHTML(team) {
 }
 
 // ── Team detail view ───────────────────────────────────────────────────────
-const TEAM_TABS = ["roster", "ratings", "schedule", "transfers", "history"];
+const TEAM_TABS = ["roster", "depth", "ratings", "schedule", "transfers", "history"];
 
+// Render one team's detail pane: sets the URL hash, then the picker toggle,
+// projected-season notice, hero (logo, conference, conference-standing chip,
+// team OVR) and the five tabs, and loads the active tab. The active tab
+// persists across team changes; the roster position filter resets.
 async function showTeam(team) {
   window.location.hash = slugify(team.school);
   const main = document.getElementById("teams-main");
@@ -202,7 +223,7 @@ async function showTeam(team) {
     ${pickerToggleHtml(team)}
     ${projectedSeasonNotice(_currentSeason)}
     <div class="d-team-hero" style="--d-team-color:${_esc(teamColor)};border-top-color:${_esc(teamColor)}">
-      ${team.logo_url ? `<img class="d-hero-logo" src="${_esc(team.logo_url)}" alt="${_esc(team.school)}" onerror="this.style.display='none'">` : "<div style='width:84px'></div>"}
+      ${teamMark(team, "d-hero-logo")}
       <div class="d-hero-info">
         <div class="d-hero-name">${_esc(team.school)}</div>
         ${team.conference ? `<span class="d-hero-conf-badge">${_esc(team.conference)}</span>` : ""}
@@ -240,11 +261,16 @@ async function showTeam(team) {
   loadTab(team, _activeTab);
 }
 
+// Render one team tab (roster, depth, ratings, schedule, transfers, history) into
+// #team-tab-content, then make its tables sortable and wire roster and
+// top-performer clicks to the player modal. A tab that throws shows an
+// inline error instead of breaking the page.
 async function loadTab(team, tab) {
   const content = document.getElementById("team-tab-content");
   content.innerHTML = skeletonRows(6);
   try {
     if (tab === "roster")         content.innerHTML = await buildRosterHTML(team);
+    else if (tab === "depth")     content.innerHTML = await buildDepthChartHTML(team);
     else if (tab === "ratings")   content.innerHTML = await buildTeamRatingsHTML(team);
     else if (tab === "schedule")  content.innerHTML = await buildScheduleHTML(team);
     else if (tab === "transfers") content.innerHTML = await buildTransfersHTML(team);
@@ -260,6 +286,11 @@ async function loadTab(team, tab) {
     row.addEventListener("click", () =>
       openPlayerModal(parseInt(row.dataset.playerId), _currentSeason));
   });
+  makeActivatable(content.querySelectorAll(".tperf-row[data-player-id]"));
+  // Depth-chart rows open the player modal too
+  content.querySelectorAll(".depth-row[data-player-id]").forEach(row =>
+    row.addEventListener("click", () => openPlayerModal(parseInt(row.dataset.playerId), _currentSeason)));
+  makeActivatable(content.querySelectorAll(".depth-row[data-player-id]"));
 }
 
 // ── Team Ratings ──────────────────────────────────────────────────────────
@@ -371,6 +402,10 @@ const LINE_INPUT_LABELS = {
   second_level_yards:    ["Second Level", "Yards earned 5–10 past the line"],
 };
 
+// The offensive line, rated as a unit, with its five inputs as normalised
+// bars — the constructive half of withdrawing the per-lineman rating. Says
+// "not rated" explicitly for an unplayed season or a season with no line
+// metrics, never blank.
 function buildLineUnitHTML(tr) {
   const rating = tr.line_unit;
   if (rating == null) {
@@ -415,7 +450,11 @@ function buildLineUnitHTML(tr) {
 }
 
 // ── Team stats panel (per-game metrics from team_stats_{season}.json) ───────
+// Returns "" for an unplayed season: these are per-game results, the pipeline
+// exports no team_stats file for a projected season, and asking for one was a
+// 404 on every Ratings tab opened on the default season.
 async function buildTeamStatsPanel(team) {
+  if (isProjectedSeason(_currentSeason)) return "";
   const all = await _load(`team_stats_${_currentSeason}.json`);
   const s = all?.[String(team.id)];
   if (!s) return "";
@@ -452,6 +491,7 @@ async function buildTeamStatsPanel(team) {
     </div>`;
 }
 
+// The team's five highest-rated players from the cached roster, each opening the player modal.
 function buildTopPerformers(team) {
   const roster = team._rosterCache;
   if (!roster || !roster.length) return "";
@@ -477,27 +517,16 @@ function buildTopPerformers(team) {
 const OFF_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "OL"];
 const DEF_FILTERS = ["EDGE", "DL", "LB", "CB", "S", "DB", "K", "P"];
 
-// EA CFB 27's own overall, beside ours. Shown with the gap when they disagree —
-// the disagreement is the interesting part, and it is honest about the fact
-// that two reasonable systems can look at the same player and differ.
-function eaCell(p) {
-  if (p.ea_ovr == null) return '<span class="text-muted">—</span>';
-  const ours = p.overall_rating != null ? Math.round(p.overall_rating) : null;
-  const gap  = ours != null ? Math.round(p.ea_ovr) - ours : null;
-  const title = gap == null ? "EA CFB 27 overall"
-    : `EA CFB 27 rates him ${Math.round(p.ea_ovr)}; we project ${ours} (${gap > 0 ? "+" : ""}${gap})`;
-  return `<span title="${_esc(title)}">${Math.round(p.ea_ovr)}</span>`;
-}
-
 // Where a projected number came from, as a two-letter code with the full
 // explanation on hover. Confidence is not uniform and the roster should say so.
 const _SOURCE_CODES = {
   engine_d:   ["CV", "Career curve — projected from his own production history"],
   carry:      ["CF", "Carried forward — last season's rating moved along his cohort's development curve"],
   recruiting: ["RC", "Recruiting grade — no college production yet"],
-  ea_cfb27:   ["EA", "EA CFB 27's overall — we had no signal of our own for him"],
 };
 
+// Roster twin of gridSourceCell (playerSearch.js): the projection-source code
+// with its reason on hover, dimmed when confidence is low.
 function sourceCell(p) {
   const s = _SOURCE_CODES[p.projection_source];
   if (!s) return '<span class="text-muted">—</span>';
@@ -505,6 +534,10 @@ function sourceCell(p) {
   return `<span class="proj-source-code" style="${dim}" title="${_esc(s[1])}">${s[0]}</span>`;
 }
 
+// Roster tab: loads the season's roster plus the caches its rows read
+// synchronously (projections, EDGE percentiles), caches the roster on the
+// team object for the Ratings tab and position filter, and updates the
+// hero's player count.
 async function buildRosterHTML(team) {
   // Prime the caches the row renderer reads synchronously: Engine D projections
   // (Proj column) and EDGE percentiles (EDGE % column).
@@ -524,8 +557,12 @@ async function buildRosterHTML(team) {
   return renderRosterCards(players);
 }
 
+// The roster board for the active position filter (DB covers CB ∪ S ∪ DB via
+// matchesPosition): the same 11-column grid as the Players board, with
+// Hometown in place of Team and the same projected-season column swap. A
+// withheld OL rating on a projected season shows "not projected" with the
+// reason, not a dash.
 function renderRosterCards(players) {
-  const yearLabels = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" };
   const filtered = _rosterPosFilter === "ALL"
     ? players
     : players.filter(p => matchesPosition(p.position_group, _rosterPosFilter)
@@ -545,7 +582,7 @@ function renderRosterCards(players) {
   // The last two columns carry different information depending on whether the
   // season has been played. On a projected season "Proj" is meaningless — the
   // OVR already IS the projection — and there is no EDGE production yet. So
-  // they become the EA CFB 27 cross-check and where our number came from.
+  // they become the projection's interval and where our number came from.
   // Column COUNT stays at 11 either way, because the responsive collapse rules
   // hide cells by position.
   const proj = isProjectedSeason(_currentSeason);
@@ -556,8 +593,8 @@ function renderRosterCards(players) {
     <span>Hometown</span>
     <span style="text-align:center">${proj ? "PROJ" : "OVR"}</span>
     <span style="text-align:center" title="${proj
-      ? "EA Sports CFB 27's own overall — an independent opinion, shown for comparison. It is never an input to our rating unless we had no signal at all."
-      : "Engine D projected change in OVR next season"}">${proj ? "EA 27" : "Proj"}</span>
+      ? "The model's 80% interval around the projection — where the rating should land four times out of five"
+      : "Engine D projected change in OVR next season"}">${proj ? "Range" : "Proj"}</span>
     <span style="text-align:center" title="${proj
       ? "How this projection was built"
       : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>
@@ -567,7 +604,7 @@ function renderRosterCards(players) {
   const cards = filtered.map((p, i) => {
     const ovr      = p.overall_rating ? Math.round(p.overall_rating) : null;
     const ovrColor = ovr ? ratingColor(ovr) : "var(--text-muted)";
-    const yr       = yearLabels[p.year] || "—";
+    const yr       = classYearCell(p.class_year, p.class_year_basis);
     const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
     const edgePct  = pctMap[p.player_season_id];
     const oap      = edgePct != null
@@ -589,7 +626,7 @@ function renderRosterCards(players) {
         <div class="draft-ovr">${p.overall_rating == null && proj
           ? unprojectedNote(p.position_group || p.position) || '<span class="text-muted">—</span>'
           : ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}</div>
-        <div class="draft-traj">${proj ? eaCell(p) : projHtml(p.player_season_id)}</div>
+        <div class="draft-traj">${proj ? projectionRangeCell(p) : projHtml(p.player_season_id)}</div>
         <div class="draft-edge">${proj ? sourceCell(p) : oap}</div>
       </div>`;
   }).join("");
@@ -601,6 +638,9 @@ function renderRosterCards(players) {
     <div class="roster-footer">${filtered.length} shown · ${players.length} total</div>`;
 }
 
+// Wire the roster after each render: sortable header, position chips (which
+// re-render from the cached roster without refetching) and row clicks to
+// the player modal.
 function bindRosterEvents(team) {
   // Sortable column headers for the div-based roster grid
   const rosterContainer = document.getElementById("roster-cards");
@@ -625,9 +665,76 @@ function bindRosterEvents(team) {
       openPlayerModal(parseInt(card.dataset.playerId), _currentSeason);
     });
   });
+  makeActivatable(document.querySelectorAll("#roster-cards .draft-row[data-player-id]"));
+}
+
+// ── Depth chart ─────────────────────────────────────────────────────────────
+// Slots shown per position group, in the order a game-day depth chart lists
+// them: the starters plus the first reserves. A count, not a roster rule.
+const DEPTH_SLOTS = {
+  Offense:        [["QB", 2], ["RB", 3], ["WR", 5], ["TE", 3], ["OL", 7]],
+  Defense:        [["EDGE", 3], ["DL", 4], ["LB", 4], ["CB", 4], ["S", 3], ["DB", 3]],
+  "Special teams": [["K", 1], ["P", 1]],
+};
+
+// The order players are listed in within a group. Rated players go by rating;
+// a position we do not rate (OL) goes by recruiting grade, which is all there is,
+// and the group says so. Unrated players always come last.
+function _depthOrder(a, b) {
+  const ra = a.overall_rating, rb = b.overall_rating;
+  if (ra != null || rb != null) return (rb ?? -1) - (ra ?? -1);
+  return (b.stars || 0) - (a.stars || 0) || (b.composite_score || 0) - (a.composite_score || 0);
+}
+
+// Builds the Depth tab: three banners (offense, defense, special teams), each a
+// grid of position-group cards listing the top players in order. There is NO
+// depth data in any source we hold — this is the order the ratings imply, not a
+// coach's chart, and the footnote says so in the same place the chart is read.
+async function buildDepthChartHTML(team) {
+  const players = await fetchTeamRoster(team.id, _currentSeason);
+  if (!players.length) return emptyState("No roster data for this season.");
+
+  const card = (group, slots) => {
+    const rows = players.filter(p => (p.position_group || p.position) === group).sort(_depthOrder);
+    const unrated = rows.length && rows.every(p => p.overall_rating == null);
+    const list = rows.slice(0, slots).map((p, i) => `
+      <div class="depth-row" data-player-id="${p.player_id ?? p.id}">
+        <span class="depth-slot">${i + 1}</span>
+        <span class="depth-name">${_esc(p.name || "—")}</span>
+        <span class="depth-meta">${p.stars ? "★".repeat(p.stars) : ""}</span>
+        ${p.overall_rating == null
+          ? '<span class="text-muted" title="Not rated — see the note under the chart">—</span>'
+          : ovrPill(p.overall_rating, { label: `Overall rating, ${_currentSeason}`, season: _currentSeason, source: p.projection_source })}
+      </div>`).join("");
+    return `<div class="depth-group">
+      <div class="depth-group-hdr">${posBadge(group)}<span class="depth-count">${rows.length} on roster${unrated ? " · not rated" : ""}</span></div>
+      ${list}
+    </div>`;
+  };
+
+  // A group nobody on the roster belongs to is left out rather than drawn empty:
+  // many secondaries are filed entirely under the generic DB group, which would
+  // otherwise sit beside two empty CB and S cards.
+  const has = g => players.some(p => (p.position_group || p.position) === g);
+  const banners = Object.entries(DEPTH_SLOTS).map(([title, groups]) => {
+    const present = groups.filter(([g]) => has(g));
+    return present.length ? `
+    <section class="depth-section">
+      <div class="section-rule"><span class="eyebrow">${_esc(title.toUpperCase())}</span></div>
+      <div class="depth-grid">${present.map(([g, n]) => card(g, n)).join("")}</div>
+    </section>` : "";
+  }).join("");
+
+  return `${banners}<p class="table-footnote"><strong>This is not an official depth chart.</strong> No source we hold
+    has depth data, so each group is listed in the order of its ratings. Offensive linemen are not rated at all
+    (see the line-unit rating), so they are ordered by recruiting grade and shown with a dash. A player's number
+    says how he has produced, not whether a coach will start him.</p>`;
 }
 
 // ── Schedule ───────────────────────────────────────────────────────────────
+// The Schedule tab: every game in date order (bowls last) with week, date, site,
+// the opponent as a link and the result, plus the season record once a game has
+// been played.
 async function buildScheduleHTML(team) {
   const games = await fetchTeamSchedule(team.id, _currentSeason);
   if (!games.length) return emptyState("No schedule data for this season.");

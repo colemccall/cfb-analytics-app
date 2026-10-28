@@ -181,7 +181,7 @@ teams simultaneously learning to block.`,
       { label: "Draft outcome as external validation", basis: "/draft/picks, 4,010 players matched at 83.7%",
         status: "shipped", note: "v4.3. Not a rating — the only independent check on OL that will ever exist." },
       { label: "EA blocking composite, 2026 only, labelled", basis: "1,278 of 1,534 linemen matched; passBlock vs runBlock correlate 0.53",
-        status: "experiment", note: "One season, not backfillable, cannot be backtested by construction. EA's OL overalls are exported alongside as a cross-check column." },
+        status: "rejected", note: "One season, not backfillable, cannot be backtested by construction. Closed on 2026-10-27 when the EA data was removed from the project (see ea-removed)." },
       { label: "Allocate the unit rating to players by snaps or starts", basis: "unit × share",
         status: "rejected", note: "Invents per-player variance that does not exist." },
       { label: "Keep one OL overall with the team stats joined properly", basis: "team_season_stats.json",
@@ -342,7 +342,7 @@ not win a comparison it was designed to be able to win.`,
       { label: "Group CB/S/DB behind one filter, keep three badges", basis: "UI only",
         status: "shipped", note: "v4.3. CONFIG.POSITIONS omitted DB entirely, so 1,397 players were invisible to every position filter — a live bug, not a grouping preference." },
       { label: "Resolve generic DB → CB/S using EA position", basis: "matched players only",
-        status: "experiment", note: "Exact where it applies, but 2026 only." },
+        status: "rejected", note: "Exact where it applied, but 2026 only. Closed on 2026-10-27 when the EA data was removed (see ea-removed)." },
       { label: "Infer CB vs S from box-score behaviour", basis: "high INT+PBU, low tackles ⇒ corner",
         status: "rejected", note: "Circular — it assigns the archetype using the statistics the archetype then judges." },
     ],
@@ -446,7 +446,7 @@ be noise — the same rule the projection badge follows.`,
       recruiting anchor — however little any of them played.`,
     inputs: [
       { name: "PLAYTIME_TIERS", source: "script 07", coverage: "12 of the 13 rated positions until v4.5" },
-      { name: "EA CFB 27, as the external check", source: "data/raw/ea_ratings.json", coverage: "592 matched DBs" },
+      { name: "EA CFB 27, as the external check (data removed 2026-10-27)", source: "was data/raw/ea_ratings.json", coverage: "592 matched DBs" },
     ],
     formula: `before   PLAYTIME_TIERS["DB"] -> None -> "starter", for everyone
 after    starter >= 15 tackles, role >= 7, reserve >= 1, else bench
@@ -471,8 +471,8 @@ it is what one expects when a third of a position is being rated as though it st
       and the archetype weighting it inherits is an even-thirds split chosen because the group
       is genuinely mixed, not because that split was measured to be right.`,
     alternatives: [
-      { label: "Resolve DB into CB or S per player, using EA's position", basis: "ea_ratings.json, 2026 only",
-        status: "experiment", note: "Exact where it applies, but one season only." },
+      { label: "Resolve DB into CB or S per player, using EA's position", basis: "ea_ratings.json, 2026 only (removed 2026-10-27)",
+        status: "rejected", note: "Exact where it applied, but one season only. Closed when the EA data was removed (see ea-removed)." },
       { label: "Infer CB or S from box-score behaviour", basis: "on disk",
         status: "rejected", note: "Circular — it would assign the archetype using the same statistics the archetype then judges." },
     ],
@@ -623,7 +623,7 @@ the site, and why per-snap efficiency for quarterbacks and receivers is.`,
     inputs: [
       { name: "Defensive plays faced, per team-game", source: "data/raw/team_advanced_games.json", coverage: "2008–2025, 35,422 team-games, complete" },
       { name: "Per-game defensive box scores", source: "data/raw/stats.json", coverage: "2024–2025 for this test" },
-      { name: "EA CFB 27, as the external reference", source: "data/raw/ea_ratings.json", coverage: "one season" },
+      { name: "EA CFB 27, as the external reference (data removed 2026-10-27)", source: "was data/raw/ea_ratings.json", coverage: "one season" },
     ],
     formula: `shipped   idx_season × Σ c_g / √G      one index per team-season
 proposed  Σ (c_g × idx_g) / √G        the index applied inside the sum
@@ -714,6 +714,82 @@ same 11,342 player-season pairs for every variant`,
 
   // ── Projections ───────────────────────────────────────────────────────────
   {
+    id: "live-season",
+    group: "projections",
+    title: "Ratings for a season in progress: earned so far, rescaled to full-season pace",
+    summary: `Once games are played, 2026 stops being only a projection and is not yet a finished season.
+      The "Earned to date" section of the '26 page rates every team and every player with enough games on
+      what has happened so far. EDGE divides a season's weighted production by the square root of games
+      played, so the same per-game output scores lower after eight games than after twelve; the rescale
+      multiplies each team's EDGE by the square root of (games scheduled / games completed). The result is
+      provisional, lives in its own file, and never enters the engine the projections are trained on.`,
+    inputs: [
+      { name: "Per-game player stats, 2026", source: "data/raw/stats.json (script 01, refreshed with CFB_REFRESH_YEARS=2026)", coverage: "35,182 game rows for 8,076 players, weeks 1 to 8" },
+      { name: "SP+ and team stats, 2026", source: "CFBD, fetched fresh by scripts 06 and 10", coverage: "138 teams" },
+      { name: "Advanced season stats, 2026", source: "script 09, team_advanced_season", coverage: "138 teams" },
+      { name: "Preseason projection", source: "script 16's engine=\"projected\" rows", coverage: "4,340 of the 5,468 rated players have one to compare with" },
+    ],
+    formula: `EDGE_live    = EDGE_raw x sqrt(r_team)        r_team = regular-season games scheduled / completed
+stats_measured_live = stats_measured x r_team
+rating       = the ordinary chain (06 -> 07 -> 10) on those numbers, in a private data copy
+published    = players with a production or blended rating (>= 3 games with a countable stat)
+               + every team, as of the last completed week`,
+    reality: `Nothing is written to ratings.json, team_ratings.json or player_edge.json. Script 17 copies
+      data/raw and data/computed to a temporary folder, points the store at it (CFB_DATA_DIR) and runs the
+      chain there. Script 15 trains on engine="edge", so a part-season row written there would have been
+      read as a finished season. The playing-time tier thresholds are full-season totals and are NOT
+      rescaled, which is why more players land on a recruiting basis (below).`,
+    why: `The correction was measured before it was used. 2025 is a finished season, so it can be cut at
+week 8 (the median team had played 7 of 12 games) and compared with how it ended. Without a correction, a
+part-season rating makes every player look worse than he will end up; with the square-root rescale the bias
+is mostly gone and a small overshoot remains. Script 17 runs in a private copy for the same reason the
+back-test does: provisional numbers must not be able to leak into anything that trains on history.`,
+    evidence: [
+      { label: "Back-test, 2025 cut after week 8: final EDGE / unscaled week-8 EDGE, median", value: "1.277 (range 1.218 to 1.326 by position): an unscaled part-season runs about 28% low" },
+      { label: "Same, after the sqrt(r) rescale", value: "0.933 (range 0.896 to 0.976): the rescaled value runs about 7% above where the player ends up" },
+      { label: "Week-8 rank vs final rank, Spearman by position", value: "CB 0.857, DL 0.865, TE 0.873, EDGE 0.892, DB 0.893, WR 0.910, LB 0.911, RB 0.916, S 0.917, QB 0.949" },
+      { label: "Players with a valid EDGE at the cut vs at the end, 2025", value: "4,912 vs 5,896: 984 (17%) cannot be rated yet at week 8" },
+      { label: "Live 2026", value: "2,321 of 3,681 regular-season games complete, through week 8; median pace factor 1.714; 5,468 players rated (5,349 production, 119 blended) of 16,882 on rosters; 138 teams" },
+      { label: "Production-basis mean, 2026 vs 2025", value: "RB 67.9 vs 67.8, TE 67.4 vs 66.7, WR 71.2 vs 70.1, QB 72.3 vs 69.7, LB 67.9 vs 67.4, DL 65.7 vs 66.2; p90 runs 1.4 to 2.6 lower" },
+      { label: "Share of players on a recruiting basis, 2026 vs 2025", value: "TE 43% vs 31%, WR 38% vs 33%, LB 29% vs 22%, QB 32% vs 28%, RB 31% vs 25%: players with under 3 games have no EDGE yet" },
+      { label: "Games the data cannot count", value: "30 FBS-team games in 2026 (25 teams), 40 in 2025, have no score for the opponent (almost all non-FBS); they count as neither a win nor a loss, so a record can be a game short" },
+      { label: "Script 07 distribution check, 2026", value: "warns on RB p90 (77.7), TE mean (57.5) and TE p90 (73.9): the recruiting-basis share above, informational and non-blocking by design" },
+      { label: "Top five teams to date", value: "LSU 92.4, Indiana 92.3, Notre Dame 91.7, Ohio State 91.6, Georgia 91.5; Miami, the preseason first at 93.5, is 7-0 and rated 90.6" },
+    ],
+    limits: `**Provisional, and back-tested on one season.** The 7% overshoot and the rank agreements come
+      from 2025 cut at week 8; a second cut season would say whether they are stable. The rescale is not
+      damped to remove the overshoot, because tuning it to one season is how a constant goes stale.
+
+      **A part-season is a small sample.** A player at three games clears the bar for a rating on three
+      games. The rank agreements above are for players who clear it at week 8; the 17% who do not are
+      simply absent, not rated low.
+
+      **Team ratings move on schedule as well as players.** A team's rating blends this season's SP+ with
+      its roster's ratings, so a team can rise because it beat good teams.
+
+      **Not a projection of the rest of the season.** It rates what has happened. Nothing here updates the
+      preseason projections, which still ignore every game played, injury and transfer after August.
+
+      **Tier thresholds are untouched.** The playing-time tiers are full-season totals (PLAYTIME_TIERS is
+      frozen), so part-season volume pushes some players from a production to a recruiting basis. The
+      basis chip says so; the effect is measured above and not corrected.
+
+      **Records can be a game short** for the 30 games with no opponent score, and independents and
+      conference games are derived from the schedule rather than read from a flag.`,
+    alternatives: [
+      { label: "Write the part-season ratings into the normal edge engine", basis: "simplest", status: "rejected", note: "Script 15 trains career curves on engine=edge. A 2026 row built from eight games would have been read as a finished season." },
+      { label: "No correction: rate the games played as they stand", basis: "back-test", status: "rejected", note: "Final EDGE is 1.277x the week-8 value at the median, so every player would look about 28% worse than he ends up." },
+      { label: "Damp the rescale to remove the 7% overshoot", basis: "back-test, one season", status: "experiment", note: "Needs a second back-tested season first." },
+      { label: "Scale the playing-time tier thresholds by pace", basis: "PLAYTIME_TIERS is frozen", status: "experiment", note: "Would move more players onto a production basis. A change to a frozen constant needs its own written case." },
+      { label: "Fold the games played into the preseason projections", basis: "script 16", status: "experiment", note: "A different model from this one; not attempted." },
+    ],
+    changelog: [
+      { version: "v4.8", change: "Script 17, the --in-progress and --through-week options on script 06, validate_pace.py, the CFB_DATA_DIR and CFB_REFRESH_YEARS switches, and the Earned to date section." },
+    ],
+    source: "scripts/17_live_season.py · scripts/validate_pace.py · changes.html#v4.8-live-and-retro",
+  },
+
+  {
     id: "projection",
     group: "projections",
     title: "How a projection is built, and what MAE means",
@@ -760,7 +836,7 @@ it lets the model see how selected its own training population is.`,
       { label: "Departure feature's effect on accuracy", value: "MAE 8.19 → 8.22 offence, 8.45 → 8.44 defence — no improvement, kept for honesty about survivorship" },
       { label: "Consequence of half-stretching the spread", value: "decline is under-called at every level — 66% projected to decline at 90+, against 81% historically" },
       { label: "Interrupted careers are treated more generously, not less", value: "mean projected change +6.06 vs +3.55 for clean careers" },
-      { label: "OL", value: "not projected at all — 2,902 rows carry EA's opinion and no rating of ours" },
+      { label: "OL", value: "not projected at all — 2,902 rows carry no rating of ours (provenance not_projected); until 2026-10-27 they also carried EA's opinion" },
     ],
     limits: `The model does not know who a player played FOR, that he transferred, or where he
       transferred to. It knows who he played AGAINST, because EDGE is opponent-adjusted per game.
@@ -1123,6 +1199,60 @@ confidence levels in the same product mean the reader has to remember which is w
   },
 
   // ── What data exists ──────────────────────────────────────────────────────
+  {
+    id: "ea-removed",
+    group: "data",
+    title: "EA CFB 27 ratings were removed from the project",
+    summary: `Until 2026-10-27 the project held one season of EA Sports College Football 27 ratings:
+      9,013 players with 54 attributes each, scraped from EA's ratings site. They were published whole,
+      shown beside our projections, used as the yardstick for the v4.2 to v4.5 recalibrations, and, in
+      one place nobody had listed, used as a last-resort projection for 273 players. All of that is gone.
+      The earlier entries on this page that quote agreement with EA are measurements that were true when
+      made; they can no longer be reproduced.`,
+    inputs: [
+      { name: "Removed: EA CFB 27 overalls and attributes", source: "was data/raw/ea_ratings.json and data/ea_ratings_2026.json", coverage: "9,013 players, one season, 81.6% matched to our ids" },
+      { name: "Removed: script 08, the harvester", source: "was scripts/08_harvest_ea_cfb27_ratings.py", coverage: "—" },
+    ],
+    why: `Removed at the owner's request. The facts that bear on it: the ratings were scraped from
+EA's site, not licensed, and were being republished in full. The cost is real and is stated below:
+the only per-position cross-section the ratings had is gone.
+
+One consequence was not anticipated. EA's overall had been the fourth and last source in the 2026
+projection chain, "only when we have nothing", for 273 players with no signal of ours. Those
+projections fed the team ratings. So the rule that EA "never supplies a number" was false in one
+place, and removing the data fixed a contradiction as well as a dependency.`,
+    evidence: [
+      { label: "How the effect was isolated", value: "The export was re-run on an unmodified copy of the last commit first: 124 of 125 files reproduced exactly (the other was a timestamp). Only then was the EA code removed and the chain re-run." },
+      { label: "Player and roster files, every season 2008 to 2026", value: "Only the ea_ovr field removed; no other value changed, except 2026" },
+      { label: "2026 players with an EA-sourced projection", value: "273 (52 DL, 39 WR, 31 LB, 28 TE, 24 DB, 21 CB, 14 RB, 14 P and others). They now have no projected rating; 12,428 projected rows became 12,155" },
+      { label: "Source mix, 2026 projection", value: "engine_d 3,987, carry 1,818, recruiting 3,448, excluded OL 2,902 (all unchanged); ea_cfb27 273 to 0; no signal 2,743 to 3,016" },
+      { label: "Projected team rating, 2026", value: "93 of the 138 teams changed; mean change −0.91, largest −4.17, none above +0.16" },
+      { label: "Projected Top 25, 2026", value: "Colorado out, Vanderbilt in; Oregon and Texas A&M swap eighth and ninth; the top seven are unchanged" },
+      { label: "Projection distribution gate", value: "Passed: projected spread 77% of last season's earned spread, inside the 60 to 140% band" },
+    ],
+    limits: `**The ratings lost their only per-position outside check.** Agreement with EA was the
+      sole cross-section of the whole distribution; what remains is the NFL draft backtest (separation
+      at AUC 0.83, which says nothing about who is too generous at a position), split-half reliability,
+      and the internal distribution report. Nothing now says whether, say, running backs are rated too
+      low against anyone's opinion but our own.
+
+      The 273 players are not rated higher or lower; they are unrated. Most are JUCO arrivals and
+      reserves with no production, and for them the roster shows a dash where it showed EA's number.
+
+      Figures quoted from the EA era in other entries (0.6497 for defensive backs, 0.5822 for EDGE, the
+      Spearman cost of the archetype split) are historical and cannot be re-run. The raw data is kept
+      outside the repos in the portfolio archive, which is not a licence to use it.`,
+    alternatives: [
+      { label: "Keep the data privately for validation only, publish nothing", basis: "the archived copy", status: "rejected", note: "The owner chose removal. Recoverable from the archive if that changes." },
+      { label: "Keep EA as the last-resort projection source", basis: "273 players", status: "rejected", note: "It contradicted the standing rule that EA never supplies a number, and it fed team ratings." },
+      { label: "Replace the validator with a different outside check", basis: "none identified", status: "experiment", note: "The draft backtest is the closest thing and answers a different question. A per-position check would need a new outside source." },
+    ],
+    changelog: [
+      { version: "v4.7", change: "EA CFB 27 data, UI, story page and projection fallback removed; the Proj column on a projected season now shows the model's own 80% interval." },
+    ],
+    source: "changes.html#v4.7-ea-removed",
+  },
+
   {
     id: "supplemental-data",
     group: "data",

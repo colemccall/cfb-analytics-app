@@ -7,20 +7,23 @@
 // being copy-pasted into every page.
 
 (function () {
-  // Theme first — before any content paints. Two themes: dark | light.
+  // Theme first — before any content paints. The valid themes are CONFIG.THEMES
+  // (config.js), not a list written here, so a new skin needs no change to this file.
   // Order: ?theme= URL override (screenshot tests) → saved choice (legacy
   // "dynasty-dark"/"mid" migrate to dark) → OS preference.
+  const THEME_IDS = CONFIG.THEMES.map(t => t.id);
   const legacy = { "dynasty-dark": "dark", "mid": "dark" };
   const saved = localStorage.getItem("cfb-theme");
   const urlOverride = new URLSearchParams(location.search).get("theme");
   let theme = urlOverride || legacy[saved] || saved;
-  if (theme !== "dark" && theme !== "light") {
-    theme = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  if (!THEME_IDS.includes(theme)) {
+    const wantsLight = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches;
+    theme = wantsLight && THEME_IDS.includes("light") ? "light" : THEME_IDS[0];
   }
   document.documentElement.setAttribute("data-theme", theme);
   if (legacy[saved]) localStorage.setItem("cfb-theme", legacy[saved]);
 
-  const VERSION = "v3.2.0";
+  const VERSION = "v4.8.0";
 
   // `short` is the mobile tab-bar label — five labels must fit a 360px phone,
   // so anything longer than ~8 characters gets an abbreviation here.
@@ -30,6 +33,7 @@
     { id: "teams",    href: "teams.html",      icon: "🏟",  label: "Teams" },
     { id: "players",  href: "players.html",    icon: "👤", label: "Players" },
     { id: "ratings",  href: "ratings.html",    icon: "📊", label: "Ratings" },
+    { id: "league",   href: "league.html",     icon: "🏆", label: "League" },
     { id: "research", href: "research.html",   icon: "🔬", label: "Research" },
     { id: "methods",  href: "methods.html",    icon: "🧮", label: "Methods" },
     { id: "changes",  href: "changes.html",    icon: "🛠", label: "Build Log", short: "Log" },
@@ -51,11 +55,13 @@
         <div>
           <div class="sidebar-theme-label">Theme</div>
           <div class="theme-swatches">
-            <button class="theme-swatch" data-theme-pick="dark" title="Dark" aria-label="Dark theme"></button>
-            <button class="theme-swatch" data-theme-pick="light" title="Light" aria-label="Light theme"></button>
+            ${CONFIG.THEMES.map(t => `
+            <button class="theme-swatch" data-theme-pick="${t.id}" title="${t.label}" aria-label="${t.label} theme"
+                    style="background:${t.swatch};border-color:${t.edge}"></button>`).join("")}
           </div>
         </div>
         <div class="sidebar-version">${VERSION}</div>
+        <a class="sidebar-credit" href="https://collegefootballdata.com" target="_blank" rel="noopener">Data: CollegeFootballData.com</a>
       </div>
     </aside>`;
 
@@ -71,7 +77,16 @@
   // Injected synchronously at the top of <body>, so the sidebar exists before
   // the page's own content parses — no layout shift. The mobile bar is
   // position:fixed, so its DOM position is irrelevant.
-  document.body.insertAdjacentHTML("afterbegin", sidebar + mobileNav);
+  // Skip link first in tab order; its target is the page's main column.
+  const skip = '<a class="skip-link" href="#main-content">Skip to content</a>';
+  document.body.insertAdjacentHTML("afterbegin", skip + sidebar + mobileNav);
+  // The main column does not exist yet (this script runs at the top of <body>),
+  // so it is marked once the document has parsed. tabindex -1 lets the skip
+  // link's fragment move focus there.
+  document.addEventListener("DOMContentLoaded", () => {
+    const main = document.querySelector(".main-content");
+    if (main) { main.id = "main-content"; main.tabIndex = -1; }
+  });
 
   // Swatches: mark the active one, and re-render data-colored UI on change —
   // page scripts listen for "cfb:themechange" and re-render from cached state.

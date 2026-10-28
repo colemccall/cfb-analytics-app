@@ -26,6 +26,8 @@ function _methodLink(id) {
   return `<a href="methods.html#${_esc(id)}">${_esc(entry.title)}</a>`;
 }
 
+// The "What changed" block: one row per `did` item with its reason and, when
+// recorded, its cost. Empty when the entry has no `did` array.
 function _did(rows) {
   if (!rows || !rows.length) return "";
   return `
@@ -94,20 +96,26 @@ function _measured(rows) {
     </div>`;
 }
 
+// The "What was run to prove it" block — each check command beside its result.
+// Wrapped in .method-table-scroll because the commands are long code strings
+// that overflowed a phone viewport.
 function _gates(rows) {
   if (!rows || !rows.length) return "";
   return `
     <div class="method-block">
       <div class="modal-subsection-title">What was run to prove it</div>
-      <table class="data-table method-evidence">
-        <tbody>
-          ${rows.map(g => `
-            <tr><th scope="row"><code>${_esc(g.check)}</code></th><td>${_esc(g.result)}</td></tr>`).join("")}
-        </tbody>
-      </table>
+      <div class="method-table-scroll">
+        <table class="data-table method-evidence">
+          <tbody>
+            ${rows.map(g => `
+              <tr><th scope="row"><code>${_esc(g.check)}</code></th><td>${_esc(g.result)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
     </div>`;
 }
 
+// The "Files" line: every new or substantially changed file, as code.
 function _files(list) {
   if (!list || !list.length) return "";
   return `
@@ -117,6 +125,10 @@ function _files(list) {
     </div>`;
 }
 
+// One CHANGES entry as an <article>, in the order the build-log spec fixes:
+// summary → motivation → did → tried → measured → gates → did-not-fix →
+// linked METHODS entries → files. "Did not fix" always renders, even when
+// the entry is missing it, because an absent answer is itself the finding.
 function _changeEntry(c) {
   return `
     <article class="method-entry animate-up" id="${_esc(c.id)}">
@@ -145,6 +157,8 @@ function _changeEntry(c) {
     </article>`;
 }
 
+// Entry point for changes.html: renders the masthead, a version TOC and every
+// CHANGES entry newest first into #changes-root.
 function initChanges() {
   const root = document.getElementById("changes-root");
   if (!root) return;

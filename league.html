@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>League — standings and the transfer portal — CFB Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="league">
+<script src="js/config.js"></script>
+<script src="js/shell.js"></script>
+<!-- ==================== MAIN CONTENT ====================
+     A shell. leaguePage.js builds both tabs in the browser from schedules_{season}.json
+     and transfers_{season}.json, which the app already ships. Nothing here is a
+     registry entry: the numbers are other pages' ratings, displayed. -->
+<div class="main-content">
+
+<header class="masthead masthead--page animate-pop">
+  <div class="eyebrow">LEAGUE</div>
+  <h1>League</h1>
+  <p class="masthead-sub">Conference standings from the results, and every transfer-portal move with the rating before and after.</p>
+</header>
+
+<div class="page-content">
+  <div id="league-tabs" class="tabs" style="margin-bottom:1rem"></div>
+  <div id="league-body"></div>
+</div>
+
+</div>
+
+<script src="js/dataLoader.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dataTable.js"></script>
+<script src="js/leaguePage.js"></script>
+<script>
+  initLeague();
+</script>
+</body>
+</html>

@@ -31,10 +31,12 @@ function _fmtDate(d) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Two teams as "away at home" (or "vs" at a neutral site), each with logo,
+// link and projected team-OVR pill. Shared by the marquee.
 function _matchupHtml(g) {
   const side = t => `
     <span class="marquee-side">
-      ${t.team.logo_url ? `<img class="entity-logo" src="${_esc(t.team.logo_url)}" alt="">` : ""}
+      ${teamMark(t.team)}
       ${teamLink(t.team.school, { season: UPCOMING })}
       ${ovrPill(t.ovr, { label: _OVR_LABEL, season: UPCOMING })}
     </span>`;
@@ -43,6 +45,10 @@ function _matchupHtml(g) {
     ${side({ team: g.home, ovr: g.homeOvr })}`;
 }
 
+// Masthead: today's date, a kickoff countdown from the first game in the
+// UPCOMING season's schedule ("underway" once it has passed), and the
+// marquee — the week-1 game with the highest matchup-quality score. Falls
+// back to a generic headline if the schedule cannot load.
 async function buildMasthead() {
   const dateEl = document.getElementById("masthead-date");
   if (dateEl) {
@@ -75,7 +81,7 @@ async function buildMasthead() {
           <div class="eyebrow">THE OPENER TO CIRCLE · WEEK 1 · ${_esc(_fmtDate(m.date).toUpperCase())}</div>
           <div class="marquee-teams">${_matchupHtml(m)}</div>
           <div class="marquee-note">Ratings are projected ${UPCOMING} team OVR, built from each roster's
-            projected players. Nothing here has been played.</div>
+            projected players, made before a game was played. The '26 Season page rates teams and players on the games since.</div>
         </div>`;
     }
   } catch (e) {
@@ -208,6 +214,8 @@ async function storyClassThatHit() {
   })];
 }
 
+// Renders the storyline cards. Each builder runs independently under
+// Promise.allSettled, so a missing data file drops that one card, not the grid.
 async function buildStorylines() {
   const grid = document.getElementById("storylines");
   if (!grid) return;
@@ -229,6 +237,9 @@ async function buildStorylines() {
 // The opening slate — best Week 1 games, both teams linked
 // ---------------------------------------------------------------------------
 
+// The opening slate: week-1 games ranked 2–7 by matchup quality (the top one
+// is already the masthead marquee). The section hides itself when there is
+// no schedule rather than showing an empty frame.
 async function buildSlate() {
   const section = document.getElementById("slate-section");
   if (!section) return;
@@ -243,13 +254,13 @@ async function buildSlate() {
       <div class="slate-row animate-up">
         <span class="slate-date">${_esc(_fmtDate(g.date))}</span>
         <span class="slate-team">
-          ${g.away.logo_url ? `<img class="entity-logo" src="${_esc(g.away.logo_url)}" alt="">` : ""}
+          ${teamMark(g.away)}
           ${teamLink(g.away.school, { season: UPCOMING })}
           ${ovrPill(g.awayOvr, { label: _OVR_LABEL, season: UPCOMING })}
         </span>
         <span class="slate-at">${g.neutral ? "vs" : "at"}</span>
         <span class="slate-team">
-          ${g.home.logo_url ? `<img class="entity-logo" src="${_esc(g.home.logo_url)}" alt="">` : ""}
+          ${teamMark(g.home)}
           ${teamLink(g.home.school, { season: UPCOMING })}
           ${ovrPill(g.homeOvr, { label: _OVR_LABEL, season: UPCOMING })}
         </span>
@@ -267,23 +278,27 @@ async function buildSlate() {
 // Bottom panels — last season's standard + the research desk
 // ---------------------------------------------------------------------------
 
+// "Last Season's Standard": the top 8 programs by EARNED team OVR in the last
+// played season, each linking to that season's team page. It read the UPCOMING
+// (projected) season until 2026-09-23 — a panel titled "last season" showing
+// projections, the exact two-clocks confusion described at the top of this file.
 async function buildTopPrograms() {
   const el = document.getElementById("home-top-teams");
   if (!el) return;
   try {
-    const teams = await fetchTeams(UPCOMING);
+    const teams = await fetchTeams(PLAYED);
     const top = teams.filter(t => t.overall_rating)
                      .sort((a, b) => b.overall_rating - a.overall_rating)
                      .slice(0, 8);
     el.innerHTML = top.map((t, i) => `
-      <a class="home-team-row" href="${teamHref(t.school, UPCOMING)}">
+      <a class="home-team-row" href="${teamHref(t.school, PLAYED)}">
         <span class="home-team-rank rank-num ${i < 3 ? "top3" : ""}">${i + 1}</span>
-        ${t.logo_url ? `<img class="home-team-logo" src="${_esc(t.logo_url)}" alt="" loading="lazy">` : '<span class="home-team-logo"></span>'}
+        ${teamMark(t, "home-team-logo")}
         <div class="home-team-info">
           <div class="home-team-name">${_esc(t.school)}</div>
           <div class="home-team-conf">${_esc(t.conference || "")}</div>
         </div>
-        ${ovrPill(t.overall_rating, { label: `Team OVR, ${UPCOMING}`, season: UPCOMING })}
+        ${ovrPill(t.overall_rating, { label: _PLAYED_LABEL, season: PLAYED })}
       </a>`).join("");
   } catch (e) {
     el.innerHTML = errorState("Team ratings couldn't load.");
@@ -372,6 +387,9 @@ async function buildCoverage() {
 // Init — sections render independently and in parallel
 // ---------------------------------------------------------------------------
 
+// Builds every home-page section in parallel; none awaits another. Also
+// the theme-change repaint — data comes from _load's cache, so a repaint
+// does not refetch.
 function initHome() {
   buildMasthead();
   buildStorylines();

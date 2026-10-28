@@ -9,6 +9,12 @@
 // Shell contract:
 //   <div id="finding-root"></div>  and  <script>initFinding("some-id")</script>
 
+// Entry point for every research-*.html and story-*.html shell: renders the
+// FINDINGS[id] entry into #finding-root. An "upcoming" finding renders its
+// question, plan and difficulties only. A live one renders prose first, then
+// calls its load(), then hero stats, filter bar and table — applying the
+// filters' declared defaults immediately so the table matches what the
+// filters say — and finally its method and limitations.
 async function initFinding(id) {
   const root = document.getElementById("finding-root");
   if (!root) return;
@@ -81,6 +87,9 @@ async function initFinding(id) {
   onThemeChange(() => table && table.refresh());
 }
 
+// The finding's masthead: eyebrow, title, claim, and a breadcrumb back to
+// its index (Research or the home storylines), plus "Not built yet" for an
+// upcoming finding.
 function _findingMasthead(f) {
   return `
     <header class="masthead masthead--page animate-pop">
@@ -95,6 +104,8 @@ function _findingMasthead(f) {
     </header>`;
 }
 
+// Hero stat tiles from the finding's stats(rows, meta). A stats function that
+// throws renders no tiles rather than breaking the page.
 function _renderStats(f, rows, meta) {
   const el = document.getElementById("finding-stats");
   if (!el) return;
@@ -122,6 +133,9 @@ function _notes(f) {
     </div>`;
 }
 
+// The body of a finding that is registered but not yet computed: its
+// question, plan and known difficulties, and a note saying nothing here is
+// computed yet.
 function _upcomingBody(f) {
   return `
     <div class="finding-upcoming">
@@ -147,6 +161,9 @@ function _upcomingBody(f) {
 // ── Index rendering ────────────────────────────────────────────────────────
 // research.html and the home page both list findings. Same cards, same source.
 
+// Render every finding of `kind` ("research" | "storyline") as cards into
+// #containerId. Live findings load their own data to put a computed headline
+// on the card; each card fails independently and renders without its stat.
 async function renderFindingIndex(containerId, kind) {
   const el = document.getElementById(containerId);
   if (!el) return;

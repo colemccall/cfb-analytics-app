@@ -72,7 +72,6 @@ const PROJECTION_SOURCE_LABELS = {
   engine_d:    "projected from his career production curve",
   carry:       "last season's rating, moved along his cohort's development curve",
   recruiting:  "recruiting grade (no college production yet)",
-  ea_cfb27:    "EA CFB 27's overall — we had no signal of our own",
 };
 
 // Positions we deliberately do not project, and why. An unexplained blank reads
@@ -101,6 +100,9 @@ const NOT_RATED_POSITIONS = {
       "team page instead.",
 };
 
+// The "not rated" marker for a position we deliberately do not rate, with
+// the reason on hover (NOT_RATED_POSITIONS). Any other position gets a plain
+// dash — a refusal and a gap must not look alike.
 function notRatedNote(pg) {
   const why = NOT_RATED_POSITIONS[pg];
   return why
@@ -160,6 +162,44 @@ const RATING_BASIS_WHY = {
                "so no rating is published.",
 };
 
+// ── Class year ──────────────────────────────────────────────────────────────
+// The single place a class year becomes a label.
+//
+// It is DERIVED (utils/class_year.py), not `player_seasons.year` — that field is
+// constant across the whole career for 84.0% of multi-season players and says
+// "year 4" for 65% of the rated rows carrying a plausible value, so the site was
+// calling true freshmen seniors. It is also allowed to be unknown: 1.7% of rated
+// player-seasons are left-censored at the start of the archive with no
+// recruiting anchor, and an unknown class year renders as unknown rather than
+// being defaulted to FR.
+const CLASS_YEAR_LABEL = { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR", 6: "GR+" };
+
+function classYearLabel(cy) {
+  return CLASS_YEAR_LABEL[cy] || "—";
+}
+
+// The tooltip that says where the number came from, so a floor is not read as a
+// fact. `recruiting` is a real enrolment date; `first_fbs` is the first season we
+// observe him and is too YOUNG 23.9% of the time it is checkable.
+const CLASS_YEAR_BASIS_WHY = {
+  recruiting: "Class year from his recruiting-class enrolment year.",
+  first_fbs:  "Class year estimated from his first FBS season — a floor. " +
+              "A career that began in junior college or at an FCS school looks younger than it was.",
+  unknown:    "Class year unknown: his career starts at the edge of the archive " +
+              "and he has no recruiting-class year to date him by.",
+};
+
+// A class-year label with its provenance on hover. Years estimated from the
+// first FBS season (a floor) or undeterminable are dimmed so they are not
+// read as facts; recruiting-anchored years render at full strength.
+function classYearCell(cy, basis) {
+  const label = classYearLabel(cy);
+  const why = CLASS_YEAR_BASIS_WHY[basis];
+  if (!why) return label;
+  const dim = basis === "recruiting" ? "" : ' style="opacity:0.75"';
+  return `<span${dim} title="${_esc(why)}">${label}</span>`;
+}
+
 function basisChip(basis) {
   const label = RATING_BASIS_LABEL[basis];
   if (!label) return "";           // production, or absent → no chip
@@ -179,8 +219,9 @@ function projectedSeasonNotice(season) {
   if (!isProjectedSeason(season)) return "";
   return `<div class="projected-notice">
       <span class="badge-proj">PROJ</span>
-      <span>Every rating for ${_esc(season)} is a projection — the season has not been played.
-      <a href="info.html#projections">How these are built →</a></span>
+      <span>Every rating shown for ${_esc(season)} is a preseason projection — it does not include any game played this season.
+      Ratings earned so far are on the <a href="season2026.html">'26 Season</a> page.
+      <a href="info.html#projections">How projections are built →</a></span>
     </div>`;
 }
 
@@ -201,9 +242,15 @@ function renderSeasonProvenance(season, id = "season-provenance") {
 //
 // Lives here rather than in methodsPage.js because two registries render prose
 // and two copies would drift. Escaping itself is `_esc` from config.js.
+//
+// A **bold** span may wrap onto the next source line — registry prose is
+// hard-wrapped, and until 2026-09-23 a wrapped span rendered as literal
+// asterisks (three live Build Log entries did). It may not cross a blank line,
+// which would put the tags in different paragraphs. tools/prose-check.mjs runs
+// every registry field through this and fails on any leftover markup.
 function prose(s) {
   return _esc(s)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*\*((?:(?!\n\s*\n)[^*])+?)\*\*/g, "<strong>$1</strong>")
     .replace(/`(.+?)`/g, "<code>$1</code>")
     .split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, " ")}</p>`).join("");
 }
@@ -327,4 +374,93 @@ function emptyState(message) {
 // a meaningful retry action.
 function errorState(message, retryHtml = "") {
   return `<div class="error-state">${_esc(message)}${retryHtml ? " " + retryHtml : ""}</div>`;
+}
+
+// ── School marks ─────────────────────────────────────────────────────────────
+// A school's logo, or a monogram when the logo is absent or fails to load.
+//
+// Why this exists: all 139 logo URLs in teams.json are plain http:// ESPN links
+// (mixed content on an https site) and nothing handled a failed load — a call
+// site either hid the image or left a broken-image icon. School marks are also
+// trademarks, so the app must look complete with every logo switched off; the
+// monogram (abbreviation on the team colour, text colour from the luminance
+// guard) is the default, and the logo is the optional upgrade.
+//
+// `cls` is the call site's own sizing class (entity-logo, team-tile-logo, …) so
+// the monogram occupies the same box the image would have.
+
+// Upgrades an http:// logo URL to https://. ESPN's CDN serves both.
+function _https(url) {
+  return String(url || "").replace(/^http:\/\//i, "https://");
+}
+
+// Fallback label when a team has no abbreviation: up to three word initials,
+// or the first three letters of a one-word name.
+function _initials(school) {
+  const words = String(school || "").split(/[\s\-&]+/).filter(w => w && !/^(of|the|at)$/i.test(w));
+  if (words.length <= 1) return (words[0] || "?").slice(0, 3).toUpperCase();
+  return words.slice(0, 3).map(w => w.replace(/[^A-Za-z0-9]/g, "")[0] || "").join("").toUpperCase();
+}
+
+// The monogram itself. Team colour is data, so it is set inline; the text colour
+// comes from ratingTextColor() (config.js), never a fixed value. Without a
+// colour the CSS defaults (surface + text tokens) apply.
+function _monogramHtml(team, cls) {
+  const label = team.abbreviation || _initials(team.school);
+  const bg = team.color && String(team.color).startsWith("#") ? team.color : "";
+  const style = bg ? ` style="background:${_esc(bg)};color:${ratingTextColor(bg)};border-color:${_esc(bg)}"` : "";
+  return `<span class="team-mark ${_esc(cls)}"${style} role="img" aria-label="${_esc(team.school || "")}">${_esc(label)}</span>`;
+}
+
+// Returns the mark for a team object ({ school, abbreviation, color, logo_url }).
+// The <img> carries what the monogram needs so the capture-phase error handler
+// below can swap it in place after a failed load.
+function teamMark(team, cls = "entity-logo") {
+  const t = team || {};
+  if (!t.logo_url) return _monogramHtml(t, cls);
+  return `<img class="${_esc(cls)}" src="${_esc(_https(t.logo_url))}" alt="" loading="lazy"
+    data-mark-school="${_esc(t.school || "")}" data-mark-abbr="${_esc(t.abbreviation || "")}"
+    data-mark-color="${_esc(t.color || "")}">`;
+}
+
+// A failed logo is replaced by its monogram. `error` does not bubble, so this
+// listens in the capture phase on document — one handler for every page.
+document.addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || img.dataset.markSchool === undefined) return;
+  const holder = document.createElement("span");
+  holder.innerHTML = _monogramHtml(
+    { school: img.dataset.markSchool, abbreviation: img.dataset.markAbbr, color: img.dataset.markColor },
+    img.className);
+  img.replaceWith(holder.firstElementChild);
+}, true);
+
+// ── Keyboard access for click-only elements ──────────────────────────────────
+// Player rows, roster rows and similar-player rows are <div>s with click
+// handlers, which a keyboard user cannot reach or operate: on the Players board
+// no player could be opened without a mouse. This makes each element a focusable
+// button that Enter and Space activate. Only a key pressed ON the element counts
+// — Enter on a link inside the row (the team cell) must still follow the link.
+function makeActivatable(els) {
+  els.forEach(el => {
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.addEventListener("keydown", e => {
+      if (e.target !== el || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      el.click();
+    });
+  });
+}
+
+// ── Projection interval cell ────────────────────────────────────────────────
+// On a projected season the "Proj" column (projected change) has nothing to say:
+// the OVR already IS the projection. That slot carries the model's own interval
+// instead — the range its calibration says the rating lands in about four times
+// out of five (measured 78.7% offence, 79.4% defence on held-out seasons).
+// Shared by the Players board and the team roster so the two read identically.
+// Rows with no interval (a position we decline to project) show a dash.
+function projectionRangeCell(p) {
+  if (p.projection_low == null || p.projection_high == null) return '<span class="text-muted">—</span>';
+  return `<span title="The model's 80% interval around this projection">${Math.round(p.projection_low)}–${Math.round(p.projection_high)}</span>`;
 }

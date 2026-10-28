@@ -115,7 +115,7 @@ const FINDINGS = {
     limitations: `SP+ already contains the result, so this measures over-performance, not its
       cause. Coaching, development, scheme, health and luck all land in the same residual and
       we cannot separate them here — but we can now test one of them directly: see
-      <a href="research.html#coaching-impact">does the coach move the needle</a>. The residual
+      <a href="research-coaching-impact.html">does the coach move the needle</a>. The residual
       is persistent (r = 0.607 year over year), which proves it is real and proves nothing
       about what causes it — talent-proxy error is persistent by team too. With a residual SD
       of 9.9 points, the difference between rank 1 and rank 20 in a single season is mostly
@@ -551,7 +551,7 @@ const FINDINGS = {
         const team = teams[tid];
         if (now && then && team) {
           rows.push({
-            school: team.school, logo_url: team.logo_url, team_id: team.id,
+            school: team.school, team, team_id: team.id,
             conference: now.conference || then.conference || team.conference,
             then: then.overall_rating, now: now.overall_rating,
             delta: now.overall_rating - then.overall_rating,
@@ -595,7 +595,7 @@ const FINDINGS = {
     rowClass: r => (r.delta >= 8 ? "row-over" : r.delta <= -8 ? "row-under" : ""),
     columns: [
       { key: "school", label: "Team", fmt: (v, r) => `
-          ${r.logo_url ? `<img class="entity-logo" src="${_esc(r.logo_url)}" alt="" loading="lazy">` : ""}
+          ${teamMark(r.team)}
           ${teamLink(v, { season: PROJ_SEASON })}` },
       { key: "conference", label: "Conf", fmt: v => _esc(v || "—") },
       { key: "then", label: `${PLAYED_SEASON} actual`, num: true,
@@ -612,95 +612,6 @@ const FINDINGS = {
     limitations: `A team rating built from a roster cannot see coaching changes, scheme fit,
       or a transfer portal cycle that is still moving. Large swings often reflect a graduating
       class rather than anything about the program.`,
-  },
-
-  // ── Storyline: our projections vs EA CFB 27 ──────────────────────────────
-  "ea-disagreement": {
-    id: "ea-disagreement",
-    kind: "storyline",
-    status: "live",
-    page: "story-ea-disagreement.html",
-    eyebrow: "SECOND OPINION",
-    title: "Where we disagree with EA CFB 27",
-    claim: "Two systems looking at the same player and landing twenty points apart says " +
-           "something about both of them. EA is never an input to our number — that is what " +
-           "makes the disagreements worth reading.",
-    question: "Where do our projections and EA's ratings diverge, and why?",
-
-    async load() {
-      const [players, ea] = await Promise.all([fetchAllPlayers(PROJ_SEASON), fetchEaRatings(PROJ_SEASON)]);
-      const rows = [];
-      for (const p of players || []) {
-        const e = ea[p.id];
-        if (!e || e.ovr == null || p.overall_rating == null) continue;
-        if (p.projection_source === "ea_cfb27") continue;   // nothing to compare
-        rows.push({
-          name: p.name, player_id: p.id, team: p.team, conference: p.conference,
-          position_group: p.position_group,
-          ours: Math.round(p.overall_rating), ea: Math.round(e.ovr),
-          gap: Math.round(p.overall_rating) - Math.round(e.ovr),
-          source: p.projection_source,
-        });
-      }
-      return { rows, meta: {} };
-    },
-    headline(rows) {
-      if (!rows.length) return null;
-      const agree = rows.filter(r => Math.abs(r.gap) <= 3).length;
-      return `${rows.length.toLocaleString()} players carry both ratings; the two agree within 3 points on ${Math.round(agree / rows.length * 100)}% of them.`;
-    },
-    stats(rows) {
-      if (!rows.length) return [];
-      const agree = rows.filter(r => Math.abs(r.gap) <= 3).length;
-      const high = rows.reduce((a, b) => (b.gap > a.gap ? b : a));
-      const low = rows.reduce((a, b) => (b.gap < a.gap ? b : a));
-      const mean = rows.reduce((s, r) => s + r.gap, 0) / rows.length;
-      return [
-        { value: `${Math.round(agree / rows.length * 100)}%`, label: "agree within 3 points" },
-        { value: `${high.gap > 0 ? "+" : ""}${high.gap}`, label: `${high.name} — we are highest above EA` },
-        { value: String(low.gap), label: `${low.name} — EA is highest above us` },
-        { value: `${mean > 0 ? "+" : ""}${_fx(mean)}`, label: "average gap (positive = we rate higher)" },
-      ];
-    },
-    sort: { key: "gap", asc: false },
-    maxRows: 300,
-    filters(rows) {
-      const pos = [...new Set(rows.map(r => r.position_group).filter(Boolean))].sort();
-      return [
-        { id: "pos", type: "select", value: "ALL",
-          options: [{ value: "ALL", label: "All Positions" }, ...pos.map(p => ({ value: p, label: p }))] },
-        { id: "source", type: "select", value: "ALL",
-          options: [{ value: "ALL", label: "Any of our sources" },
-                    { value: "engine_d", label: "Career curve only" },
-                    { value: "carry", label: "Carried forward only" },
-                    { value: "recruiting", label: "Recruiting grade only" }] },
-        { id: "minGap", type: "number", label: "Min |gap|:", value: 0, min: 0, max: 60 },
-      ];
-    },
-    apply: (rows, v) => rows.filter(r =>
-      (v.pos === "ALL" || matchesPosition(r.position_group, v.pos)) &&
-      (v.source === "ALL" || r.source === v.source) &&
-      Math.abs(r.gap) >= (v.minGap || 0)),
-    columns: [
-      { key: "name", label: "Player", fmt: (v, r) => playerLink(r.player_id, v, { season: PROJ_SEASON }) },
-      { key: "position_group", label: "Pos", fmt: v => posBadge(v) },
-      { key: "team", label: "Team", fmt: v => teamLink(v, { season: PROJ_SEASON }) },
-      { key: "ours", label: "Ours", num: true,
-        fmt: v => ovrPill(v, { label: `Our projected ${PROJ_SEASON} OVR`, season: PROJ_SEASON }) },
-      { key: "ea", label: "EA 27", num: true, fmt: v => `<span class="ea-ovr">${v}</span>` },
-      { key: "gap", label: "Gap", num: true,
-        fmt: v => deltaChip(v, { title: "Our projection minus EA's overall" }) },
-      { key: "source", label: "From", title: "How our number was built", fmt: v => _sourceCell(v) },
-    ],
-    method: `Every ${PROJ_SEASON} player who has both a projection of ours and an EA CFB 27
-      overall. Players whose projection <em>came from</em> EA are excluded — there is nothing
-      to compare. The <em>From</em> column says how our side of the comparison was built.`,
-    limitations: `The extremes are dominated by one known pattern rather than genuine
-      disagreement: players who barely played last season. Our rating measures production, so a
-      highly-regarded backup rates low however well EA thinks of him. Offensive linemen used to be
-      the other half of this table — we graded them through team proxies while EA grades the
-      individual — but from v4.3 we do not rate linemen at all, so they cannot appear here. EA is
-      a game's rating system with its own goals; neither side is ground truth.`,
   },
 
   // ── Upcoming — framework in place, analysis not built yet ────────────────
@@ -769,6 +680,8 @@ function _hitCell(v) {
   return `<span style="color:${c};font-weight:600">${v.toFixed(1)}%</span>`;
 }
 
+// Breakout table cell: the call a projection made (breakout / bounceback /
+// steady / decline) as a colour-coded label.
 function _callCell(v) {
   // Bounceback is its own call, not a flavour of breakout: the player is
   // returning to a level he already posted before a season cut short, which is a
@@ -782,7 +695,6 @@ const _FINDING_SOURCE_CODES = {
   engine_d:   ["CV", "Career curve — projected from his own production history"],
   carry:      ["CF", "Carried forward — last season's rating along his cohort's development curve"],
   recruiting: ["RC", "Recruiting grade — no college production yet"],
-  ea_cfb27:   ["EA", "EA CFB 27's overall"],
 };
 
 function _sourceCell(v) {

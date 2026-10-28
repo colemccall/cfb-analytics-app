@@ -1,8 +1,8 @@
-// '26 Season hub — everything we know about a season that hasn't been played.
+// '26 Season hub — the season in progress: the preseason projection, and the games played so far.
 //
 // Every number here is either a counted fact (schedule, roster size) or a
 // projection that says so. Projections come from script 16's source chain:
-// career-curve model → cohort carry-forward → recruiting grade → EA CFB 27.
+// career-curve model → cohort carry-forward → recruiting grade.
 //
 // Load order: config.js, shell.js (top) → dataLoader.js, ui.js, dataTable.js,
 // then this file. initSeason2026() is called from season2026.html.
@@ -10,14 +10,18 @@
 const SEASON = CONFIG.CURRENT_SEASON;
 const PRIOR  = CONFIG.LAST_PLAYED_SEASON;
 
+// Entry point for season2026.html. Loads the season's games once, builds
+// the masthead facts, the 25 games to circle, projected top 25, movers,
+// then the per-team picker. The theme repaint is bound
+// once and re-renders the pill-bearing panels from cache.
 async function initSeason2026() {
   const { games, firstDate } = await fetchSeasonGames(SEASON);
 
   buildSeasonMasthead(games, firstDate);
+  buildLiveSection();
   buildCircleTable(games);
   buildProjectedTop25();
   buildMovers();
-  buildEaComparison();
   await buildTeamPreview();
 
   // Rating pills are theme-computed; repaint from cache on a theme switch.
@@ -27,7 +31,6 @@ async function initSeason2026() {
       fetchSeasonGames(SEASON).then(r => buildCircleTable(r.games));
       buildProjectedTop25();
       buildMovers();
-      buildEaComparison();
     });
   }
 }
@@ -71,7 +74,7 @@ async function buildProjectedTop25() {
   el.innerHTML = `<div class="rank-wall stagger-children">${top.map((t, i) => `
     <a class="rank-wall-item animate-up" href="${teamHref(t.school, SEASON)}">
       <span class="rank-num ${i < 4 ? "top3" : i < 12 ? "top10" : ""}">${i + 1}</span>
-      ${t.logo_url ? `<img class="entity-logo" src="${_esc(t.logo_url)}" alt="" loading="lazy">` : ""}
+      ${teamMark(t)}
       <span class="rank-wall-name">${_esc(t.school)}</span>
       ${ovrPill(t.overall_rating, { label: `Projected ${SEASON} team OVR`, season: SEASON })}
     </a>`).join("")}</div>
@@ -102,7 +105,7 @@ async function buildMovers() {
 
   const row = m => ({
     school: m.team.school,
-    logo: m.team.logo_url,
+    team: m.team,
     then: m.then,
     now: m.now,
     delta: m.delta,
@@ -116,7 +119,7 @@ async function buildMovers() {
       Movement is mostly roster turnover — who left, who arrived, and who is projected to develop.`,
     columns: [
       { key: "school", label: "Team", fmt: (v, r) => `
-          ${r.logo ? `<img class="entity-logo" src="${_esc(r.logo)}" alt="" loading="lazy">` : ""}
+          ${teamMark(r.team)}
           ${teamLink(v, { season: SEASON })}` },
       { key: "then", label: `${PRIOR} actual`, num: true,
         fmt: v => ovrPill(v, { label: `Earned team OVR, ${PRIOR}` }) },
@@ -128,90 +131,83 @@ async function buildMovers() {
   });
 }
 
-// ── Our projection vs EA CFB 27 ────────────────────────────────────────────
-// The disagreements are the interesting part. Two systems looking at the same
-// player and landing 15 points apart says something real about both.
-async function buildEaComparison() {
-  const el = document.getElementById("s26-ea");
+// ── Earned to date ─────────────────────────────────────────────────────────
+// The season's own games, rated so far. Everything else on this page is the
+// preseason projection; this is the one section that is neither a projection nor
+// a finished season, and it says which in its first line. Data is live_{season}.json
+// (script 17), which is exported separately from players_{season}.json on purpose:
+// a part-season rating must never share a file with an earned or a projected one.
+async function buildLiveSection() {
+  const el = document.getElementById("s26-live");
   if (!el) return;
-  const [players, ea] = await Promise.all([fetchAllPlayers(SEASON), fetchEaRatings(SEASON)]);
-  if (!players?.length || !Object.keys(ea).length) {
-    el.innerHTML = emptyState("EA CFB 27 ratings not exported — run script 12.");
-    return;
-  }
+  const [live, teamsById] = await Promise.all([fetchLive(SEASON), fetchTeamsById()]);
+  const section = el.closest("section");
+  if (!live) { if (section) section.style.display = "none"; return; }
 
-  const rows = [];
-  for (const p of players) {
-    const e = ea[p.id];
-    if (!e || e.ovr == null || p.overall_rating == null) continue;
-    // Where EA's number IS our number there is nothing to compare.
-    if (p.projection_source === "ea_cfb27") continue;
-    rows.push({
-      name: p.name, player_id: p.id, team: p.team,
-      position_group: p.position_group,
-      ours: Math.round(p.overall_rating),
-      ea: Math.round(e.ovr),
-      gap: Math.round(p.overall_rating) - Math.round(e.ovr),
-      source: p.projection_source,
-    });
-  }
-  if (!rows.length) { el.innerHTML = emptyState("No overlapping players to compare."); return; }
+  const v = live.validation?.by_position || [];
+  const rho = v.map(r => r.spearman);
+  const unscaled = live.validation?.summary?.median_ratio_unscaled;
+  const paced = live.validation?.summary?.median_ratio_paced;
+  const backtest = v.length ? `Back-test: in 2025, cut after week ${live.validation.summary.through_week}, an unscaled
+      part-season EDGE ran ${Math.round((unscaled - 1) * 100)}% below its final value; rescaled to full-season pace it ran
+      ${Math.round((1 - paced) * 100)}% above it at the median, and the week-${live.validation.summary.through_week} ranking agreed with the final one at
+      Spearman ${Math.min(...rho).toFixed(2)} to ${Math.max(...rho).toFixed(2)} by position.` : "";
 
-  const agree = rows.filter(r => Math.abs(r.gap) <= 3).length;
-  const sorted = [...rows].sort((a, b) => b.gap - a.gap);
-  const shown = [...sorted.slice(0, 10), ...sorted.slice(-10)];
+  el.innerHTML = `
+    <div class="projected-notice">
+      <span class="badge-live">TO DATE</span>
+      <span>Through week ${live.through_week}: ${live.games_completed.toLocaleString()} of ${live.games_scheduled.toLocaleString()}
+      regular-season games played. These ratings come from this season's games so far, rescaled to full-season pace, and they are
+      <strong>provisional</strong>. ${live.players_rated.toLocaleString()} of ${live.players_on_rosters.toLocaleString()} rostered players
+      have played enough to be rated yet; the rest are not shown here and keep their preseason projection below.
+      <a href="methods.html#live-season">How these are built →</a></span>
+    </div>
+    <h3 class="live-sub">Teams</h3>
+    <div id="s26-live-teams"></div>
+    <h3 class="live-sub">Players</h3>
+    <div class="pos-chips" id="s26-live-pos"></div>
+    <div id="s26-live-players"></div>
+    <p class="table-footnote">${backtest} Team ratings blend this season's SP+ with each roster's ratings, so a team can
+      move on its schedule as well as its players. <em>Preseason</em> is the projection made before a game was played;
+      <em>Change</em> is the difference, which includes the scale of the correction above.</p>`;
 
-  // Where the two systems disagree is patterned, not random, and saying so is
-  // more useful than a mysterious table. One pattern dominates: players whose
-  // last season was mostly bench time, because our rating measures production
-  // and a backup rates low no matter how highly he is thought of.
-  //
-  // Offensive linemen used to be the other half of this and are now absent
-  // entirely — from v4.3 we do not rate them, so they have nothing to compare.
-  // olShare should be 0; a nonzero value would mean OL ratings came back without
-  // anyone revisiting this copy, so the footnote below says so out loud.
-  const olShare = Math.round(shown.filter(r => r.position_group === "OL").length / shown.length * 100);
-
-  const table = createDataTable(el.querySelector(".ea-table-wrap") || el, {
-    rows: shown,
-    sort: { key: "gap", asc: false },
-    footnote: `${rows.length.toLocaleString()} players carry both a projection of ours and an EA CFB 27
-      overall, and the two agree within 3 points on ${Math.round(agree / rows.length * 100)}% of them.
-      EA is never an input to our number here — these are independent opinions, which is what makes
-      the disagreements worth reading. Positive gap = we are higher.
-      <strong>The disagreements are patterned.</strong> Most of them are players who barely played
-      in ${PRIOR}: our rating measures production, so a backup rates low however highly he is
-      regarded. Offensive linemen used to dominate the other direction — we graded them through
-      team proxies while EA grades the individual — but we no longer rate linemen at all, so they
-      cannot appear here${olShare ? ` (they are ${olShare}% of this table, which should not happen)` : ""}.
-      The <em>From</em> column says which of those you are looking at.`,
+  createDataTable(document.getElementById("s26-live-teams"), {
+    rows: live.teams.slice(0, 25).map((t, i) => ({ ...t, rank: i + 1 })),
+    sort: { key: "rank", asc: true },
     columns: [
-      { key: "name", label: "Player", fmt: (v, r) => playerLink(r.player_id, v, { season: SEASON }) },
-      { key: "position_group", label: "Pos", fmt: v => posBadge(v) },
-      { key: "team", label: "Team", fmt: v => teamLink(v, { season: SEASON }) },
-      { key: "ours", label: "Ours", num: true,
-        fmt: v => ovrPill(v, { label: `Our projected ${SEASON} OVR`, season: SEASON }) },
-      { key: "ea", label: "EA 27", num: true,
-        fmt: v => `<span class="ea-ovr">${v}</span>` },
-      { key: "gap", label: "Gap", num: true,
-        fmt: v => deltaChip(v, { title: "Our projection minus EA's overall" }) },
-      { key: "source", label: "From", title: "How our number was built",
-        fmt: v => {
-          const s = EA_SOURCE_LABELS[v];
-          return s ? `<span class="proj-source-code" title="${_esc(s[1])}">${s[0]}</span>`
-                   : '<span class="text-muted">—</span>';
-        } },
+      { key: "rank", label: "#", num: true },
+      { key: "school", label: "Team", fmt: (val, r) => `${teamMark(teamsById[r.team_id] || { school: val })}${teamLink(val, { season: SEASON })}` },
+      { key: "wins", label: "Record", num: true, sortVal: (val, r) => r.wins / Math.max(1, r.wins + r.losses), fmt: (val, r) => `${r.wins}-${r.losses}` },
+      { key: "overall_rating", label: "To date", num: true, fmt: val => ovrPill(val, { label: `Team OVR earned through week ${live.through_week}` }) },
+      { key: "preseason_overall", label: "Preseason", num: true, fmt: val => val == null ? "—" : ovrPill(val, { label: "Preseason projected team OVR", season: SEASON }) },
+      { key: "change", label: "Change", num: true, fmt: val => deltaChip(val, { title: "To date minus preseason" }) },
     ],
   });
-  return table;
-}
 
-const EA_SOURCE_LABELS = {
-  engine_d:   ["CV", "Career curve — projected from his own production history"],
-  carry:      ["CF", "Carried forward — last season's rating along his cohort's development curve"],
-  recruiting: ["RC", "Recruiting grade — no college production yet"],
-  ea_cfb27:   ["EA", "EA CFB 27's overall"],
-};
+  const groups = ["ALL", ...CONFIG.FILTER_POSITIONS];
+  let pos = "ALL";
+  const playerTable = createDataTable(document.getElementById("s26-live-players"), {
+    rows: [], maxRows: 100, sort: { key: "overall_rating", asc: false }, empty: "No rated players for that position yet.",
+    columns: [
+      { key: "name", label: "Player", fmt: (val, r) => playerLink(r.player_id, val, { season: SEASON }) },
+      { key: "position_group", label: "Pos", fmt: val => posBadge(val) },
+      { key: "team", label: "Team", fmt: val => val ? teamLink(val, { season: SEASON }) : "—" },
+      { key: "games_played", label: "Games", num: true },
+      { key: "overall_rating", label: "To date", num: true, fmt: val => ovrPill(val, { label: `Rating earned through week ${live.through_week}` }) },
+      { key: "preseason_overall", label: "Preseason", num: true, fmt: val => val == null ? "—" : ovrPill(val, { label: "Preseason projected rating", season: SEASON }) },
+      { key: "change", label: "Change", num: true, fmt: val => deltaChip(val, { title: "To date minus preseason" }) },
+    ],
+  });
+  const show = () => playerTable.update(live.players.filter(p => pos === "ALL" || matchesPosition(p.position_group, pos)));
+  const bar = document.getElementById("s26-live-pos");
+  bar.innerHTML = groups.map(g => `<span class="pos-chip${g === pos ? " active" : ""}" data-pos="${g}">${g}</span>`).join("");
+  bar.querySelectorAll(".pos-chip").forEach(chip => chip.addEventListener("click", () => {
+    pos = chip.dataset.pos;
+    bar.querySelectorAll(".pos-chip").forEach(c => c.classList.toggle("active", c === chip));
+    show();
+  }));
+  show();
+}
 
 // ── Per-team preview: schedule + projected roster strength ─────────────────
 async function buildTeamPreview() {

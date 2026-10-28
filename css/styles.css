@@ -63,6 +63,11 @@
 
   --shadow:    0 2px 10px rgba(0,0,0,0.45);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.55);
+  /* Modal backdrop, and the text colour that sits ON the accent fill (buttons,
+     step numbers). --on-accent is the page background, so it inverts with the
+     theme and with entity scopes, where --accent is re-pointed to ink. */
+  --scrim:     rgba(0,0,0,0.80);
+  --on-accent: var(--bg);
   --radius:      8px;
   --radius-sm:   4px;
   --radius-pill: 999px;
@@ -103,6 +108,44 @@
 
   --shadow:    0 1px 4px rgba(23,28,38,0.14);
   --shadow-lg: 0 6px 20px rgba(23,28,38,0.16);
+}
+
+/* Retro — a skin in the manner of the early-2010s console football menus: a deep
+   navy field, steel-blue panels, white condensed type, one hot orange for the
+   selected item, square corners. Colours only here; the top tab strip and the
+   banded boards are in the desktop block at the END of this file (media blocks
+   must stay last). Phones keep the normal mobile layout with these colours.
+   Held to the same contrast floors as dark and light by tools/contrast-check.mjs. */
+[data-theme="retro"] {
+  --bg:           #0a1119;
+  --surface:      #132033;
+  --surface-deep: #0c1623;
+  --surface-lift: #1c3049;
+  --input-bg:     #0d1928;
+  --sidebar-bg:   #0f2036;
+
+  --text:         #f5f8fc;
+  --text-muted:   #aebfd6;
+
+  --border:        #3d587a;
+  --border-strong: #6486ad;
+
+  --voice:      #ffa51f;
+  --voice-dim:  rgba(255,165,31,0.16);
+  --border-accent: rgba(255,165,31,0.55);
+
+  --stars:     #ffc933;
+  --positive:  #52e08c;
+  --negative:  #ff7771;
+  --info:      #7fc7ff;
+  --projected:     #b9acff;
+  --projected-dim: rgba(185,172,255,0.18);
+
+  --shadow:    0 2px 0 rgba(0,0,0,0.55);
+  --shadow-lg: 0 10px 28px rgba(0,0,0,0.65);
+  --radius:      0;
+  --radius-sm:   0;
+  --radius-pill: 0;
 }
 
 /* Entity context: team/player identity provides the color; chrome goes
@@ -186,6 +229,11 @@ a:hover { opacity: 0.82; }
   text-align: center; padding-top: 4px;
   letter-spacing: 0.4px;
 }
+.sidebar-credit {
+  font-size: var(--fs-sm); color: var(--text-muted); text-align: center;
+  text-decoration: none;
+}
+.sidebar-credit:hover { color: var(--text); text-decoration: underline; }
 
 /* ── Main content offset ── */
 .main-content {
@@ -195,17 +243,20 @@ a:hover { opacity: 0.82; }
   display: flex; flex-direction: column;
 }
 
-/* ── Theme switcher (two themes; rendered by shell.js) ── */
+/* ── Theme switcher (one swatch per CONFIG.THEMES entry; rendered by shell.js,
+      which paints each from the entry's swatch/edge colours) ── */
 .theme-swatches { display: flex; gap: 7px; align-items: center; flex-shrink: 0; }
 .theme-swatch {
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
   cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
 }
 .theme-swatch:hover { transform: scale(1.2); }
 .theme-swatch.active { box-shadow: 0 0 0 2px var(--sidebar-bg), 0 0 0 4px var(--text); }
-.theme-swatch[data-theme-pick="dark"]  { background: #161a21; border: 2px solid #5d6b7d; }
-.theme-swatch[data-theme-pick="light"] { background: #ffffff; border: 2px solid #808c9f; }
-.page-content { max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.75rem; }
+/* width:100% is load-bearing. .main-content is a flex column, and the auto side
+   margins switch off cross-axis stretch, so without it the column sizes to its
+   widest child's min-content — on a phone the ratings leaderboard pushed it to
+   616px, and the scatter then measured that and drew itself 542px wide. */
+.page-content { width: 100%; max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.75rem; }
 
 /* ── Filter bar ── */
 .filter-bar {
@@ -308,7 +359,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 /* ── Modal ── */
 .modal-overlay, .modal {
   display: none; position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.80); overflow-y: auto;
+  background: var(--scrim); overflow-y: auto;
   padding: 2rem 1rem; backdrop-filter: blur(4px);
 }
 .modal-overlay.open, .modal.open { display: flex; align-items: flex-start; justify-content: center; }
@@ -321,12 +372,6 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 .modal-header {
   display: flex; align-items: center; gap: 1rem;
   padding: 1.375rem 1.375rem 1rem; border-bottom: 1px solid var(--border);
-}
-.modal-rating {
-  width: 54px; height: 54px; border-radius: var(--radius);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-size: var(--fs-2xl);
-  font-weight: 700; color: #fff; flex-shrink: 0;
 }
 .modal-title { flex: 1; min-width: 0; }
 .modal-title h2 { font-size: var(--fs-lg); font-weight: 700; line-height: 1.2; }
@@ -445,8 +490,8 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 }
 .btn:hover { opacity: 0.88; }
 .btn-primary {
-  background: var(--accent); color: #000; font-weight: 700;
-  box-shadow: 0 2px 12px rgba(200,146,42,0.25);
+  background: var(--accent); color: var(--on-accent); font-weight: 700;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .btn-primary:hover { box-shadow: var(--shadow); }
 .btn-secondary {
@@ -867,7 +912,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
     position: absolute; z-index: 30; top: 0; left: 0; right: 0;
     width: auto; max-height: 70vh;
     border-right: none; border-bottom: 1px solid var(--border-strong);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    box-shadow: var(--shadow-lg);
     display: none;
   }
   .teams-layout.picker-open .teams-sidebar { display: flex; }
@@ -913,4 +958,64 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 @media (max-width: 640px) {
   .mobile-tab-bar { display: block; }
   body { padding-bottom: 54px; }
+}
+
+
+/* ── Retro skin: layout (desktop only) ────────────────────────────────────────
+   The markup is the same nav list as the other themes; this turns the side rail
+   into a top tab strip. Below 901px nothing here applies, so phones get the normal
+   bottom tab bar. Everything is expressed in tokens. */
+@media (min-width: 901px) {
+  [data-theme="retro"] { --sidebar-width: 0px; }
+  [data-theme="retro"] .sidebar {
+    width: auto; right: 0; bottom: auto; height: var(--nav-height);
+    flex-direction: row; align-items: stretch; overflow: visible;
+    background: linear-gradient(var(--surface-lift), var(--sidebar-bg));
+    border-right: none; border-bottom: 3px solid var(--accent);
+  }
+  [data-theme="retro"] .sidebar-nav {
+    flex-direction: row; gap: 0; padding: 0; align-items: stretch;
+    min-width: 0; overflow-x: auto; scrollbar-width: none;
+  }
+  [data-theme="retro"] .snav-item {
+    align-items: center; padding: 0 11px; gap: 0; border-radius: 0;
+    border-left: none; border-right: 1px solid var(--border); white-space: nowrap;
+    font-family: var(--font-display); font-size: var(--fs-base); font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; transform: none;
+  }
+  [data-theme="retro"] .snav-item:hover { transform: none; background: var(--surface-lift); color: var(--text); }
+  [data-theme="retro"] .snav-item.active { background: var(--accent); color: var(--on-accent); }
+  [data-theme="retro"] .snav-icon { display: none; }
+  /* Swatches on the left, version above the data credit on the right */
+  [data-theme="retro"] .sidebar-bottom {
+    display: grid; grid-template-columns: auto auto; grid-template-rows: 1fr 1fr;
+    align-items: center; column-gap: 14px; row-gap: 0; flex-shrink: 0;
+    padding: 0 16px; border-top: none; border-left: 1px solid var(--border);
+  }
+  [data-theme="retro"] .sidebar-bottom > :first-child { grid-row: 1 / span 2; }
+  [data-theme="retro"] .sidebar-theme-label { display: none; }
+  [data-theme="retro"] .sidebar-version,
+  [data-theme="retro"] .sidebar-credit { padding: 0; white-space: nowrap; text-align: left; line-height: 1.3; }
+  [data-theme="retro"] .main-content { margin-left: 0; padding-top: var(--nav-height); }
+  [data-theme="retro"] .teams-layout { height: calc(100vh - var(--nav-height)); }
+
+  /* Headings and section rules read as menu banners */
+  [data-theme="retro"] :is(h1, h2) {
+    font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  [data-theme="retro"] .section-rule {
+    background: linear-gradient(90deg, var(--surface-lift), transparent);
+    border-left: 4px solid var(--accent); padding-left: 0.75rem;
+  }
+
+  /* Boards: banded header with a heavy rule, striped rows, hard drop shadow */
+  [data-theme="retro"] .draft-board-header {
+    background: linear-gradient(var(--surface-lift), var(--surface));
+    border-bottom: 2px solid var(--accent);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  [data-theme="retro"] .draft-row:nth-child(even) {
+    background: color-mix(in srgb, var(--surface-lift) 45%, transparent);
+  }
+  [data-theme="retro"] .draft-row:hover { background: var(--accent-dim); }
 }

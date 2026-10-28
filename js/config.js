@@ -5,8 +5,9 @@ const CONFIG = {
 
   // ── Seasons ───────────────────────────────────────────────────────────────
   // Three constants, because "the current season" means two different things:
-  //   CURRENT_SEASON     the season the app defaults to — 2026, not yet played,
-  //                      so its ratings are projections
+  //   CURRENT_SEASON     the season the app defaults to — 2026, in progress. Its
+  //                      player ratings are still preseason projections; ratings
+  //                      earned on the games so far are in live_2026.json
   //   LAST_PLAYED_SEASON the newest season with EARNED ratings. Anything
   //                      retrospective (hidden gems, research, "best of last
   //                      year") must use this or it will narrate model output
@@ -21,6 +22,14 @@ const CONFIG = {
   LAST_PLAYED_SEASON: 2025,
   CURRENT_SEASON:     2026,
   PROJECTED_SEASONS:  [2026],
+
+  // Seasons with a live_{season}.json (script 17: ratings earned so far in a season
+  // being played). Guarded against the files on disk by tests/test_frontend_config.py.
+  LIVE_SEASONS:       [2026],
+
+  // Seasons with a transfers_{season}.json (the league-wide portal tab reads them).
+  // Guarded against the files on disk by tests/test_frontend_config.py.
+  TRANSFER_SEASONS:   [2021, 2022, 2023, 2024, 2025, 2026],
 
   // 12-group position system
   POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "CB", "S", "K", "P"],
@@ -45,6 +54,20 @@ const CONFIG = {
   // "ATH" and other stragglers fall through to exact matching.
   FILTER_POSITIONS: ["QB", "RB", "WR", "TE", "OL", "EDGE", "DL", "LB", "DB", "K", "P"],
 
+  // ── Themes — the skin contract ──────────────────────────────────────────────
+  // The ONE list of themes. shell.js builds its swatches and validates saved
+  // choices from it, _activeTheme() resolves against it, and tools/theme-check.mjs
+  // fails the build if any entry lacks a CSS token block or a palette key below.
+  // The first entry is the default. Adding a skin (e.g. a retro NCAA 11/12 look)
+  // is: one row here, one [data-theme="id"] token block in styles.css, one key in
+  // POS_COLORS and RATING_RAMP — no page code. `swatch`/`edge` paint the picker
+  // button; they live here because colour literals are only allowed in palettes.
+  THEMES: [
+    { id: "dark",  label: "Dark",  swatch: "#161a21", edge: "#5d6b7d" },
+    { id: "light", label: "Light", swatch: "#ffffff", edge: "#808c9f" },
+    { id: "retro", label: "Retro", swatch: "#132033", edge: "#ffa51f" },
+  ],
+
   // ── Domain palettes — the SINGLE source of position/tier/rating color.
   // Theme-keyed: light mode uses deepened variants so fills and text stay
   // readable on paper. There is deliberately no CSS copy of these values.
@@ -60,6 +83,14 @@ const CONFIG = {
       OL: "#546e7a", EDGE: "#bf360c", DL: "#b71c1c", LB: "#e65100",
       CB: "#6a1b9a", S: "#3949ab",   K: "#0277bd",  P: "#01579b",
       DB: "#3949ab", ATH: "#455a64",
+    },
+    // Retro sits on navy panels, so it reuses the dark fills (all contrast-checked
+    // against the retro surface by tools/contrast-check.mjs).
+    retro: {
+      QB: "#FFB300", RB: "#43A047", WR: "#1E88E5", TE: "#26C6DA",
+      OL: "#8D9AA8", EDGE: "#FF5722", DL: "#E53935", LB: "#FB8C00",
+      CB: "#AB47BC", S: "#5C6BC0",   K: "#039BE5",  P: "#0288D1",
+      DB: "#5C6BC0", ATH: "#607D8B",
     },
   },
 
@@ -79,6 +110,7 @@ const CONFIG = {
   RATING_RAMP: {
     dark:  [[90, "#F2C230"], [80, "#E8973C"], [70, "#90A4AE"], [55, "#A1887F"], [40, "#D9705F"], [0, "#F0574A"]],
     light: [[90, "#7d6300"], [80, "#8f5300"], [70, "#546e7a"], [55, "#6d4c41"], [40, "#a13d2d"], [0, "#b91c1c"]],
+    retro: [[90, "#FFC933"], [80, "#FFA51F"], [70, "#9DB4CE"], [55, "#B59A8B"], [40, "#E8806F"], [0, "#FF6A5E"]],
   },
 
   // Tier labels (colors come from RATING_RAMP at the tier threshold)
@@ -130,9 +162,11 @@ function isProjectedSeason(season) {
   return CONFIG.PROJECTED_SEASONS.includes(Number(season));
 }
 
-// Active theme: "dark" | "light" (anything else degrades to dark — safe)
+// Active theme id. Anything not in CONFIG.THEMES degrades to the default (the
+// first entry) — safe, because every theme has palette keys (theme-check.mjs).
 function _activeTheme() {
-  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const t = document.documentElement.getAttribute("data-theme");
+  return CONFIG.THEMES.some(x => x.id === t) ? t : CONFIG.THEMES[0].id;
 }
 
 // Rating tier — returns {label, color, cls}
@@ -181,6 +215,9 @@ function starsHtml(n) {
 
 // ── Sortable helpers (shared by teams.html and playerSearch.js) ───────────
 
+// The sort key for one rendered cell's text: null for blank or "—" (sorts
+// last), height strings like 6'2" as inches, star strings by star count,
+// otherwise the first number in the text, else the lowercased text.
 function _sortVal(text) {
   const t = (text || "").trim();
   if (!t || t === "—") return null;
@@ -192,6 +229,8 @@ function _sortVal(text) {
   return isNaN(num) ? t.toLowerCase() : num;
 }
 
+// Sort `items` in place by getValFn(item). Nulls always sort to the bottom,
+// whichever direction is requested.
 function _sortRows(items, getValFn, asc) {
   items.sort((a, b) => {
     const av = getValFn(a), bv = getValFn(b);
@@ -224,11 +263,22 @@ function makeSortable(table) {
   });
 }
 
+// Make a div-based board (.draft-board-header + .draft-row) sortable by
+// clicking header spans. Sorts on each row's rendered text via _sortVal and
+// shows ▲/▼ on the active header. Used by the Players board and team rosters,
+// which are grids rather than <table>s for their responsive collapse.
 function makeGridSortable(headerEl, containerEl) {
   if (!headerEl || !containerEl) return;
   const spans = Array.from(headerEl.querySelectorAll("span"));
   spans.forEach((sp, colIdx) => {
     sp.style.cursor = "pointer";
+    // A clickable <span> is invisible to the keyboard: make it a focusable
+    // button that Enter and Space activate, like a real <th> sort control.
+    sp.tabIndex = 0;
+    sp.setAttribute("role", "button");
+    sp.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sp.click(); }
+    });
     let asc = null;
     sp.addEventListener("click", () => {
       asc = asc === true ? false : true;
@@ -281,10 +331,11 @@ function teamHref(school, season) {
   return `teams.html?${q}`;
 }
 
-// Renders a team as a link. Pass logo:true to prefix the team mark.
+// Renders a team as a link. Pass logo:<url> to prefix the team mark (logo, or a
+// monogram if it fails to load — see teamMark in ui.js).
 function teamLink(school, { season, logo, cls = "" } = {}) {
   if (!school) return '<span class="muted">—</span>';
-  const img = logo ? `<img class="entity-logo" src="${_esc(logo)}" alt="" loading="lazy">` : "";
+  const img = logo && typeof teamMark === "function" ? teamMark({ school, logo_url: logo }) : "";
   return `<a class="entity-link entity-link--team ${cls}" href="${teamHref(school, season)}"
              title="View ${_esc(school)}">${img}${_esc(school)}</a>`;
 }

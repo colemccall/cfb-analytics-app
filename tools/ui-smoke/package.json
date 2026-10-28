@@ -1,0 +1,8 @@
+{
+  "name": "cfb-ui-smoke",
+  "private": true,
+  "description": "Dev-only headless smoke test for every page, panel and control. Not a site dependency.",
+  "type": "module",
+  "scripts": { "smoke": "node smoke.mjs" },
+  "devDependencies": { "playwright-core": "^1.47.0" }
+}

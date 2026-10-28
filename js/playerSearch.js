@@ -1,32 +1,33 @@
-// Player search and card rendering for players.html
-// Data source: dataLoader.js (static JSON from data/)
+// playerSearch.js — the Players board (players.html) and the player modal.
+//
+// Two jobs in one file, because the modal is shared: every page that names a
+// player (home, teams, ratings, '26 hub, research) loads this file for
+// openPlayerModal(), and only players.html calls initPlayerSearch().
+//
+//   board   initPlayerSearch → fetchAndRender (per-position fetch, merge) →
+//           applyClientFilters (text + min OVR) → renderGrid → playerRowHtml
+//   modal   openPlayerModal → modalContentHtml (+ renderRatingBreakdown,
+//           renderArchetypes) → renderProjectionReasoning
+//
+// All data comes through dataLoader.js; nothing here calls fetch() directly.
+// Load order: config.js, shell.js → dataLoader.js, ui.js → this file.
 
+// [tint, solid] pair for a position group — the modal avatar's fill and ink.
 function posGroupColor(g) {
-  const c = posColor(g);  // from config.js
+  const c = posColor(g);
   return [c + "22", c];
 }
-// ratingTextColor is defined in config.js via luminance check
 
-let _allPlayers = [];        // current page of results (from server)
-let _filteredPlayers = [];   // client-side text/minRating filter applied to _allPlayers
+let _allPlayers = [];        // the fetched board: top N per position group
+let _filteredPlayers = [];   // _allPlayers after the client-side text + min-OVR filters
 let _activeFilters = { position: "ALL", conference: "", minRating: 0, query: "", season: CONFIG.CURRENT_SEASON };
 let _fetchPending = false;
+let _refetchQueued = false;  // a filter changed mid-fetch — run again when it lands
 
-// Similar players — loaded lazily from data/similar_players_{season}.json
-let _similarPlayersCache = {};
-
-// Player transfer history — loaded lazily from data/player_transfers.json
-let _playerTransfersCache = null;
-
+// Every player's transfer history, {player_id: [move, …]} — the modal's Career
+// Path. Cached by _load, so only the first modal open pays for it.
 async function loadPlayerTransfers() {
-  if (_playerTransfersCache) return _playerTransfersCache;
-  try {
-    const res = await fetch("data/player_transfers.json");
-    _playerTransfersCache = res.ok ? await res.json() : {};
-  } catch (e) {
-    _playerTransfersCache = {};
-  }
-  return _playerTransfersCache;
+  return (await _load("player_transfers.json")) || {};
 }
 
 // Engine D projections, indexed by player_season_id for O(1) modal lookup.
@@ -36,6 +37,9 @@ let _trajectoryCache = null;
 let _trajectoryByPlayer = null;
 let _trajectoryMeta  = {};
 
+// Index Engine D's projections for synchronous lookup: by player_season_id
+// (_trajectoryCache) and by player_id (_trajectoryByPlayer), and keep the
+// model's own accuracy in _trajectoryMeta. Built once per page.
 async function loadTrajectory() {
   if (_trajectoryCache) return _trajectoryCache;
   const { meta, rows } = await fetchTrajectory();
@@ -61,15 +65,12 @@ function trajectoryFor(playerSeasonId, playerId) {
   return null;
 }
 
+// Comps are matched on production profile, and an unplayed season has none —
+// the pipeline writes no similar_players file for it, so asking was a 404 on
+// every modal opened on the default season.
 async function loadSimilarPlayers(season) {
-  if (_similarPlayersCache[season]) return _similarPlayersCache[season];
-  try {
-    const res = await fetch(`data/similar_players_${season}.json`);
-    _similarPlayersCache[season] = res.ok ? await res.json() : {};
-  } catch (e) {
-    _similarPlayersCache[season] = {};
-  }
-  return _similarPlayersCache[season];
+  if (isProjectedSeason(season)) return {};
+  return (await _load(`similar_players_${season}.json`)) || {};
 }
 
 const OFF_POS  = ["ALL", "QB", "RB", "WR", "TE", "OL"];
@@ -96,7 +97,18 @@ const CAREER_FIELDS = {
 // Init
 // ---------------------------------------------------------------------------
 
+// Entry point for players.html. Builds the filters, renders the board for the
+// default season, then honours a ?player=ID[&season=YYYY] deep link.
+//
+// That link is what playerHref() emits everywhere, and it is the fallback on
+// any page without the modal and on every ctrl/cmd-click — so it has to open
+// the player, not just land on the board. A valid ?season= also switches the
+// board to that season first, so the player sits in the context he was linked from.
 async function initPlayerSearch() {
+  const params = new URLSearchParams(location.search);
+  const linkedSeason = Number(params.get("season"));
+  if (seasonList().includes(linkedSeason)) _activeFilters.season = linkedSeason;
+
   buildPosChips();
   fillSeasonSelect(document.getElementById("filter-season"), _activeFilters.season);
   renderSeasonProvenance(_activeFilters.season);
@@ -106,6 +118,9 @@ async function initPlayerSearch() {
   // Position chips and OVR pills are theme-computed — repaint on theme switch
   // from the already-filtered rows (no refetch).
   onThemeChange(() => { buildPosChips(); renderGrid(); });
+
+  const linkedPlayer = Number(params.get("player"));
+  if (linkedPlayer) openPlayerModal(linkedPlayer, _activeFilters.season);
 }
 
 // Per-position fetch limits — top N per position chip click
@@ -114,8 +129,20 @@ const POS_LIMITS = {
   EDGE: 100, DL: 100, LB: 100, CB: 100, S: 100, DB: 100, K: 60, P: 60,
 };
 
+// Loads the board for the active season / position / conference into
+// _allPlayers, then hands off to applyClientFilters() for text and min-OVR.
+//
+// Always fetches per position group and merges, so one deep position cannot
+// crowd another out of the top N: "ALL" is every group in POS_LIMITS, and a
+// grouped filter (DB = CB ∪ S ∪ DB, per CONFIG.POSITION_FILTER_GROUPS) is each
+// of its members. fetchPlayers() itself matches one exact group — routing the
+// DB chip straight to it showed only the bare-"DB" rows and dropped every
+// corner and safety, unlike every other position filter on the site.
 async function fetchAndRender() {
-  if (_fetchPending) return;
+  // One fetch at a time, but a filter change that arrives mid-fetch is queued
+  // rather than dropped — dropping it left the board showing the old filter
+  // under a chip that said otherwise.
+  if (_fetchPending) { _refetchQueued = true; return; }
   _fetchPending = true;
   const grid = document.getElementById("player-grid");
   const { position, conference, season } = _activeFilters;
@@ -124,54 +151,63 @@ async function fetchAndRender() {
   // columns would otherwise render dashes on first paint.
   await Promise.all([loadTrajectory(), buildEdgePercentiles(season)]);
   try {
-    if (position && position !== "ALL") {
-      const limit = POS_LIMITS[position] || 150;
-      _allPlayers = await fetchPlayers({ season, position, conference, limit });
-    } else {
-      // Fetch each position separately so no position gets crowded out
-      const positions = Object.keys(POS_LIMITS);
-      const batches = await Promise.all(
-        positions.map(pos => fetchPlayers({ season, position: pos, conference, limit: POS_LIMITS[pos] }).catch(() => []))
-      );
-      // Merge and dedupe by player_season_id
-      const seen = new Set();
-      _allPlayers = [];
-      for (const batch of batches) {
-        for (const p of batch) {
-          const key = p.player_season_id || p.id;
-          if (!seen.has(key)) { seen.add(key); _allPlayers.push(p); }
-        }
+    const positions = (position && position !== "ALL")
+      ? (CONFIG.POSITION_FILTER_GROUPS[position] || [position])
+      : Object.keys(POS_LIMITS);
+    const batches = await Promise.all(
+      positions.map(pos => fetchPlayers({ season, position: pos, conference, limit: POS_LIMITS[pos] || 150 }).catch(() => []))
+    );
+    // Merge and dedupe by player_season_id
+    const seen = new Set();
+    _allPlayers = [];
+    for (const batch of batches) {
+      for (const p of batch) {
+        const key = p.player_season_id || p.id;
+        if (!seen.has(key)) { seen.add(key); _allPlayers.push(p); }
       }
-      _allPlayers.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
     }
+    _allPlayers.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
   } catch (e) {
-    grid.innerHTML = `<p class="empty-state">Failed to load: ${e.message}</p>`;
+    grid.innerHTML = errorState(`Failed to load: ${e.message}`);
     _fetchPending = false;
     return;
   }
   _fetchPending = false;
+  if (_refetchQueued) { _refetchQueued = false; return fetchAndRender(); }
   applyClientFilters();
 }
 
+// (Re)builds both chip rows from the current filter state. Called on init and on
+// every theme switch, because chip colors come from the active theme's palette.
+// It replaces the rows rather than appending — appending doubled the chips on
+// each theme switch and reset the highlight to ALL while the WR filter stayed on.
 function buildPosChips() {
+  const paintActive = (btn, pg) => {
+    btn.classList.add("active");
+    if (pg !== "ALL") {
+      const color = posColor(pg);
+      btn.style.background = color;
+      btn.style.color = ratingTextColor(color);
+    }
+  };
   const makeChip = (pg) => {
     const btn = document.createElement("button");
-    btn.className = "pos-chip" + (pg === "ALL" ? " active" : "");
+    btn.className = "pos-chip";
     btn.dataset.pos = pg;
     btn.textContent = pg;
-    const color = posColor(pg);
     if (pg !== "ALL") {
+      const color = posColor(pg);
       btn.style.setProperty("--chip-color", color);
       btn.style.borderColor = color + "44";
     }
+    if (pg === _activeFilters.position) paintActive(btn, pg);
     btn.addEventListener("click", () => {
       document.querySelectorAll(".pos-chip").forEach(b => {
         b.classList.remove("active");
         b.style.background = "";
         b.style.color = "";
       });
-      btn.classList.add("active");
-      if (pg !== "ALL") { btn.style.background = color; btn.style.color = ratingTextColor(color); }
+      paintActive(btn, pg);
       _activeFilters.position = pg;
       fetchAndRender();
     });
@@ -179,8 +215,8 @@ function buildPosChips() {
   };
   const offRow = document.getElementById("pos-chips-offense");
   const defRow = document.getElementById("pos-chips-defense");
-  if (offRow) OFF_POS.forEach(p => offRow.appendChild(makeChip(p)));
-  if (defRow) DEF_POS.forEach(p => defRow.appendChild(makeChip(p)));
+  if (offRow) offRow.replaceChildren(...OFF_POS.map(makeChip));
+  if (defRow) defRow.replaceChildren(...DEF_POS.map(makeChip));
 }
 
 // EDGE percentile within position group, computed once per season from the full
@@ -189,6 +225,10 @@ function buildPosChips() {
 // one column invites a comparison that isn't valid. Percentile is.
 let _edgePctBySeason = {};
 
+// {player_season_id: EDGE percentile within his position group} for one
+// season, computed once from the full season file and cached. Percentile =
+// rank among the group's EDGE scores (first index ≥ his, by binary search)
+// over n − 1, so the lowest is 0 and the highest 100; a group of one is 50.
 async function buildEdgePercentiles(season) {
   if (_edgePctBySeason[season]) return _edgePctBySeason[season];
   const players = await fetchAllPlayers(season).catch(() => []);
@@ -244,6 +284,9 @@ async function populateConferenceOptions(season = _activeFilters.season) {
 // Filtering — server handles position+conference+season, client handles text+minRating
 // ---------------------------------------------------------------------------
 
+// Apply the text search (name or team, case-insensitive) and the min-OVR
+// slider to the fetched board, re-render, and update the "N shown" count.
+// No fetch — these two filters run on rows already in memory.
 function applyClientFilters() {
   const { minRating, query, position } = _activeFilters;
   const q = query.toLowerCase();
@@ -257,6 +300,10 @@ function applyClientFilters() {
   if (rc) rc.textContent = `${_filteredPlayers.length} shown`;
 }
 
+// Wire the board's controls: conference and season refetch (season also
+// rebuilds the conference list, since membership changes by season, and
+// the projected-season notice); the min-OVR slider and the search box
+// (debounced 200 ms) filter client-side.
 function bindFilterEvents() {
   document.getElementById("filter-conference")?.addEventListener("change", e => {
     _activeFilters.conference = e.target.value;
@@ -286,6 +333,11 @@ function bindFilterEvents() {
 // Rendering
 // ---------------------------------------------------------------------------
 
+// Render the filtered board as .draft-row divs with a sortable header. The
+// last two columns change meaning on a projected season (projection range + source code
+// instead of projected change + EDGE percentile); the column COUNT stays 11
+// so the responsive CSS can keep hiding cells by position. A row click opens
+// the modal, except on the team link inside it.
 function renderGrid() {
   const grid = document.getElementById("player-grid");
   // Filter out unknown/blank players
@@ -294,7 +346,7 @@ function renderGrid() {
     grid.innerHTML = '<p class="empty-state">No players match your filters.</p>';
     return;
   }
-  // Last two columns change meaning on a projected season — see gridEaCell /
+  // Last two columns change meaning on a projected season — see projectionRangeCell /
   // gridSourceCell. Column count stays at 11 so the responsive collapse holds.
   const proj = isProjectedSeason(_activeFilters.season);
   grid.innerHTML = `<div class="draft-board-header animate-pop">
@@ -303,8 +355,8 @@ function renderGrid() {
     <span style="text-align:center">Ht</span><span style="text-align:center">Wt</span>
     <span style="text-align:center">${proj ? "PROJ" : "OVR"}</span>
     <span style="text-align:center" title="${proj
-      ? "EA Sports CFB 27's own overall, shown for comparison — never an input to ours unless we had no signal at all"
-      : "Engine D projected change in OVR next season"}">${proj ? "EA 27" : "Proj"}</span>
+      ? "The model's 80% interval around the projection — where the rating should land four times out of five"
+      : "Engine D projected change in OVR next season"}">${proj ? "Range" : "Proj"}</span>
     <span style="text-align:center" title="${proj
       ? "How this projection was built"
       : "EDGE percentile within position group — raw EDGE is not comparable across positions"}">${proj ? "From" : "EDGE %"}</span>
@@ -324,8 +376,13 @@ function renderGrid() {
       openPlayerModal(parseInt(row.dataset.id), parseInt(row.dataset.season));
     });
   });
+  makeActivatable(grid.querySelectorAll(".draft-row"));
 }
 
+// One board row: rank, position badge, name (🔥 for breakout probability
+// ≥ 35%), team link, class year · conference, stars, height, weight, OVR pill
+// (provenance derived from the season), then either projected change and
+// EDGE percentile (played season) or projection range and source code (projected).
 function playerRowHtml(p, rank) {
   const ovr     = p.overall_rating ? Math.round(p.overall_rating) : null;
   // Rows are flat surface — the tier-colored left border + OVR pill carry the
@@ -339,7 +396,7 @@ function playerRowHtml(p, rank) {
     ? `<span title="EDGE ${p.edge_score.toFixed(1)} — ${edgePct}th percentile among ${p.position_group}s in ${p.season}">${edgePct}</span>`
     : "—";
   const breakout = p.breakout_prob >= 0.35 ? ' 🔥' : "";
-  const yr       = yearLabel(p.year);
+  const yr       = classYearCell(p.class_year, p.class_year_basis);
   const starsStr = p.stars ? "★".repeat(p.stars) + "☆".repeat(5 - p.stars) : "—";
   const ht       = p.height_in ? `${Math.floor(p.height_in/12)}'${p.height_in%12}"` : "—";
   const wt       = p.weight_lbs ? `${p.weight_lbs}` : "—";
@@ -358,39 +415,25 @@ function playerRowHtml(p, rank) {
       <div class="draft-ht">${ht}</div>
       <div class="draft-wt">${wt}</div>
       <div class="draft-ovr">${ovrPill(p.overall_rating, { label: `Overall rating, ${p.season}`, season: p.season, source: p.projection_source })}</div>
-      <div class="draft-traj">${isProjectedSeason(p.season) ? gridEaCell(p) : projHtml(p.player_season_id)}</div>
+      <div class="draft-traj">${isProjectedSeason(p.season) ? projectionRangeCell(p) : projHtml(p.player_season_id)}</div>
       <div class="draft-edge">${isProjectedSeason(p.season) ? gridSourceCell(p) : oap}</div>
     </div>`;
-}
-
-// On a projected season the "Proj" and "EDGE %" columns have nothing to say —
-// the OVR already is the projection and no snaps have been played. They carry
-// the EA CFB 27 cross-check and the provenance code instead, matching the
-// roster grid on the teams page so the two boards read identically.
-function gridEaCell(p) {
-  if (p.ea_ovr == null) return '<span class="text-muted">—</span>';
-  const ours = p.overall_rating != null ? Math.round(p.overall_rating) : null;
-  const gap = ours != null ? Math.round(p.ea_ovr) - ours : null;
-  return `<span title="EA CFB 27 rates him ${Math.round(p.ea_ovr)}${gap != null
-    ? `; we project ${ours} (${gap > 0 ? "+" : ""}${gap})` : ""}">${Math.round(p.ea_ovr)}</span>`;
 }
 
 const _GRID_SOURCE_CODES = {
   engine_d:   ["CV", "Career curve — projected from his own production history"],
   carry:      ["CF", "Carried forward — last season's rating along his cohort's development curve"],
   recruiting: ["RC", "Recruiting grade — no college production yet"],
-  ea_cfb27:   ["EA", "EA CFB 27's overall — we had no signal of our own"],
 };
 
+// Where a projected number came from, as a two-letter code (CV career curve,
+// CF carried forward, RC recruiting) with the full reason on hover.
+// Low-confidence projections are dimmed.
 function gridSourceCell(p) {
   const s = _GRID_SOURCE_CODES[p.projection_source];
   if (!s) return '<span class="text-muted">—</span>';
   const dim = p.projection_confidence === "low" ? "opacity:0.65" : "";
   return `<span class="proj-source-code" style="${dim}" title="${_esc(s[1])}">${s[0]}</span>`;
-}
-
-function yearLabel(yr) {
-  return { 1: "FR", 2: "SO", 3: "JR", 4: "SR", 5: "GR" }[yr] || "—";
 }
 
 // Projected next-season movement for the grid's PROJ column.
@@ -413,6 +456,15 @@ function projHtml(playerSeasonId) {
 // Player detail modal
 // ---------------------------------------------------------------------------
 
+// Open the player modal for (playerId, season) on any page that hosts
+// #player-modal. Shows a loading shell at once, then fetches profile, stats,
+// rating history, career stats, comps, transfers, projections, EDGE
+// percentiles in parallel and renders modalContentHtml.
+//
+// `season` falls back to the page's active season (Players or Ratings),
+// then CURRENT_SEASON. A player absent from that season is found by scanning
+// the other seasons newest-first (fetchPlayerProfile). The projection's
+// reasoning (a ~5.5 MB file) is fetched only after the modal is on screen.
 async function openPlayerModal(playerId, seasonOverride) {
   const season = seasonOverride
     || (typeof _activeFilters !== "undefined" ? _activeFilters.season : null)
@@ -426,9 +478,12 @@ async function openPlayerModal(playerId, seasonOverride) {
   modal.querySelector(".modal-inner").innerHTML = `
     <div class="modal-header">
       <h2 style="color:var(--text-muted)">Loading…</h2>
-      <button class="modal-close">✕</button>
+      <button class="modal-close" aria-label="Close player details">✕</button>
     </div>
     <div class="modal-loading">Fetching player data…</div>`;
+  // Remember what had focus so closing returns the keyboard user to it. Not
+  // overwritten when a similar-player click re-opens an already-open modal.
+  if (!modal.classList.contains("open")) modal._returnFocus = document.activeElement;
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
   bindModalClose(modal);
@@ -437,7 +492,7 @@ async function openPlayerModal(playerId, seasonOverride) {
   // buildEdgePercentiles primes the EDGE-context cache so the modal can place
   // the player's EDGE on its position distribution.
   const [player, statsRows, ratingHistory, careerStats, similarMap, transfersMap,
-         trajectoryMap, _edgePct, eaMap] = await Promise.all([
+         trajectoryMap, _edgePct] = await Promise.all([
     fetchPlayerProfile(playerId, season).catch(() => null),
     fetchPlayerStats(playerId, season).catch(() => []),
     fetchPlayerRatingHistory(playerId).catch(() => []),
@@ -446,12 +501,11 @@ async function openPlayerModal(playerId, seasonOverride) {
     loadPlayerTransfers().catch(() => ({})),
     loadTrajectory().catch(() => ({})),
     buildEdgePercentiles(season).catch(() => ({})),
-    fetchEaRatings(season).catch(() => ({})),
   ]);
 
   if (!player) {
     modal.querySelector(".modal-inner").innerHTML = `
-      <div class="modal-header"><h2>Player not found</h2><button class="modal-close">✕</button></div>
+      <div class="modal-header"><h2>Player not found</h2><button class="modal-close" aria-label="Close player details">✕</button></div>
       <div class="modal-loading">No rating data for this player in ${season}.</div>`;
     bindModalClose(modal);
     return;
@@ -469,14 +523,6 @@ async function openPlayerModal(playerId, seasonOverride) {
     ? (transfersMap[String(player.id)] || []) : [];
   // Look up Engine D trajectory prediction by player_season_id
   const trajectory = trajectoryFor(psId, player.id);
-
-  // EA's attribute grades live in ea_ratings_{season}.json, not in the player
-  // row, so attach them here rather than teaching the exporter to duplicate them.
-  const eaRow = eaMap && player.id != null ? eaMap[player.id] : null;
-  if (eaRow) {
-    if (player.ea_ovr == null) player.ea_ovr = eaRow.ovr;
-    player.ea_attributes = eaRow.attributes || null;
-  }
 
   modal.querySelector(".modal-inner").innerHTML = modalContentHtml(player, statsData, ratingHistory, careerStats, season, postseasonData, similarPlayers, transferHistory, trajectory);
   bindModalClose(modal);
@@ -541,15 +587,14 @@ async function renderProjectionReasoning(playerSeasonId) {
       </div>` : ""}`;
 }
 
-function modalLoadingHtml(player) {
-  return `
-    <div class="modal-header">
-      <h2>${player.name}</h2>
-      <button class="modal-close">✕</button>
-    </div>
-    <div class="modal-loading">Loading stats…</div>`;
-}
-
+// The full modal body for one player-season, as HTML. Sections, in order:
+// header (name, class year, team, rating-basis chip, OVR box), bio strip,
+// season stats (regular / postseason / total; a "not played yet" note on a
+// projected season), EDGE with its percentile strip, career stats, rating
+// history chart, "Why this rating?" (played seasons only), DB archetypes,
+// projection with range and reasoning host (only on the season the
+// projection is FOR), career path, similar players.
+// Any section without data is omitted rather than rendered empty.
 function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [], season, postseasonData = null, similarPlayers = [], transferHistory = [], trajectory = null) {
   const stats = statsData || {};
   const ovr   = player.overall_rating ? Math.round(player.overall_rating) : null;
@@ -565,7 +610,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       <div class="player-initials-avatar modal-avatar" style="background:${pgBg};border-color:${pgColor}40;color:${pgColor};width:52px;height:52px;font-size:18px;flex-shrink:0">${initials}</div>
       <div class="modal-title">
         <h2>${player.name || "Unknown"}</h2>
-        <div class="modal-sub" style="color:${pgColor}">${pg} · ${yearLabel(player.year)} · ${player.team || "—"}</div>
+        <div class="modal-sub" style="color:${pgColor}">${pg} · ${classYearCell(player.class_year, player.class_year_basis)} · ${player.team || "—"}</div>
         <div class="modal-sub" style="color:var(--text-muted)">${player.conference || ""}</div>
         ${basisChip(player.rating_basis)}
       </div>
@@ -577,7 +622,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <span class="modal-ovr-num">${ovr || "—"}</span>
         <span class="modal-ovr-lbl">${isProjectedSeason(player.season) ? "PROJ OVR" : "OVR"}</span>
       </div>
-      <button class="modal-close">✕</button>
+      <button class="modal-close" aria-label="Close player details">✕</button>
     </div>`;
 
   // ── Quick bio strip ──
@@ -804,7 +849,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       const pct = Math.round(s.similarity * 100);
       const ovrColor = ratingColor(Math.round(s.ovr || 50));
       return `
-        <div class="similar-row" data-player-id="${s.id}" style="cursor:pointer">
+        <div class="similar-row" data-player-id="${s.id}" data-season="${s.season ?? ""}" style="cursor:pointer">
           <div class="similar-info">
             <span class="similar-name">${s.name}</span>
             <span class="similar-meta">${s.team || "—"} · ${s.season}</span>
@@ -825,11 +870,10 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   }
 
   // On a season that has not been played there is no earned rating to explain,
-  // so "Why this rating?" is replaced by the projection's own reasoning plus
-  // EA's independent read. Keeping the breakdown would narrate model output as
+  // so "Why this rating?" is replaced by the projection's own reasoning.
+  // Keeping the breakdown would narrate model output as
   // though it were production.
   const isProj = isProjectedSeason(season ?? player.season);
-  const eaHtml   = renderEaSection(player, pg);
   const archHtml = renderArchetypes(player, pg);
 
   return `
@@ -843,7 +887,6 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
       ${isProj ? "" : shapHtml}
       ${archHtml}
       ${trajectoryHtml}
-      ${eaHtml}
       ${careerPathHtml}
       ${similarHtml}
     </div>`;
@@ -867,6 +910,9 @@ const ARCHETYPE_WEIGHTS = {
   DB: { run_support: 1 / 3, ball_hawk: 1 / 3, coverage: 1 / 3 },
 };
 
+// "What kind of defensive back": the three archetype scores (0–10) that a
+// CB/S/DB overall is built from, each with its position weight, sorted
+// largest first and led by a sentence naming the top one. "" for anyone else.
 function renderArchetypes(player, pg) {
   const a = player.archetypes;
   if (!a || typeof a !== "object") return "";
@@ -881,12 +927,12 @@ function renderArchetypes(player, pg) {
     const pct = Math.max(0, Math.min(100, v * 10));
     const col = ratingColor(Math.round(30 + v * 6.5));
     return `
-      <div class="ea-attr" title="${_esc(meta.blurb)}">
-        <span class="ea-attr-label">${meta.label}
+      <div class="attr-bar" title="${_esc(meta.blurb)}">
+        <span class="attr-bar-label">${meta.label}
           <span class="arch-weight">${Math.round(weights[k] * 100)}%</span></span>
-        <span class="ea-attr-track"><span class="ea-attr-fill"
+        <span class="attr-bar-track"><span class="attr-bar-fill"
           style="width:${pct.toFixed(0)}%;background:${col}"></span></span>
-        <span class="ea-attr-val">${v.toFixed(1)}</span>
+        <span class="attr-bar-val">${v.toFixed(1)}</span>
       </div>`;
   }).join("");
 
@@ -898,7 +944,7 @@ function renderArchetypes(player, pg) {
         <strong>${(ARCHETYPE_META[top] || {}).label || top}</strong>.
         His overall is these three scored out of 10 and weighted by what a
         ${_esc(pg)} is paid to do.</p>
-      <div class="ea-attrs">${rows}</div>
+      <div class="attr-bars">${rows}</div>
       <p class="breakdown-note">Lockdown carries no box-score input at all — quarterbacks
         avoid the players who earn it, so it is built from playing time and what his defense
         allowed per pass thrown.</p>
@@ -906,62 +952,14 @@ function renderArchetypes(player, pg) {
 }
 
 // ---------------------------------------------------------------------------
-// What EA CFB 27 says — an independent opinion, never an input to ours
-// ---------------------------------------------------------------------------
-// Shown for any player EA rates, at every position, including the ones we
-// decline to project. Where we have no number, EA's is the only one there is,
-// and withholding it because our own model abstained helps nobody.
-function renderEaSection(player, pg) {
-  const ea = player.ea_ovr;
-  if (ea == null) return "";
-
-  const ours = player.overall_rating != null ? Math.round(player.overall_rating) : null;
-  const gap  = ours != null ? Math.round(ea) - ours : null;
-  const c    = ratingColor(Math.round(ea));
-
-  let verdict;
-  if (gap == null) {
-    verdict = `We don't publish a rating for ${_esc(pg || "this position")} — EA does, and this is it.`;
-  } else if (Math.abs(gap) <= 2) {
-    verdict = `We land within ${Math.abs(gap)} point${Math.abs(gap) === 1 ? "" : "s"} of each other.`;
-  } else if (gap > 0) {
-    verdict = `EA is <strong>${gap} points higher</strong> than us. EA rates talent; we rate production, so the gap usually means a highly regarded player who hasn't produced at that level yet.`;
-  } else {
-    verdict = `We are <strong>${-gap} points higher</strong> than EA. That usually means production EA's scouting grade hasn't caught up with.`;
-  }
-
-  const attrs = Array.isArray(player.ea_attributes) ? player.ea_attributes : null;
-  const bars = attrs && attrs.length
-    ? `<div class="ea-attrs">${attrs.map(a => `
-        <div class="ea-attr">
-          <span class="ea-attr-label">${_esc(a.label || a.key)}</span>
-          <span class="ea-attr-track"><span class="ea-attr-fill"
-            style="width:${Math.max(0, Math.min(100, a.value))}%;background:${ratingColor(a.value)}"></span></span>
-          <span class="ea-attr-val">${a.value}</span>
-        </div>`).join("")}</div>`
-    : "";
-
-  return `
-    <div class="modal-section">
-      <div class="modal-section-title">What EA CFB 27 says</div>
-      <div class="proj-headline">
-        <div class="proj-headline-num">
-          <div style="font-size:2rem;font-weight:900;color:${c}">${Math.round(ea)}</div>
-          <div style="font-size:var(--fs-sm);color:var(--text-muted)">EA overall</div>
-        </div>
-        <div><p class="breakdown-summary" style="margin:0">${verdict}</p></div>
-      </div>
-      ${bars}
-      <p class="breakdown-note">EA Sports CFB 27's own numbers, shown as a cross-check.
-        They are never an input to our rating${player.projection_source === "ea_cfb27"
-          ? " — except for this player, where we had no signal of our own and used it" : ""}.</p>
-    </div>`;
-}
-
-// ---------------------------------------------------------------------------
 // Rating breakdown — plain-English explanation of what drives the rating
 // ---------------------------------------------------------------------------
 
+// "Why this rating?": the tier sentence, recruiting line, coverage-denial
+// share (when > 2% of a DB's score came from what his defence allowed), last
+// season's movement, breakout flag, and up to six SHAP factor bars as a share
+// of total absolute influence. With no SHAP values it says the rating is
+// recruiting-anchored rather than drawing empty bars.
 function renderRatingBreakdown(player, pg) {
   const shap = player.shap && typeof player.shap === "object" ? player.shap : null;
   const ovr  = player.overall_rating ? Math.round(player.overall_rating) : null;
@@ -977,10 +975,9 @@ function renderRatingBreakdown(player, pg) {
     ? `<div class="breakdown-line"><span class="breakdown-icon">${player.stars >= 4 ? "⭐" : "📋"}</span><span>Recruited as a <strong>${player.stars}-star</strong> prospect${player.composite_score ? ` (composite ${player.composite_score.toFixed(4)})` : ""}</span></div>`
     : `<div class="breakdown-line"><span class="breakdown-icon">📋</span><span>No recruiting data on record</span></div>`;
 
-  // Trajectory line
-  const trajLine = player.trajectory && Math.abs(player.trajectory) > 0.5
-    ? `<div class="breakdown-line"><span class="breakdown-icon">${player.trajectory > 0 ? "📈" : "📉"}</span><span>Rating ${player.trajectory > 0 ? "up" : "down"} <strong>${Math.abs(player.trajectory).toFixed(1)} points</strong> from last season</span></div>`
-    : "";
+  // There is no "rating up N from last season" line: it read `trajectory`, which
+  // the export carries as 0.0 for every played season, so it never rendered.
+  // The rating-history chart above is where movement is shown.
 
   // Breakout line
   const breakoutLine = player.breakout_prob >= 0.35
@@ -1046,7 +1043,6 @@ function renderRatingBreakdown(player, pg) {
       <div class="breakdown-lines">
         ${recLine}
         ${coverageLine}
-        ${trajLine}
         ${breakoutLine}
         ${fallbackNote}
       </div>
@@ -1054,6 +1050,9 @@ function renderRatingBreakdown(player, pg) {
     </div>`;
 }
 
+// Regular season + postseason → combined totals for the modal's "Total" row.
+// Counting stats are summed; YPA, YPC, YPR and yards per punt are recomputed
+// from the summed parts rather than averaged; FG long is the max of the two.
 function mergeStatTotals(reg, post, pg) {
   // Additive keys — summed directly
   const addKeys = [
@@ -1080,6 +1079,9 @@ function mergeStatTotals(reg, post, pg) {
   return out;
 }
 
+// The stat tiles for one position group's season line. Keys are the API's
+// category+type names as script 01 stores them. OL has no individual stats
+// and says so.
 function renderStatBlocks(stats, pg) {
   // Key names match what script 01 stores in the JSONB blob
   const fields = {
@@ -1107,20 +1109,58 @@ function renderStatBlocks(stats, pg) {
   return blocks;
 }
 
+// Wires the controls inside freshly rendered modal content. Called after every
+// render (loading shell, not-found, full profile), because each render replaces
+// the ✕ button and the similar-player rows.
+//
+// The backdrop and Escape listeners live on long-lived elements, so they are
+// bound ONCE. Escape used to be `{ once: true }` and re-added per render — the
+// first keypress of ANY key consumed it, so after a Tab, Escape did nothing.
 function bindModalClose(modal) {
-  modal.querySelector(".modal-close").addEventListener("click", closeModal);
-  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); }, { once: true });
-  // Similar player rows — navigate to that player
+  modal.querySelector(".modal-close")?.addEventListener("click", closeModal);
+  if (!modal._closeBound) {
+    modal._closeBound = true;
+    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+    document.addEventListener("keydown", e => {
+      if (!modal.classList.contains("open")) return;
+      if (e.key === "Escape") closeModal();
+      else if (e.key === "Tab") _trapTab(e, modal);
+    });
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-label", "Player details");
+  }
+  // Every render replaces the content, so focus would otherwise fall to <body>.
+  if (!modal.contains(document.activeElement)) modal.querySelector(".modal-close")?.focus();
+  // Similar player rows open that player, in the season the comp is from —
+  // comps are cross-era, so the modal's own season is the wrong default.
+  makeActivatable(modal.querySelectorAll(".similar-row[data-player-id]"));
   modal.querySelectorAll(".similar-row[data-player-id]").forEach(el => {
     el.addEventListener("click", () => {
       const id = parseInt(el.dataset.playerId);
-      if (id) openPlayerModal(id);
+      if (id) openPlayerModal(id, parseInt(el.dataset.season) || undefined);
     });
   });
 }
 
+// Keeps Tab inside the open modal: from the last control it wraps to the first
+// and back, and focus that has escaped to the page behind is pulled in.
+function _trapTab(e, modal) {
+  const items = [...modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!items.length) { e.preventDefault(); return; }
+  const first = items[0], last = items[items.length - 1];
+  if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+// Closes the modal and returns focus to whatever opened it.
 function closeModal() {
-  document.getElementById("player-modal").classList.remove("open");
+  const modal = document.getElementById("player-modal");
+  modal.classList.remove("open");
   document.body.style.overflow = "";
+  const back = modal._returnFocus;
+  modal._returnFocus = null;
+  if (back && back.isConnected && typeof back.focus === "function") back.focus();
 }

@@ -2,6 +2,11 @@
 // GitHub Pages serves these files directly; no backend or Supabase client required.
 
 const _cache = {};
+// The only fetch in the app. Loads data/<file> once and caches the parsed
+// JSON in memory for the life of the page — every later call, including
+// theme repaints, is served from the cache. A missing file, a network error
+// or invalid JSON all cache as null, so callers test for null rather than
+// catching.
 async function _load(file) {
   if (_cache[file] === undefined) {
     try {
@@ -38,14 +43,6 @@ async function fetchTrajectoryDetail(playerSeasonId) {
   const d = await _load("trajectory_detail.json");
   if (!d) return null;
   return d[String(playerSeasonId)] || null;
-}
-
-// EA CFB 27 overalls, indexed by our player_id — the cross-check column.
-async function fetchEaRatings(season = CONFIG.CURRENT_SEASON) {
-  const rows = await _load(`ea_ratings_${season}.json`);
-  const byPlayer = {};
-  for (const r of rows || []) if (r.player_id != null) byPlayer[r.player_id] = r;
-  return byPlayer;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,6 +144,26 @@ async function fetchTeamSchedule(teamId, season = CONFIG.CURRENT_SEASON) {
   const schedules = await _load(`schedules_${season}.json`);
   if (!schedules) return [];
   return schedules[String(teamId)] || [];
+}
+
+// The season-in-progress file written by script 17: teams and players rated on the
+// games played so far, beside their preseason projections. null for a season with
+// no live file (CONFIG.LIVE_SEASONS), without a request.
+async function fetchLive(season = CONFIG.CURRENT_SEASON) {
+  if (!CONFIG.LIVE_SEASONS.includes(Number(season))) return null;
+  return _load(`live_${season}.json`);
+}
+
+// Every team's schedule for one season, keyed by team id — the League
+// standings are computed from these results. {} when the season has no file.
+async function fetchSeasonSchedules(season = CONFIG.CURRENT_SEASON) {
+  return (await _load(`schedules_${season}.json`)) || {};
+}
+
+// One season's transfers for every team, keyed by team id, each list holding
+// both the moves in and the moves out. {} for a season with no file.
+async function fetchLeagueTransfers(season = CONFIG.CURRENT_SEASON) {
+  return (await _load(`transfers_${season}.json`)) || {};
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +294,10 @@ async function _loadPlayerAllSeasons(playerId) {
   return results.filter(Boolean).sort((a, b) => a.season - b.season);
 }
 
+// A player's rating in every season he appears in, oldest first — the input
+// to the modal's year-over-year chart. Reads every players_{season}.json
+// (see _loadPlayerAllSeasons), so the first modal open on a page is the
+// expensive one.
 async function fetchPlayerRatingHistory(playerId) {
   const history = await _loadPlayerAllSeasons(playerId);
   return history.map(p => ({

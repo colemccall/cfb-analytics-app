@@ -62,7 +62,6 @@ function collectTokens(selectorRe) {
 }
 
 const darkRaw = collectTokens(":root");
-const lightRaw = { ...darkRaw, ...collectTokens(`\\[data-theme="light"\\]`) };
 
 // Resolve var() references (two passes is plenty for our depth-1 aliases)
 function resolve(tokens) {
@@ -74,8 +73,6 @@ function resolve(tokens) {
   }
   return out;
 }
-const themes = { dark: resolve(darkRaw), light: resolve(lightRaw) };
-
 // ── Load config palettes via vm ─────────────────────────────────────────────
 const configSrc = readFileSync(join(root, "js", "config.js"), "utf8") +
   "\n; globalThis.__CFG = CONFIG;";
@@ -92,6 +89,15 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(configSrc, sandbox);
 const CFG = sandbox.__CFG;
+
+// One entry per CONFIG.THEMES row: the first is :root, the rest inherit :root and
+// override it in [data-theme="<id>"]. A new skin is therefore held to the same
+// floors without touching this file.
+const themes = {};
+CFG.THEMES.forEach((th, i) => {
+  themes[th.id] = resolve(i === 0 ? darkRaw
+    : { ...darkRaw, ...collectTokens(`\\[data-theme="${th.id}"\\]`) });
+});
 
 // ── Checks ──────────────────────────────────────────────────────────────────
 const failures = [];
@@ -143,4 +149,4 @@ if (failures.length) {
   console.error(`\n${failures.length} failure(s).`);
   process.exit(1);
 }
-console.log("contrast-check: all floors green (dark + light, tokens + domain palettes).");
+console.log(`contrast-check: all floors green (${Object.keys(themes).join(" + ")}, tokens + domain palettes).`);
