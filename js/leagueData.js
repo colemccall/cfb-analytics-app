@@ -71,7 +71,7 @@ function leagueTransferRows(byTeam) {
 // them: the starters plus the first reserves. A count, not a roster rule.
 const DEPTH_SLOTS = {
   Offense:        [["QB", 3], ["RB", 4], ["WR", 7], ["TE", 4], ["OL", 10]],
-  Defense:        [["EDGE", 4], ["DL", 6], ["LB", 6], ["CB", 5], ["S", 4], ["DB", 4]],
+  Defense:        [["EDGE", 4], ["DL", 6], ["LB", 6], ["CB", 7], ["S", 6], ["DB", 6]],
   "Special teams": [["K", 2], ["P", 2]],
 };
 

@@ -1402,6 +1402,17 @@ check("menu: the depth chart lists a deep bench, not three or four players a pos
   return null;
 });
 
+check("menu: the defensive depth chart shows at least 5 of each kind of defensive back, up to 8", async ctx => {
+  const page = await openMenu(ctx, "#/depth/Defense");
+  await waitCount(page, ".m-drow", 20);
+  for (const g of ["CB", "S", "DB"]) {
+    const n = await page.locator(`.m-drow[data-nav-group="depth-${g}"]`).count();
+    if (n === 0) continue;   // a roster with nobody labelled this way shows no group
+    assert(n >= 5 && n <= 8, `${g} shows ${n} players, wanted 5 to 8`);
+  }
+  return null;
+});
+
 check("menu: every screen's prompt bar always offers Back, Year and Menu", async ctx => {
   const page = await openMenu(ctx, "#/roster");
   await waitCount(page, ".m-row", 5);
