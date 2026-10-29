@@ -36,11 +36,12 @@ const CHANGES = [
     id: "v4.18-schedule-adjusted-stats-half",
     version: "v4.18",
     date: "2026-10-29",
-    title: "The team rating's stats half is adjusted for the schedule, so Group-of-6 teams stop rating like Power-4 teams",
+    title: "The team rating's stats half is adjusted for the schedule and part-season readings are shrunk, so Group-of-6 teams stop rating like Power-4 teams",
     summary: `The owner looked at the 2026 ratings and said they were off: Nebraska, Kansas State and Boise State too high, Kentucky too low, too many Group-of-6 teams high.
       Taking the rating apart (0.60 roster + 0.40 team stats) put the main cause in the stats half: yards, third downs, sacks and turnovers per game, with no opponent in them.
       A team that piles up yards against weak defenses looked as strong as one that did it against strong ones. The half is now adjusted for the schedule the team faced, from our own opponent strengths.
-      Nebraska and Kansas State are not explained by this and are still high; that is stated below, not tuned away.`,
+      A second pass, after the owner pointed at Kansas State's roster and results, shrinks the part-season readings (stats half, line unit) toward the league mean by games played, by the measured slope.
+      Kansas State and Nebraska are still in the top 11 after both; that is stated below, not tuned away.`,
     motivation: `v4.17 moved the Power-4 over Group-of-6 gap in the player ratings only from 3.68 to 4.37 of the 7.8 rating points the games imply, and a harsher weak-opponent penalty lowered the next-season fit.
       Nobody had split the team rating into its halves and asked which one carried the compression. This pass does that first and changes only what the numbers point at.`,
     did: [
@@ -58,7 +59,16 @@ const CHANGES = [
           The placebo, which deals the schedules to the wrong teams, scores 62.5% / 15.22 and is worse than the real adjustment, so the schedule carries signal. Power-4 minus Group-of-6 in the headline: 3.63 -> 7.09 rating points (1.06 sd); the games imply 7.55.`,
         cost: `Accuracy is unchanged, not improved: winner picks equal, margin error better by 0.11 in the like-for-like test; the shipped power backtest reads 71.3% / 13.27 against 71.7% / 13.29 before (0.4 points fewer winners, inside the noise of 2,858 games).
           The top SEC teams rise (LSU 89.0 -> 92.0, Alabama 80.8 -> 85.9, Texas 81.0 -> 86.1) because their raw yards understated a hard schedule; the headline's spread across teams grows from 5.3 to 6.1. The strengths are made from points, so the stats half now leans on results a little.` },
-      { what: "The rating publishes its parts: sub_ratings.roster_half, stats_half, stats_half_raw and sched_faced",
+      { what: "Part-season readings keep only part of their distance from the league mean (partial_weight in script 10): 0.78 at 7 games, 1.0 from 12",
+        why: `The owner looked at Kansas State's roster (no offensive starter above 79, one defender above 80, three losses) and asked how it rates so high. The starters alone rank them 21st (slot score 74.3 against a league 71.9, sd 2.2).
+          The position-weighted half ranks them 2nd, on a line-unit rating of 87.1 and special teams of 84.8 (a punter at 87), and the stats half grades a 54.5% third-down rate over 7 games at 93 and 9.7 sacks plus tackles for loss at 95, on fixed full-season anchors.
+          The player ratings are shrunk for part seasons; these readings were not, so in a season in progress they sat twice as far from the mean as the evidence allows: the first 7 games' mean predicts the rest of the season with a slope of 0.47 for
+          success rate, PPA and line yards (0.39-0.53 by measure) and 0.50 for points (scripts/validate_early_reliability.py, 2016-2025). A reading from g games keeps [g/(g+8)] / [12/(12+8)] of its distance from the league mean: 0.78 at 7 games, 0.56 at 4, 1.0 from 12.
+          It applies to the stats half and the line unit, only to a season still being played (unscored games dated after the last scored one: 2026 has 1,144, no finished season has any), so every finished season keeps the rating it was validated at (checked: 0 of the finished team-seasons moved).
+          The weighted half itself is kept: on the finals it improves the fit to scoring margin (0.806 with the slot score alone, 0.817 with the weighted half and the line unit; 0.782 with the weighted half dealt to the wrong teams), and the line unit is what earns it (0.801 without).`,
+        cost: `Through week 8 the shrink also pulls the Power-4 over Group-of-6 gap from 7.13 to 5.98 rating points, because a team's level is part of what an early reading overstates; real outliers are pulled in by about a fifth.
+          Kansas State moves 86.0 -> 84.5 (11th) and Nebraska 86.7 -> 85.2 (7th), so it does not settle them.` },
+      { what: "The rating publishes its parts: sub_ratings.roster_half, stats_half, stats_half_raw, sched_faced and partial_weight",
         why: "A rating that moved by up to 21 points for a lopsided schedule has to show the schedule. The roster reading, the stats reading as shipped, the same stats unadjusted and the schedule (defenses faced, offenses faced) are exported with every team-season. No screen reads them yet.",
         cost: "A few bytes per team-season; no page code." },
       { what: "The depth chart shows 7 corners, 6 safeties and 6 other defensive backs (it showed 5, 4 and 4)",
@@ -78,6 +88,12 @@ const CHANGES = [
       { what: "Weight the adjusted stats half 0.5 or 0.6 instead of 0.4",
         result: "62.8% / 14.98 and 63.3% / 14.97, gaps 7.87 and 8.65: a gain inside noise. The 60/40 weights are not tuned to the outcome used to judge them.",
         verdict: "rejected" },
+      { what: "Rate players with only 1-2 productive games (the owner's idea: someone who shone in a few snaps), explored and not built (scripts/explore_low_game_players.py)",
+        result: `About 1,650 rostered players a season are under the 3-game line (1,026 with one game, 620 with two) against about 5,400 above it; per game they average 0.7 sd BELOW position peers and only 5% beat the regulars' 75th percentile.
+          Does a good short stretch mean anything? Per-game production z against the next season's rating z: slope 0.15 for 1-2 games, 0.26 for 3-5, 0.38 for 6+; only 48% of the 1-2-game players have a rating the next year at all.
+          The 426 who were above the regulars' 75th percentile rated +0.11 sd next year against -0.24 for the other low-game players: a real edge of about 0.35 sd, small. Among regulars, the first 1-2 games predict the rest with slope 0.46-0.56 on offense and 0.27-0.36 on defense,
+          which overstates it for a bench player. Shrunk by the next-season slope, even a 2.5 sd stretch lands near z -0.2, below an average regular, so the hard ceiling the owner suggested would rarely bind.`,
+        verdict: "not built" },
       { what: "Dealing the schedules to the wrong teams (placebo)",
         result: "62.5% / 15.22 against 62.7% / 15.02 for the real schedules, and a gap of 3.70 against 7.09.",
         verdict: "placebo" },
@@ -86,29 +102,31 @@ const CHANGES = [
       { label: "Power-4 minus Group-of-6, headline rating, 2015-2025 finals (points / sd)", before: "3.63 / 0.64", after: "7.09 / 1.06 (the games imply 7.55)" },
       { label: "Prior-season rating predicting later games, like-for-like test: winner / margin error", before: "62.7% / 15.13", after: "62.7% / 15.02" },
       { label: "Power backtest (validate_rankings.py): winner / margin error", before: "71.7% / 13.29", after: "71.3% / 13.27" },
-      { label: "2026 through week 8: Group-of-6 and independent teams in the top 25 / top 40 by rating", before: "7 / 10", after: "1 / 3" },
-      { label: "2026: Power-4 minus the rest, mean rating", before: "3.68", after: "7.13" },
-      { label: "2026 rating rank: Kentucky / Liberty / Boise State / Nebraska / Kansas State", before: "62 / 20 / 10 / 3 / 7", after: "40 / 49 / 24 / 6 / 10" },
-      { label: "2026 power rank: the same five", before: "23 / 21 / 10 / 14 / 59", after: "18 / 26 / 13 / 17 / 57" },
-      { label: "2026 headline: top rating / spread (sd)", before: "89.0 / 5.29", after: "92.0 / 6.11" },
+      { label: "2026 through week 8: Group-of-6 and independent teams in the top 25 / top 40 by rating", before: "7 / 10", after: "1 / 4 (1 / 3 before the shrink)" },
+      { label: "2026: Power-4 minus the rest, mean rating", before: "3.68", after: "5.98 (7.13 before the shrink)" },
+      { label: "2026 rating rank: Kentucky / Liberty / Boise State / Nebraska / Kansas State", before: "62 / 20 / 10 / 3 / 7", after: "38 / 50 / 24 / 7 / 11" },
+      { label: "2026 power rank: the same five", before: "23 / 21 / 10 / 14 / 59", after: "18 / 24 / 13 / 17 / 60" },
+      { label: "2026 headline: top rating / spread (sd)", before: "89.0 / 5.29", after: "90.1 / 5.23 (92.0 / 6.11 before the shrink)" },
+      { label: "Finished-season team ratings changed by the shrink", before: "-", after: "0 (a first version shrank the 2020 season, 110 teams, up to 4.8 points; it now applies only to a season in progress)" },
       { label: "Live player ratings changed by the recompute", before: "-", after: "15 of 5,468, none by more than 0.1 (a rerun with identical inputs; defenders)" },
-      { label: "Pipeline tests", before: "456", after: "472 passed" },
+      { label: "Pipeline tests", before: "456", after: "482 passed" },
     ],
     gates: [
-      { check: "pytest tests -q", result: "472 passed (16 new in tests/test_schedule_adjust.py)" },
+      { check: "pytest tests -q", result: "482 passed (26 new in tests/test_schedule_adjust.py)" },
+      { check: "python scripts/validate_early_reliability.py", result: "slope of the rest of the season on the first 7 games: 0.47 mean for efficiency and line measures, 0.50 for points" },
       { check: "python scripts/validate_stats_schedule.py", result: "schedule coefficient -0.51 / -0.52; SCHED_COEF drift 3.1%; placebo worse than the real adjustment; exit 0" },
       { check: "python scripts/validate_rankings.py", result: "power 71.3% / 13.27; rating alone 63.1% / 15.09; placebo 58.2%; slope 1.029 against 0.98 (drift 5.0%)" },
       { check: "python scripts/validate_ratings.py --season 2025", result: "exit 0; player distributions unchanged" },
       { check: "recompute: 10 --all-seasons, 10 --engine projected, 13, 17 --season 2026, 12", result: "0 requests (no GET line in any log); app data changed only in team_ratings, power_games, team_performance, team_history, manifest and the 2026 live, players and rosters files" },
-      { check: "UI smoke / node --check / doc, prose and theme checks", result: "147 of 147 UI checks pass (146 before, plus the defensive-back depth check); node --check on every js file clean; doc-check 194 of 194, prose-check and theme-check clean" },
+      { check: "UI smoke / node --check / doc, prose and theme checks", result: "147 of 147 UI checks pass; node --check on every js file clean; doc-check 194 of 194, prose-check and theme-check clean" },
     ],
-    unfixed: `**Nebraska and Kansas State are still top 10 by rating** (6th and 10th; power puts them 17th and 57th). Their roster halves rank 6th and 7th of 138 while their own points strengths rank 26th and 40th, so the schedule is not the explanation; the player ratings are.
-      The next measurement is the live roster half against results at week 8, not another change to the stats half. **In-season the stats half is not shrunk** and supplies about 71% of the headline's variance;
-      it cannot be backtested at week 8 because per-game yards are not on file. **The top SEC teams went up**, LSU to 92.0, which the owner had called inflated at 91.9 in an earlier pass; it follows from the schedule they play and was not tuned.
+    unfixed: `**Kansas State and Nebraska are still in the top 11 by rating** (11th and 7th; power puts them 60th and 17th). Kansas State's starters rank 21st, but its position-weighted half ranks 2nd on a line unit of 87 and special teams of 85, and its stats half is
+      still high on third downs and sacks plus tackles for loss. Their own points strengths rank 40th and 26th. The shrink is calibrated on efficiency, line-yard and points data because per-game yards and third downs are not on file, so it is not backtested on the published stats half.
+      **The line unit has a spread of 15 points where every player term has 2-5, and special teams 7.5;** whether they should enter the weighted half at their current scale in a part season is the next measurement, not a tuning of one team. **The top SEC teams went up**, LSU to 92.0, which the owner had called inflated at 91.9 in an earlier pass; it follows from the schedule they play and was not tuned.
       **One coefficient serves offense (1.56) and defense (1.68).** **The adjustment is linear and moves a lopsided schedule by up to 21 points.** **The cross-conference weight is 1.5 in the code and 1.0 scored best;** moving it is a player-rating recompute and is held back.
-      **Scripts 11, 14, 15 and 16 were not rerun:** none reads the headline rating (16 reads sp_overall, unchanged). **The team page does not show the schedule faced yet.** **Everything is uncommitted** in both repositories.`,
+      **Low-game players are not rated yet:** the evidence supports a labelled provisional rating on cards and rosters only (about the low-game mean plus 0.35 sd for a top-quartile stretch, never in the team roster half); it is not built and waits on the owner's call. **Scripts 11, 14, 15 and 16 were not rerun:** none reads the headline rating (16 reads sp_overall, unchanged). **The team page does not show the schedule faced yet.** **Everything is uncommitted** in both repositories.`,
     methods: ["team-ratings", "opponent-strength", "power-rating"],
-    files: ["scripts/10_compute_team_ratings.py", "utils/opponent_strength.py", "scripts/validate_stats_schedule.py", "tests/test_schedule_adjust.py", "js/leagueData.js", "js/methods.js", "tools/ui-smoke/smoke.mjs"],
+    files: ["scripts/10_compute_team_ratings.py", "utils/opponent_strength.py", "scripts/validate_stats_schedule.py", "scripts/validate_early_reliability.py", "tests/test_schedule_adjust.py", "js/leagueData.js", "js/methods.js", "tools/ui-smoke/smoke.mjs"],
   },
   {
     id: "v4.17-own-opponent-strength-shutouts-and-ui",
