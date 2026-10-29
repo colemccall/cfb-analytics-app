@@ -53,22 +53,22 @@ function menuStateHighlight(stage, state) {
 
 menuRouter.register("team-recruiting", {
   title: ctx => (ctx.team ? `${ctx.team.school} Class` : "Recruiting Class"),
-  crumb: () => "DYNASTY › TEAM › RECRUITING",
+  crumb: () => "TEAM › RECRUITING",
   prompts: [{ action: "move", label: "Move" }, { action: "season", label: "Class year" }, { action: "back", label: "Back" }],
   async render(ctx) {
     const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
+    const team = menuViewTeam(ctx, d);
     ctx.team = team; ctx.d = d;
     const c = await fetchRecruiting(MENU.season);
     if (!c) {
       return `<section class="m-panel"><p class="m-empty">No recruiting class on file for ${MENU.season}. Classes ${CONFIG.RECRUITING_SEASONS[0]}–${CONFIG.RECRUITING_SEASONS[CONFIG.RECRUITING_SEASONS.length - 1]} are available; press Y to change the year.</p></section>`;
     }
-    const row = c.teams.find(t => t.team_id === MENU.teamId);
+    const row = team && c.teams.find(t => t.team_id === team.id);
     if (!row) return `<section class="m-panel"><p class="m-empty">${_esc(team?.school || "This team")} has no matched recruits in the ${MENU.season} class.</p></section>`;
     ctx.row = row;
     const unknown = row.commits - Object.values(row.states || {}).reduce((a, b) => a + b, 0);
     const list = row.players.map((p, i) => `
-      <button class="m-row m-row--prospect" type="button" data-nav data-nav-group="class" data-state="${_esc(p.state || "")}">
+      <button class="m-row m-row--prospect" type="button" data-nav data-nav-group="class" data-state="${_esc(p.state || "")}"${p.player_id ? ` data-to="${menuPlayerPath(p.player_id, team.id)}"` : ""}>
         <span class="m-rank">${p.national_rank ?? "—"}</span>
         <span class="m-pname">${_esc(p.name)}</span>
         <span class="m-pos">${p.position ? posBadge(p.position) : "—"}</span>
@@ -99,26 +99,26 @@ menuRouter.register("team-recruiting", {
 
 menuRouter.register("team-portal", {
   title: ctx => (ctx.team ? `${ctx.team.school} Transfers` : "Transfers"),
-  crumb: () => "DYNASTY › TEAM › TRANSFERS",
+  crumb: () => "TEAM › TRANSFERS",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "In / Out" }, { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   tabs: ctx => ({ items: [{ id: "in", label: "Incoming" }, { id: "out", label: "Outgoing" }],
-                  active: ctx.params[0] || "in", go: id => menuRouter.go(`#/team-portal/${id}`) }),
+                  active: ctx.params[0] || "in", go: id => menuRouter.go(menuTeamPath(ctx.route.teamId ?? MENU.teamId, "transfers", id)) }),
   async render(ctx) {
     const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
+    const team = menuViewTeam(ctx, d);
     ctx.team = team; ctx.d = d;
     if (!CONFIG.TRANSFER_SEASONS.includes(MENU.season)) {
       return `<section class="m-panel"><p class="m-empty">No transfer-portal data for ${MENU.season}. It covers ${CONFIG.TRANSFER_SEASONS[0]}–${CONFIG.TRANSFER_SEASONS[CONFIG.TRANSFER_SEASONS.length - 1]}; press Y to change season.</p></section>`;
     }
     const dir = ctx.params[0] || "in";
-    const all = await fetchTeamTransfers(MENU.teamId, MENU.season);
+    const all = team ? await fetchTeamTransfers(team.id, MENU.season) : [];
     const rows = all.filter(t => t.direction === dir)
       .sort((a, b) => (b.ovr_current ?? b.ovr_previous ?? -1) - (a.ovr_current ?? a.ovr_previous ?? -1));
     const counts = {};
     let unknown = 0;
     for (const t of rows) { if (t.hometown_state) counts[t.hometown_state] = (counts[t.hometown_state] || 0) + 1; else unknown++; }
     const list = rows.map((t, i) => `
-      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="tp" data-state="${_esc(t.hometown_state || "")}">
+      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="tp" data-state="${_esc(t.hometown_state || "")}"${t.player_id ? ` data-to="${menuPlayerPath(t.player_id)}"` : ""}>
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${_esc(t.name || "—")}</span>
         <span class="m-pos">${t.position_group ? posBadge(t.position_group) : "—"}</span>
@@ -206,7 +206,7 @@ function _bracketOrder(size) {
 function _bracketSlot(entry, label = "") {
   if (!entry) return `<div class="m-bslot is-empty" title="${_esc(label)}"><span>${_esc(label)}</span></div>`;
   const mine = entry.team.id === MENU.teamId;
-  return `<div class="m-bslot${mine ? " is-mine" : ""}"><i>${entry.seed}</i>${teamMark(entry.team, "m-bmark")}<b>${_esc(entry.team.school)}</b></div>`;
+  return `<button class="m-bslot${mine ? " is-mine" : ""}" type="button" data-nav data-nav-group="bracket" data-to="${menuTeamPath(entry.team.id)}"><i>${entry.seed}</i>${teamMark(entry.team, "m-bmark")}<b>${_esc(entry.team.school)}</b></button>`;
 }
 
 // Lays the field out as a bracket in the manner of the printed ones: the top half of the bracket on
@@ -257,7 +257,7 @@ function menuBracketHtml(field) {
   const col = (items, cls) => `<div class="m-bcol ${cls}">${items.join("")}</div>`;
   const final = levels[levels.length - 1][0].match;
   const mid = `<div class="m-bcol m-bcol--final"><div class="m-bchamp">NATIONAL<br>CHAMPION</div><div class="m-bmatch m-bmatch--final">${slot(final[0])}${slot(final[1])}</div></div>`;
-  return `<div class="m-bracket" role="img" aria-label="${n}-team playoff bracket">
+  return `<div class="m-bracket" role="group" aria-label="${n}-team playoff bracket">
       ${columns("L").map(c => col(c, "m-bcol--l")).join("")}${mid}${columns("R").reverse().map(c => col(c, "m-bcol--r")).join("")}
     </div>`;
 }
@@ -279,7 +279,7 @@ menuRouter.register("playoff", {
     const next = d.teams.filter(t => menuTeamPower(t, d) != null && !field.some(f => f.team.id === t.id))
       .sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d))[0];
     const seedRow = f => `
-      <button class="m-row m-row--seed${f.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="seeds">
+      <button class="m-row m-row--seed${f.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="seeds" data-to="${menuTeamPath(f.team.id)}">
         <span class="m-rank">${f.seed}</span>
         <span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}${f.seed <= fmt.byes ? ' <span class="m-tag">BYE</span>' : ""}${f.why ? ` <span class="m-tag m-tag--c">${_esc(f.why.toUpperCase())}</span>` : ""}</span>
         <span class="m-pmeta">${_esc(f.team.conference || "")}</span>

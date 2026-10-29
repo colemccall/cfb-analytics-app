@@ -1113,16 +1113,13 @@ async function openMenu(ctx, hash = "#/hub", opts = {}) {
   return openPage(ctx, `menu.html${hash}`, opts);
 }
 
-check("menu: team select sets My Team, persists it, and the hub shows it", async ctx => {
+check("menu: a team-select tile opens that team's page", async ctx => {
   const page = await openPage(ctx, "menu.html#/team-select");
   await waitCount(page, ".m-tile", 20);
   await page.locator(".m-tile").first().click();
-  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 20000 });
-  const saved = await page.evaluate(() => localStorage.getItem("cfb-menu-team"));
-  assert(saved && Number(saved) > 0, `My Team not saved: ${saved}`);
-  await page.reload();
+  await page.waitForFunction(() => /^#\/team\/\d+$/.test(location.hash), null, { timeout: 20000 });
   await waitCount(page, ".m-item", 6);
-  assert(await page.locator(".m-teamcard h2").count() === 1, "the hub shows no team card after a reload");
+  assert(await page.locator(".m-teamcard h2").count() === 1, "the team page shows no team card");
   return page;
 });
 
@@ -1132,12 +1129,12 @@ check("menu: keyboard walks hub → roster → card, and Escape walks back", asy
   assert(await page.locator(".m-item.is-selected").count() === 1, "the hub has no single selected item");
   await page.keyboard.press("Enter");
   await waitCount(page, ".m-row", 10);
-  assert(page.url().includes("#/roster"), `expected the roster, at ${page.url()}`);
+  assert(page.url().includes("/roster"), `expected the roster, at ${page.url()}`);
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => location.hash.startsWith("#/player"), null, { timeout: 30000 });
   await waitCount(page, ".trio-tile", 3);
   await page.keyboard.press("Escape");
-  await page.waitForFunction(() => location.hash.startsWith("#/roster"), null, { timeout: 15000 });
+  await page.waitForFunction(() => location.hash.includes("/roster"), null, { timeout: 15000 });
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
   return page;
@@ -1170,7 +1167,7 @@ check("menu: a simulated gamepad drives the menu and the prompt bar switches to 
   };
   await press(13);                                   // D-pad down: the second item
   await press(0);                                    // A: select
-  await page.waitForFunction(() => location.hash.startsWith("#/depth"), null, { timeout: 20000 });
+  await page.waitForFunction(() => location.hash.includes("/depth"), null, { timeout: 20000 });
   assert(await page.locator(".m-glyph--pad").count() > 0, "the prompt bar did not switch to pad glyphs");
   await press(1);                                    // B: back
   await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
@@ -1178,7 +1175,7 @@ check("menu: a simulated gamepad drives the menu and the prompt bar switches to 
 });
 
 check("menu: every screen renders rows with no page errors and no sideways scroll", async ctx => {
-  const rowsOf = { "#/home": ".m-group", "#/roster": ".m-row","#/depth": ".m-drow", "#/schedule": ".m-row", "#/standings": ".m-row",
+  const rowsOf = { "#/home": ".m-hp .m-row", "#/team/52": ".m-item", "#/player/105817/81": ".trio-tile", "#/player/105817/81/stats": ".m-stattable tr", "#/player/105817/81/career": ".m-career-table tr", "#/roster": ".m-row","#/depth": ".m-drow", "#/schedule": ".m-row", "#/standings": ".m-row",
     "#/rankings": ".m-row--rank", "#/recruiting": ".m-row--class", "#/recruiting/prospects": ".m-row--prospect",
     "#/portal": ".m-row--portal" };
   let last = null;
@@ -1240,7 +1237,7 @@ check("menu: a rostered player with no ratings row still opens a card, with a st
   // Brandon Amaniampong (EDGE, 2 games, no projection) is on Nevada's (team 68) 2026 roster but has no
   // row in players_2026.json.
   const page = await openMenu(ctx, "#/player/1129716/68");
-  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   assert(!(await page.locator(".m-error").count()), "the card shows an error");
   const empty = await page.locator(".m-stats .m-empty").innerText();
   assert(empty.length > 20 && !empty.includes("${"), `no reason for the missing stats: "${empty}"`);
@@ -1249,57 +1246,116 @@ check("menu: a rostered player with no ratings row still opens a card, with a st
 });
 
 
-check("menu: with no team chosen the menu opens on a landing page that shows the league and the news", async ctx => {
+check("menu: the menu opens on a home page with no team chosen, and every row on it is a link", async ctx => {
   const page = await openPage(ctx, "menu.html");
-  await waitCount(page, ".m-group", 3);
-  assert(await page.locator(".m-tile").count() === 0, "the landing page sent a first visit to team select");
-  const heads = (await page.locator(".m-group .m-h3").allInnerTexts()).map(s => s.trim().toUpperCase());
-  assert(["LEAGUE", "NEWS", "DYNASTY"].every((h, i) => heads[i] === h), `groups: ${heads}`);
-  assert(await page.locator(".m-home-live .m-teamcard").count() === 2, "expected a league panel and a news panel");
-  assert(await page.locator(".m-home-live .m-hrow:not(.m-hrow--head)").count() >= 8, "the live panels list too few teams");
-  assert(await page.locator(".m-homeline").count() === 0, "a team strip appeared with no team followed");
-  for (const [route, sel] of [["rankings", ".m-row--rank"], ["playoff", "button.m-row--seed"], ["standings", ".m-row"]]) {
-    await page.locator(`.m-group [data-route="${route}"]`).click();
-    await waitCount(page, sel, 3);
-    assert(await page.locator(".m-tile").count() === 0, `${route} asked for a team`);
-    await page.keyboard.press("Escape");
-    await waitCount(page, ".m-group", 3);
-  }
+  await waitCount(page, ".m-hp", 5);
+  assert(await page.locator(".m-tile").count() === 0, "a first visit was sent to team select");
+  assert(!/dynasty/i.test(await page.locator(".m-crumb, .m-title").allInnerTexts().then(a => a.join(" "))), "the home page still says Dynasty");
+  assert(await page.locator(".m-quick .m-qbtn").count() >= 10, "the quick links are missing");
+  assert(await page.locator(".m-mystrip").count() === 1, "no strip offering to follow a team");
+  const rows = page.locator(".m-hp .m-row");
+  const n = await rows.count();
+  assert(n >= 20, `the home panels list only ${n} rows`);
+  const unlinked = await rows.evaluateAll(els => els.filter(e => !e.dataset.to).length);
+  assert(unlinked === 0, `${unlinked} home rows have no destination`);
+  // A team row opens its page, a player row opens his card, a game opens a team.
+  await page.locator('.m-hp [data-nav-group="hp-teams"]').first().click();
+  await page.waitForFunction(() => /^#\/team\/\d+$/.test(location.hash), null, { timeout: 20000 });
+  await waitCount(page, ".m-item", 6);
+  await page.keyboard.press("Escape");
+  await waitCount(page, ".m-hp", 5);
+  await page.locator('.m-hp [data-nav-group="hp-players"]').first().click();
+  await page.waitForFunction(() => location.hash.startsWith("#/player/"), null, { timeout: 20000 });
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
+  await page.keyboard.press("Escape");
+  await waitCount(page, ".m-hp", 5);
+  await page.locator('.m-hp [data-nav-group="hp-games"]').first().click();
+  await page.waitForFunction(() => /^#\/team\/\d+$/.test(location.hash), null, { timeout: 20000 });
   assert(!page.problems.length, page.problems[0]);
   return page;
 });
 
-check("menu: following a team adds a strip to the landing page; the hub's Back returns to it; team screens still ask for a team", async ctx => {
-  const page = await openMenu(ctx, "#/home");
-  await waitCount(page, ".m-group", 3);
-  assert(await page.locator(".m-homeline").count() === 1, "no team strip with a team followed");
-  await page.locator('.m-group [data-route="hub"]').click();
-  await page.waitForFunction(() => location.hash.startsWith("#/hub"), null, { timeout: 15000 });
+check("menu: any team has a page, reachable from a ranking, a standing, a schedule and the bracket; following is on that page", async ctx => {
+  const page = await openPage(ctx, "menu.html#/rankings");
+  await waitCount(page, ".m-row--rank", 5);
+  await page.locator(".m-row--rank").nth(2).click();
+  await page.waitForFunction(() => /^#\/team\/\d+$/.test(location.hash), null, { timeout: 20000 });
   await waitCount(page, ".m-item", 6);
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => location.hash === "#/home", null, { timeout: 15000 });
-  const bare = await openPage(ctx, "menu.html#/roster");
-  await bare.addInitScript(() => { try { localStorage.removeItem("cfb-menu-team"); } catch (e) {} });
-  await bare.reload();
-  await waitCount(bare, ".m-tile", 20);
+  const id = (await page.evaluate(() => location.hash)).split("/")[2];
+  for (const [sub, sel] of [["roster", ".m-row--roster"], ["depth", ".m-drow"], ["schedule", ".m-row--sched"]]) {
+    await page.evaluate(h => { location.hash = h; }, `#/team/${id}/${sub}`);
+    await waitCount(page, sel, 3);
+  }
+  assert(await page.locator(".m-tile").count() === 0, "a team's screen asked for My Team");
+  await page.evaluate(h => { location.hash = h; }, `#/team/${id}`);
+  await waitCount(page, "[data-follow]", 1);
+  assert(/follow this team/i.test(await page.locator("[data-follow]").innerText()), "no follow button for a team that is not followed");
+  await page.locator("[data-follow]").click();
+  await page.waitForFunction(() => /following/i.test(document.querySelector("[data-follow]")?.innerText || ""), null, { timeout: 10000 });
+  assert(Number(await page.evaluate(() => localStorage.getItem("cfb-menu-team"))) === Number(id), "following did not save My Team");
+  await page.evaluate(() => { location.hash = "#/home"; });
+  await waitCount(page, ".m-hp", 5);
+  assert(/roster/i.test(await page.locator(".m-mystrip").innerText()), "the followed team has no strip on the home page");
+  const st = await openPage(ctx, "menu.html#/standings");
+  await waitCount(st, ".m-row--stand", 3).catch(() => { throw new Fail("standings rows never appeared"); });
+  assert(await st.locator("button.m-row--stand").first().getAttribute("data-to") !== null, "a standings row has no destination");
+  const po = await openPage(ctx, "menu.html#/playoff/12");
+  await waitCount(po, "button.m-bslot", 8).catch(() => { throw new Fail("bracket boxes never appeared"); });
+  assert(await po.locator("button.m-bslot").first().getAttribute("data-to") !== null, "a bracket box has no destination");
+  const sc = await openPage(ctx, `menu.html#/team/${id}/schedule`);
+  await waitCount(sc, ".m-row--sched", 8).catch(() => { throw new Fail("schedule rows never appeared"); });
+  assert(await sc.locator(".m-row--sched[data-to]").count() >= 5, "schedule rows do not open the opponent");
   return page;
 });
 
-check("menu: Back at the landing page and the H key open the quick menu, which Back closes", async ctx => {
-  const page = await openMenu(ctx, "#/home");
+check("menu: a team's own screens keep to the team in the route, not My Team", async ctx => {
+  const page = await openMenu(ctx, "#/team/52/roster");        // LSU, while Nevada is followed
+  await waitCount(page, ".m-row--roster", 20);
+  assert(/LSU/i.test(await page.locator("#m-title").innerText()), "the roster is not LSU's");
+  const pid = await page.locator("button.m-row--roster").first().getAttribute("data-to");
+  assert(pid.startsWith("#/player/") && pid.endsWith("/52"), `a roster row opens ${pid}`);
+  assert(await page.locator('.m-tab[data-tab="QB"]').count() === 1, "no position tabs");
+  await page.locator('.m-tab[data-tab="QB"]').click();
+  await page.waitForFunction(() => location.hash === "#/team/52/roster/QB", null, { timeout: 10000 });
+  return page;
+});
+
+check("menu: the quick menu offers the team being looked at, and Back at home opens it", async ctx => {
+  const page = await openMenu(ctx, "#/team/52");
   await waitCount(page, ".m-item", 6);
-  await page.keyboard.press("Escape");
-  await page.waitForSelector(".m-overlay .m-item", { timeout: 5000 });
-  assert(await page.locator(".m-overlay [data-go]").count() >= 10, "the quick menu lists too few screens");
-  assert(await page.locator('.m-overlay [data-go="home"]').count() === 1, "the quick menu has no Home entry");
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => !document.querySelector(".m-overlay"), null, { timeout: 5000 });
   await page.keyboard.press("h");
   await page.waitForSelector(".m-overlay", { timeout: 5000 });
-  await page.locator('.m-overlay [data-go="playoff"]').click();
-  await page.waitForFunction(() => location.hash.startsWith("#/playoff"), null, { timeout: 10000 });
-  assert(!(await page.locator(".m-overlay").count()), "the quick menu stayed open after a choice");
-  return page;
+  assert(await page.locator('.m-overlay [data-go="#/team/52/roster"]').count() === 1, "the quick menu does not offer LSU's roster");
+  assert(/THIS TEAM/.test(await page.locator(".m-ovl-h").first().innerText()), "the team column is not marked as the team being viewed");
+  await page.keyboard.press("Escape");
+  const home = await openMenu(ctx, "#/home");
+  await waitCount(home, ".m-hp", 5);
+  await home.keyboard.press("Escape");
+  await home.waitForSelector(".m-overlay .m-item", { timeout: 5000 });
+  assert(await home.locator(".m-overlay [data-go]").count() >= 10, "the quick menu lists too few screens");
+  assert(await home.locator('.m-overlay [data-go="#/home"]').count() === 1, "the quick menu has no Home entry");
+  await home.keyboard.press("Escape");
+  await home.waitForFunction(() => !document.querySelector(".m-overlay"), null, { timeout: 5000 });
+  await home.keyboard.press("h");
+  await home.waitForSelector(".m-overlay", { timeout: 5000 });
+  await home.locator('.m-overlay [data-go="#/playoff"]').click();
+  await home.waitForFunction(() => location.hash.startsWith("#/playoff"), null, { timeout: 10000 });
+  assert(!(await home.locator(".m-overlay").count()), "the quick menu stayed open after a choice");
+  return null;
+});
+
+check("menu: the player card has Overview, Stats and Career sections in the console frame, with team and position links", async ctx => {
+  const page = await openMenu(ctx, "#/player/1129716/68");
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
+  const tabs = await page.locator(".m-tab").allInnerTexts();
+  assert(tabs.map(t => t.trim().toUpperCase()).join() === "OVERVIEW,STATS,CAREER", `tabs: ${tabs}`);
+  assert(await page.locator(".m-rhead--card .m-chip[data-to^='#/team/']").count() === 1, "no link from the card to the team");
+  await page.keyboard.press("e");
+  await page.waitForFunction(() => /STATS/i.test(document.querySelector(".m-tab.is-active")?.innerText || ""), null, { timeout: 10000 });
+  await page.keyboard.press("e");
+  await page.waitForFunction(() => /CAREER/i.test(document.querySelector(".m-tab.is-active")?.innerText || ""), null, { timeout: 10000 });
+  assert(await page.locator(".m-rhead--card").count() === 1, "the header strip is gone from the career section");
+  return null;
 });
 
 check("menu: every screen's prompt bar always offers Back, Year and Menu", async ctx => {
@@ -1358,7 +1414,7 @@ check("menu: a truncated career file is named on the card, and Retry brings the 
   let mode = "bad-json";
   await faultRoute(ctx, `**/data/${shard}`, () => mode);
   const page = await openMenu(ctx, "#/player/1129716/68");
-  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   const banner = await page.locator(".m-error--banner").first().innerText();
   assert(banner.includes(shard), `banner: ${banner}`);
   const why = await page.locator(".m-stats .m-empty").innerText();
@@ -1379,10 +1435,10 @@ check("menu: a player's career fills in from his one file, and a failed file lea
   const shard = `cards/${String(p.id % constant("CARD_SHARDS")).padStart(4, "0")}.json`;
   let mode = "500";
   await faultRoute(ctx, `**/data/${shard}`, () => mode);
-  const page = await openMenu(ctx, `#/player/${p.id}/68`);
-  await page.waitForSelector(".m-hero", { timeout: 60000 });
+  const page = await openMenu(ctx, `#/player/${p.id}/68/career`);
+  await page.waitForSelector(".m-rhead--card", { timeout: 60000 });
   assert(/did not load/i.test(await page.locator(".m-career").innerText()), "the career section does not say its file failed");
-  assert(await page.locator(".trio-tile").count() === 3, "the card lost its rating tiles when the career file failed");
+  assert(await page.locator(".m-rhead--card .m-rhead-ovr").count() === 1, "the card lost its rating box when the career file failed");
   mode = "ok";
   await page.locator(".m-retry").first().click();
   await page.waitForSelector(".m-career-table", { timeout: 60000 });
@@ -1408,7 +1464,7 @@ check("menu: a matched player's card shows his ESPN photo in a fixed frame, and 
   assert(src === hs.image.replace("{id}", hs.players[String(withPhoto.player_id)]), `photo src ${src}`);
   assert(await a.locator(".m-photo .m-photo-initials").count() === 1, "the initials are gone from a card with a photo");
   const box = await a.locator(".m-photo").boundingBox();
-  assert(Math.abs(box.width - 104) < 1 && Math.abs(box.height - 128) < 1, `the photo frame is ${box.width}x${box.height}`);
+  assert(Math.abs(box.width - 118) < 1 && Math.abs(box.height - 144) < 1, `the photo frame is ${box.width}x${box.height}`);
   const b = await openMenu(ctx, `#/player/${without.player_id}/68`);
   await b.waitForSelector(".m-photo", { timeout: 30000 });
   assert(await b.locator(".m-photo img").count() === 0, "a photo for a player the lookup did not match");
@@ -1422,7 +1478,7 @@ check("menu: a photo that fails to load is removed and the initials stay; no pho
   const withPhoto = roster.find(p => hs.players[String(p.player_id)]);
   await ctx.route(/espncdn\.com/, r => r.abort());
   const page = await openMenu(ctx, `#/player/${withPhoto.player_id}/68`);
-  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   await page.waitForFunction(() => !document.querySelector(".m-photo img"), null, { timeout: 15000 })
     .catch(() => { throw new Fail("a failed photo stayed on the card as a broken image"); });
   assert(await page.locator(".m-photo-initials").isVisible(), "the initials are not showing after the photo failed");
@@ -1467,7 +1523,7 @@ check("menu: rows and cards with missing fields render with no undefined, NaN or
   assert(!/undefined|NaN|\bnull\b/.test(body), `roster text has a raw value: ${(body.match(/undefined|NaN|\bnull\b/) || [""])[0]}`);
   for (const id of ids) {
     await page.evaluate(i => { location.hash = `#/player/${i}/68`; }, id);
-    await page.waitForSelector(".m-hero", { timeout: 30000 });
+    await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
     const txt = await page.locator("#m-stage").innerText();
     assert(!/undefined|NaN|\bnull\b/.test(txt), `card ${id} has a raw value: ${(txt.match(/undefined|NaN|\bnull\b/) || [""])[0]}`);
   }
@@ -1477,7 +1533,7 @@ check("menu: rows and cards with missing fields render with no undefined, NaN or
 
 check("menu: every rostered player's card and every position tab render, across seasons and teams", async ctx => {
   const page = await openMenu(ctx, "#/home");
-  await waitCount(page, ".m-group", 3);
+  await waitCount(page, ".m-hp", 5);
   const SEASONS = [2026, 2025, 2021, 2016, 2008], TEAMS = [68, 13, 52];
   const totals = { cards: 0, rosters: 0, bad: [] };
   for (const season of SEASONS) {
@@ -1507,7 +1563,7 @@ check("menu: every rostered player's card and every position tab render, across 
             if (/class="m-error/.test(html)) out.bad.push(`card ${season}/${team}/${r.player_id}: error panel`);
             const rated = /ovr-badge|trio-strip/.test(html) || /<div class="m-big">.*?<\/div><p class="m-note">/s.test(html);
             if (!rated) { out.noRating++; out.bad.push(`card ${season}/${team}/${r.player_id}: no rating and no reason`); }
-            const stats = /<div class="m-stats"><(table|p class="m-empty")/.test(html);
+            const stats = /<div class="m-stats"><(table|div class="m-stat"|p class="m-empty")/.test(html);
             if (!stats) { out.noStats++; out.bad.push(`card ${season}/${team}/${r.player_id}: no stats and no reason`); }
           } catch (e) { out.bad.push(`card ${season}/${team}/${r.player_id}: ${e.message}`); }
         }
@@ -1578,7 +1634,7 @@ check("menu: a team's record shows the postseason beside the regular season", as
   assert(/post \d+-\d+/.test(await page.locator(".m-teamcard .m-facts").first().innerText()), "the hub record has no postseason part");
   const r = await openPage(ctx, "menu.html#/rankings/pre");
   await waitCount(r, ".m-row--rank", 5);
-  await r.locator(".m-row--rank").first().click();
+  await r.locator(".m-row--rank").first().hover();
   await r.waitForSelector(".m-ptable", { timeout: 20000 });
   return null;
 });
@@ -1624,7 +1680,7 @@ check("menu: Players & Leaders lists rated players by position and opens a card"
   assert(pos.every(p => p.trim() === "QB"), `a non-QB in the QB list: ${[...new Set(pos)]}`);
   await page.locator("button.m-row--player").first().click();
   await page.waitForFunction(() => location.hash.startsWith("#/player/"), null, { timeout: 15000 });
-  await page.waitForSelector(".m-hero", { timeout: 30000 });
+  await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   return page;
 });
 

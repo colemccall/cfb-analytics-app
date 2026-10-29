@@ -32,7 +32,7 @@ function menuLoadState() {
 // Remembers My Team and the season across visits.
 function menuSaveState() {
   try {
-    if (MENU.teamId) localStorage.setItem("cfb-menu-team", String(MENU.teamId));
+    if (MENU.teamId) localStorage.setItem("cfb-menu-team", String(MENU.teamId)); else localStorage.removeItem("cfb-menu-team");
     localStorage.setItem("cfb-menu-season", String(MENU.season));
   } catch (e) { /* storage blocked: nothing to do */ }
 }
@@ -45,18 +45,32 @@ menuRouter.register = function (id, def) {
   menuScreens[id] = def;
 };
 
-// Splits "#/roster/QB" into { id: "roster", params: ["QB"] }. An empty or unknown
-// route is the landing page, which needs no team.
+// The screens about one team, and how a team route names them: #/team/52 is the team's page,
+// #/team/52/roster/QB its roster, and so on. Any team has a page; "My Team" is only the one the
+// old short routes (#/roster) and the home page default to.
+const MENU_TEAM_SUBS = { roster: "roster", depth: "depth", schedule: "schedule", recruiting: "team-recruiting", transfers: "team-portal", history: "team-history" };
+const MENU_TEAM_SCREENS = new Set(["team", "roster", "depth", "schedule", "team-recruiting", "team-portal", "team-history"]);
+
+// Splits "#/team/52/roster/QB" into { id: "roster", params: ["QB"], teamId: 52 }, and a short route
+// like "#/roster/QB" into the same with teamId taken from My Team. An empty or unknown route is the
+// home page. A team screen with no team to show (no team in the route, none followed) is team select.
 menuRouter.parse = function (hash) {
   const parts = String(hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
-  let id = parts[0] || "home";
+  let id = parts[0] || "home", params = parts.slice(1), teamId = null;
+  if (id === "team" && /^\d+$/.test(parts[1] || "")) {
+    teamId = Number(parts[1]);
+    id = parts[2] ? (MENU_TEAM_SUBS[parts[2]] || "team") : "team";
+    params = parts.slice(3);
+  } else if (id === "hub") {                       // the old Dynasty hub: My Team's page, or the home page for its League and News tabs
+    id = ["league", "news"].includes(parts[1]) ? "home" : "team";
+    params = [];
+  }
   if (!menuScreens[id]) id = "home";
-  // Screens that are about the league, not a team, open without one chosen. The Team tab of the
-  // hub and every team screen need a team, so they send you to pick one.
-  const leagueOnly = ["home", "standings", "rankings", "playoff", "recruiting", "portal", "team-select", "players", "season", "methods", "changes", "guide", "research"];
-  const openTab = id === "hub" && ["league", "news"].includes(parts[1]);
-  if (!MENU.teamId && !leagueOnly.includes(id) && !openTab) id = "team-select";
-  return { id, params: parts.slice(1) };
+  if (MENU_TEAM_SCREENS.has(id) && !teamId) {
+    teamId = MENU.teamId;
+    if (!teamId) id = "team-select";
+  }
+  return { id, params, teamId };
 };
 
 // Goes to a route by setting the hash; the hashchange handler does the rendering. The
@@ -66,13 +80,12 @@ menuRouter.go = function (path) {
   if (location.hash === next) this.render(); else location.hash = next;
 };
 
-// One step back: the browser's history if there is any, else the landing page. At the top of
-// the menu (the landing page) there is nowhere to go back to, so back opens the quick menu
-// instead of doing nothing. The Dynasty hub is one step below the landing page.
+// One step back: the browser's history if there is any, else the home page. At the top of
+// the menu (the home page) there is nowhere to go back to, so back opens the quick menu
+// instead of doing nothing.
 menuRouter.back = function () {
   const id = this.current && this.current.id;
   if (id === "home") { menuChrome.openMenu(); return; }
-  if (id === "hub") { this.go("#/home"); return; }
   if (history.length > 1 && this.current) history.back();
   else this.go("#/home");
 };
@@ -156,7 +169,7 @@ menuRouter.render = async function () {
   }
   stage.querySelectorAll("[data-retry]").forEach(b => b.addEventListener("click", () => menuRouter.render()));
   menuFocus.reset(def.prefer ? def.prefer(ctx) : null);
-  document.title = `${title} — CFB Dynasty Menu`;
+  document.title = `${title} — CFB Analytics`;
 };
 
 // Starts the router: load what the menu remembers, wire back/home/season/tab actions
@@ -176,6 +189,12 @@ menuRouter.start = function () {
   };
   menuInput.on("tabPrev", () => shift(-1));
   menuInput.on("tabNext", () => shift(1));
+  // Anything on a screen that names a destination (data-to="#/team/52") opens it when activated, by
+  // mouse, key or pad alike: one rule, so every team, player and ranking row can link without a handler.
+  menuChrome.el.stage.addEventListener("click", e => {
+    const el = e.target.closest && e.target.closest("[data-to]");
+    if (el && el.dataset.to) { e.preventDefault(); this.go(el.dataset.to); }
+  });
   window.addEventListener("hashchange", () => this.render());
   this.render();
 };

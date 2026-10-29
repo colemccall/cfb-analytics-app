@@ -337,6 +337,25 @@ async function fetchPlayerCard(playerId) {
   return shard[String(playerId)] || [];
 }
 
+// The best-rated players of a season, for the home page: a season being played from the to-date file, any other
+// season from its ratings_by_position file (the top 50 of each position group). Rows are { id, name, team, team_id,
+// position_group, rating, live }; team_id is null for a played season (that file names the school only). [] when
+// the season has neither file.
+async function fetchTopPlayers(season = CONFIG.CURRENT_SEASON) {
+  const live = await fetchLive(season);
+  if (live && live.players) {
+    return live.players.filter(p => p.overall_rating != null).map(p => ({
+      id: p.player_id, name: p.name, team: p.team, team_id: p.team_id, position_group: p.position_group, rating: p.overall_rating, live: true }));
+  }
+  const byPos = await _load(`ratings_by_position_${season}.json`);
+  if (!byPos) return [];
+  const out = [];
+  for (const [pos, list] of Object.entries(byPos)) {
+    for (const p of list) out.push({ id: p.id, name: p.name, team: p.team, team_id: null, position_group: pos, rating: p.overall, live: false });
+  }
+  return out;
+}
+
 // The photo mapping from script 19: { source, season, image: url pattern with {id}, players: { our player id:
 // ESPN athlete id } }, or null when the file is absent or CONFIG.HEADSHOTS_ENABLED is off (no request then).
 async function fetchHeadshots() {

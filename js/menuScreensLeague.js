@@ -30,11 +30,11 @@ function menuTeamById(d, id) {
 
 menuRouter.register("schedule", {
   title: ctx => (ctx.team ? ctx.team.school : "Schedule"),
-  crumb: () => "DYNASTY › SCHEDULE",
-  prompts: [{ action: "move", label: "Move" }, { action: "season", label: "Season" }, { action: "back", label: "Back" }],
+  crumb: () => "TEAM › SCHEDULE",
+  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open opponent" }, { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   async render(ctx) {
     const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
+    const team = menuViewTeam(ctx, d);
     ctx.team = team; ctx.d = d;
     const games = [...(team ? d.schedules[String(team.id)] || [] : [])]
       .sort((a, b) => String(a.game_date || "9").localeCompare(String(b.game_date || "9")));
@@ -60,7 +60,7 @@ menuRouter.register("schedule", {
       const oppId = String(g.home_team_id) === String(team.id) ? g.away_team_id : g.home_team_id;
       const opp = menuTeamById(d, oppId);
       const played = g.result === "W" || g.result === "L";
-      return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}">
+      return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}"${opp ? ` data-to="${menuTeamPath(opp.id)}"` : ""}>
         <span class="m-rank">${g.season_type === "postseason" ? "POST" : g.week ? `W${g.week}` : "—"}</span>
         <span class="m-pname">${g.is_home ? "vs" : "@"} ${_esc(g.opponent || "TBD")}${g.neutral_site ? " (N)" : ""}</span>
         <span class="m-pmeta">${_esc(String(g.game_date || "").slice(0, 10))}</span>
@@ -85,7 +85,7 @@ menuRouter.register("schedule", {
       if (!g || !team) return;
       const oppId = String(g.home_team_id) === String(team.id) ? g.away_team_id : g.home_team_id;
       const opp = menuTeamById(d, oppId);
-      const side = (t, name) => t ? `<div class="m-vs-side">${teamMark(t, "m-preview-mark")}<b>${_esc(t.school)}</b></div>`
+      const side = (t, name) => t ? `<button class="m-vs-side" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">${teamMark(t, "m-preview-mark")}<b>${_esc(t.school)}</b></button>`
                                   : `<div class="m-vs-side"><b>${_esc(name || "TBD")}</b><span class="m-sub">not in our team list</span></div>`;
       detail.innerHTML = `
         <div class="m-vs">${side(team)}<span class="m-vs-at">${g.is_home ? "vs" : "@"}</span>${side(opp, g.opponent)}</div>
@@ -101,7 +101,7 @@ menuRouter.register("schedule", {
 
 menuRouter.register("standings", {
   title: "Standings",
-  crumb: () => "DYNASTY › STANDINGS",
+  crumb: () => "LEAGUE › STANDINGS",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "Conference" },
             { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   tabs: ctx => {
@@ -122,7 +122,7 @@ menuRouter.register("standings", {
     if (!played) return `<div class="m-panel"><p class="m-empty">No results for ${MENU.season} yet — standings appear once games are played.</p></div>`;
     const indep = ctx.conf === "FBS Independents";
     const body = rows.map((r, i) => `
-      <button class="m-row m-row--stand${r.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="stand">
+      <button class="m-row m-row--stand${r.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="stand" data-to="${menuTeamPath(r.team.id)}">
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${teamMark(r.team, "m-row-mark")} ${_esc(r.team.school)}</span>
         <span class="m-num">${indep ? "—" : `${r.cw}-${r.cl}`}</span><span class="m-num">${r.w}-${r.l}</span>
@@ -136,16 +136,13 @@ menuRouter.register("standings", {
       <p class="m-foot">Regular season only. A conference game is one against an FBS team in the same conference; derived from the schedule.
         A game with no score for the opponent (almost always a non-FBS team) is not counted, so a few records can be a game short.</p>`;
   },
-  mount(stage) {
-    stage.querySelectorAll(".m-row--stand").forEach(b => b.addEventListener("click", () => menuChrome.toast("Team pages are on the main site")));
-  },
 });
 
 // ── Rankings ──────────────────────────────────────────────────────────────
 
 menuRouter.register("rankings", {
   title: "Rankings",
-  crumb: () => "DYNASTY › RANKINGS",
+  crumb: () => "LEAGUE › RANKINGS",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "List" },
             { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   tabs: ctx => {
@@ -173,7 +170,7 @@ menuRouter.register("rankings", {
     ctx.ranked = ranked; ctx.pw = pw; ctx.val = val;
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
     const row = (t, i) => `
-      <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}">
+      <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}" data-to="${menuTeamPath(t.id)}">
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
         <span class="m-pmeta">${_esc(t.conference || "")}</span>
@@ -238,7 +235,8 @@ function menuPowerPanel(t, rank, ctx, games) {
   // table that adds up to the results part.
   const postRows = games.filter(g => g.post).map(gameRow).join("");
   return `<h2 class="m-detail-name">${_esc(t.school)} · #${rank}</h2>
-    <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span></div>
+    <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span>
+      <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">Open team page →</button></div>
     <div class="m-pparts">
       <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
       <i>+</i>
@@ -258,7 +256,7 @@ function menuPowerPanel(t, rank, ctx, games) {
 
 menuRouter.register("portal", {
   title: "Transfer Portal",
-  crumb: () => "DYNASTY › TRANSFER PORTAL",
+  crumb: () => "LEAGUE › TRANSFER PORTAL",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "Position" },
             { action: "season", label: "Season" }, { action: "back", label: "Back" }],
   tabs: ctx => ({ items: ["ALL", ...CONFIG.FILTER_POSITIONS].map(p => ({ id: p, label: p })),
@@ -275,7 +273,7 @@ menuRouter.register("portal", {
       .sort((a, b) => ((b.ovr_current ?? b.ovr_previous ?? -1) - (a.ovr_current ?? a.ovr_previous ?? -1)));
     const shown = all.slice(0, 150);
     const rows = shown.map((r, i) => `
-      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="portal">
+      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="portal"${r.player_id ? ` data-to="${menuPlayerPath(r.player_id)}"` : ""}>
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${_esc(r.name)}</span>
         <span class="m-pos">${posBadge(r.position_group)}</span>
@@ -298,7 +296,7 @@ menuRouter.register("portal", {
 
 menuRouter.register("recruiting", {
   title: "Recruiting",
-  crumb: () => "DYNASTY › RECRUITING",
+  crumb: () => "LEAGUE › RECRUITING",
   prompts: [{ action: "move", label: "Move" }, { action: "tabs", label: "View" },
             { action: "season", label: "Class year" }, { action: "back", label: "Back" }],
   tabs: ctx => ({ items: [{ id: "classes", label: "Class rankings" }, { id: "prospects", label: "Prospect board" }],
@@ -316,7 +314,7 @@ menuRouter.register("recruiting", {
       It is a summary of the data we hold, not a published recruiting ranking.</p>`;
     if (view === "prospects") {
       const rows = c.prospects.slice(0, 150).map(p => `
-        <button class="m-row m-row--prospect" type="button" data-nav data-nav-group="prospect">
+        <button class="m-row m-row--prospect" type="button" data-nav data-nav-group="prospect"${p.player_id ? ` data-to="${menuPlayerPath(p.player_id)}"` : ""}>
           <span class="m-rank">${p.national_rank ?? "—"}</span>
           <span class="m-pname">${_esc(p.name)}</span>
           <span class="m-pos">${p.position ? posBadge(p.position) : "—"}</span>
@@ -333,7 +331,7 @@ menuRouter.register("recruiting", {
     const ranked = c.teams.filter(t => t.class_rank != null);
     const mine = c.teams.find(t => t.team_id === MENU.teamId);
     const row = t => `
-      <button class="m-row m-row--class${t.team_id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="class">
+      <button class="m-row m-row--class${t.team_id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="class" data-to="${menuTeamPath(t.team_id, "recruiting")}">
         <span class="m-rank">${t.class_rank ?? "—"}</span>
         <span class="m-pname">${_esc(t.team || "—")}</span>
         <span class="m-num">${t.commits}</span>

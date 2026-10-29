@@ -29,7 +29,7 @@ menuChrome.build = function (root) {
       <div class="m-banner" id="m-banner" aria-hidden="true"></div>
       <div class="m-titles">
         <div class="m-crumb" id="m-crumb"></div>
-        <h1 class="m-title" id="m-title">Dynasty</h1>
+        <h1 class="m-title" id="m-title">Home</h1>
       </div>
       <div class="m-season" id="m-season">
         <button class="m-step" type="button" data-nav data-nav-group="season" data-step="1" aria-label="Previous season">◀</button>
@@ -162,31 +162,34 @@ menuChrome.loadTicker = async function () {
     const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, 25);
     const one = top.map((t, i) => {
       const s = d.standings[t.id];
-      return `<span>#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</span>`;
+      return `<a href="${menuTeamPath(t.id)}">#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</a>`;
     }).join("");
     this.el["ticker-track"].innerHTML = one + one;
   } catch (e) { /* no ticker */ }
 };
 
 // The quick menu: an overlay reachable from anywhere (Back at the top of the menu, Start or H,
-// or the Menu prompt) listing every screen, split into the team's own and the league's, plus
-// the season and the light/dark switch. It takes over the selection while it is open, and Back,
-// Menu or choosing an item closes it. Opening it twice does nothing.
+// or the Menu prompt) listing every screen, split into the team being looked at (else the one you
+// follow) and the league and the news, plus the season and the light/dark switch. It takes over the
+// selection while it is open, and Back, Menu or choosing an item closes it. Opening it twice does nothing.
 menuChrome.openMenu = function () {
   if (this.overlay) return;
-  const mine = MENU.teamId ? "THIS TEAM" : "TEAM";
+  const here = menuRouter.current && menuRouter.current.ctx && menuRouter.current.ctx.route ? menuRouter.current.ctx.route.teamId : null;
+  const teamId = here != null ? here : MENU.teamId;
   const item = (route, label) => `<button class="m-item" type="button" data-nav data-nav-group="ovl" data-go="${route}"><span class="m-item-label">${_esc(label)}</span></button>`;
+  const teamCol = teamId
+    ? `<h3 class="m-ovl-h">${here != null && here !== MENU.teamId ? "THIS TEAM" : "MY TEAM"}</h3>${item(menuTeamPath(teamId), "Team Page")}${item(menuTeamPath(teamId, "roster"), "Roster")}${item(menuTeamPath(teamId, "depth"), "Depth Chart")}${item(menuTeamPath(teamId, "schedule"), "Schedule")}${item(menuTeamPath(teamId, "recruiting"), "Recruiting Class")}${item(menuTeamPath(teamId, "transfers"), "Transfers")}${item(menuTeamPath(teamId, "history"), "Team History")}`
+    : `<h3 class="m-ovl-h">TEAM</h3>${item("#/team-select", "Pick a Team")}`;
   const el = document.createElement("div");
   el.className = "m-overlay";
   el.innerHTML = `<div class="m-ovl-panel m-panel" role="dialog" aria-label="Menu">
       <h2 class="m-ovl-title">MENU</h2>
       <div class="m-ovl-cols">
-        <div><h3 class="m-ovl-h">${mine}</h3>${item("hub", "Dynasty Hub")}${item("roster", "Roster")}${item("depth", "Depth Chart")}${item("schedule", "Schedule")}${item("team-recruiting", "Recruiting Class")}${item("team-portal", "Transfers")}${item("team-history", "Team History")}</div>
-        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("rankings", "Rankings")}${item("standings", "Standings")}${item("players", "Players & Leaders")}${item("recruiting", "Recruiting")}${item("portal", "Transfer Portal")}${item("team-select", "All Teams")}</div>
-        <div><h3 class="m-ovl-h">NEWS</h3>${item("playoff", "Playoff Picture")}${item("season", "The Season")}${item("research", "Research")}${item("guide", "How It Works")}${item("methods", "Methods")}${item("changes", "Build Log")}</div>
+        <div>${teamCol}</div>
+        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/standings", "Standings")}${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting")}${item("#/portal", "Transfer Portal")}${item("#/team-select", "All Teams")}</div>
+        <div><h3 class="m-ovl-h">NEWS</h3>${item("#/playoff", "Playoff Picture")}${item("#/season", "The Season")}${item("#/research", "Research")}${item("#/guide", "How It Works")}${item("#/methods", "Methods")}${item("#/changes", "Build Log")}</div>
       </div>
       <div class="m-ovl-opts">
-          ${item("home", "Home")}
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="mode"><span class="m-item-label">${this.mode === "light" ? "Dark Mode" : "Light Mode"}</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button>
@@ -203,7 +206,7 @@ menuChrome.openMenu = function () {
   };
   const offs = [menuInput.on("back", close), menuInput.on("home", close)];
   el.addEventListener("click", e => { if (e.target === el) close(); });
-  el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { close(); menuRouter.go(`#/${b.dataset.go}`); }));
+  el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { close(); menuRouter.go(b.dataset.go); }));
   el.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
     const act = b.dataset.act;
     close();

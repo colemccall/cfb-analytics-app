@@ -1,4 +1,4 @@
-// menuScreens.js — the menu's core screens: team select and the Dynasty hub, plus
+// menuScreens.js — the menu's core screens: all teams and the team page, plus
 // the helpers every screen shares.
 //
 // Each screen is registered with menuRouter.register(id, def). render(ctx) returns
@@ -113,10 +113,10 @@ function _menuConferences(teams) {
 }
 
 menuRouter.register("team-select", {
-  title: "Select Team",
-  crumb: () => "DYNASTY › TEAM SELECT",
+  title: "All Teams",
+  crumb: () => "LEAGUE › ALL TEAMS",
   banner: false,
-  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Choose team" },
+  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open team" },
             { action: "tabs", label: "Conference" }, { action: "season", label: "Season" }],
   tabs: ctx => {
     const conf = decodeURIComponent(ctx.params[0] || "All");
@@ -132,7 +132,7 @@ menuRouter.register("team-select", {
     ctx.list = list; ctx.d = d;
     const tiles = list.map(t => {
       const ovr = menuTeamOvr(t, d);
-      return `<button class="m-tile${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="tiles"
+      return `<button class="m-tile${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="tiles" data-to="${menuTeamPath(t.id)}"
           style="--m-team:${_esc(t.color || "")}" data-team="${t.id}" aria-label="${_esc(t.school)}">
         ${teamMark(t, "m-tile-mark")}
         <span class="m-tile-name">${_esc(t.school)}</span>
@@ -168,185 +168,147 @@ menuRouter.register("team-select", {
         </div>`;
     };
     stage.addEventListener("menu:select", e => show(e.target.closest?.("[data-team]")));
-    stage.querySelectorAll("[data-team]").forEach(b => b.addEventListener("click", () => {
-      MENU.teamId = parseInt(b.dataset.team);
-      menuSaveState();
-      menuChrome.toast(`${d.teams.find(t => t.id === MENU.teamId)?.school} is now your team`);
-      menuRouter.go("#/hub");
-    }));
   },
   prefer: () => `[data-team="${MENU.teamId}"]`,
 });
 
-// ── Dynasty hub: the home page ────────────────────────────────────────────
+// ── Links: how one screen names another ─────────────────────────────────────
+// Every team, player and ranking on every screen opens the page you would want next. A destination is
+// written as a route in data-to (menuRouter turns an activation into a navigation), built by these.
 
-// What each hub tab lists. A row with `route` opens a menu screen; one with `href` opens a page.
-// `team` rows need a team chosen. The Team tab is the drill-down into one team, the League tab is
-// everything across teams, and the News tab is what is going on and how to read it.
-function menuHubItems(tab, team) {
-  if (tab === "league") return [
-    { label: "Rankings",          route: "rankings",    hint: "The top 25 by power, with how each number is made." },
-    { label: "Standings",         route: "standings",   hint: "Conference records, derived from the results." },
-    { label: "All Teams",         route: "team-select", hint: "Every team: pick one to follow." },
-    { label: "Players & Leaders", route: "players",     hint: "Every rated player, by position, with the full card." },
-    { label: "Recruiting",        route: "recruiting",  hint: "Class rankings and the prospect board for the whole league." },
-    { label: "Transfer Portal",   route: "portal",      hint: "Every move in the league, with the rating before and after." },
-  ];
-  if (tab === "news") return [
-    { label: "Playoff Picture", route: "playoff",  hint: "Who would be in a 4, 8, 12 or 24-team playoff, as a bracket." },
-    { label: "The Season",      route: "season",   hint: "The season in progress: movers and the best players to date." },
-    { label: "Research",        route: "research", hint: "Findings, each with the table behind it." },
-    { label: "How It Works",    route: "guide",    hint: "The guide to reading the app." },
-    { label: "Methods",         route: "methods",  hint: "How every number is computed and what it cannot support." },
-    { label: "Build Log",       route: "changes",  hint: "What changed, why, and what it cost." },
-  ];
-  return [
-    { label: "Roster",          route: "roster",          hint: "Every player on the team, with last season, projection and to-date ratings." },
-    { label: "Depth Chart",     route: "depth",           hint: "Position groups ordered by the to-date rating. Not an official chart." },
-    { label: "Schedule",        route: "schedule",        hint: "Every game, byes, the result so far, and what is next." },
-    { label: "Recruiting",      route: "team-recruiting", hint: "This team's recruiting class, with a map of where the players come from." },
-    { label: "Transfers",       route: "team-portal",     hint: "Players coming in and going out, with the rating before and after." },
-    { label: "Team History",    route: "team-history",    hint: "Every season: record, conference and ratings." },
-    { label: "Switch Team",     route: "team-select",     hint: "Pick a different team to follow." },
-  ];
+// The team a team screen is about: the one in its route (#/team/52/...), else My Team, else null.
+function menuViewTeam(ctx, d) {
+  const id = ctx.route && ctx.route.teamId != null ? ctx.route.teamId : MENU.teamId;
+  return d.teams.find(t => t.id === id) || null;
 }
 
-menuRouter.register("hub", {
-  title: ctx => ({ league: "League", news: "News" }[ctx.params[0]] || "Dynasty"),
-  crumb: ctx => `DYNASTY › ${(ctx.params[0] || "team").toUpperCase()}`,
-  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Select" }, { action: "tabs", label: "Team / League / News" },
-            { action: "season", label: "Season" }],
-  tabs: ctx => ({ items: [{ id: "team", label: "Team" }, { id: "league", label: "League" }, { id: "news", label: "News" }],
-                  active: ctx.params[0] || "team", go: id => menuRouter.go(`#/hub/${id}`) }),
-  async render(ctx) {
-    const tab = ["league", "news"].includes(ctx.params[0]) ? ctx.params[0] : "team";
-    const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
-    ctx.team = team; ctx.d = d; ctx.tab = tab;
-    const items = menuHubItems(tab, team).map(it => `
-      <button class="m-item" type="button" data-nav data-nav-group="hub" data-route="${it.route}" data-hint="${_esc(it.hint)}">
-        <span class="m-item-label">${_esc(it.label)}</span></button>`).join("");
-    return `<div class="m-split m-split--hub">
-      <nav class="m-panel m-menu" aria-label="Dynasty menu">${items}</nav>
-      ${tab === "league" ? menuHubLeaguePanel(d) : tab === "news" ? menuHubNewsPanel(d) : menuHubTeamPanel(d, team)}
-    </div>
-    <div class="m-hint" id="m-hint"></div>`;
-  },
-  mount: menuMountRouteItems,
-  prefer: () => ".m-item",
-});
-
-// Wires a menu list: the hint line follows the selection and a click opens the item's route.
-function menuMountRouteItems(stage) {
-  const hint = stage.querySelector("#m-hint");
-  stage.addEventListener("menu:select", e => {
-    const it = e.target.closest?.("[data-route],[data-href]");
-    if (it && hint) hint.textContent = it.dataset.hint || "";
-  });
-  stage.querySelectorAll("[data-route]").forEach(b => b.addEventListener("click", () => menuRouter.go(`#/${b.dataset.route}`)));
+// A route to a team's page (no `sub`) or to one of its screens: roster, depth, schedule, recruiting,
+// transfers, history. `rest` adds a tab, e.g. menuTeamPath(52, "roster", "QB").
+function menuTeamPath(teamId, sub = "", ...rest) {
+  return `#/team/${teamId}${sub ? "/" + sub : ""}${rest.length ? "/" + rest.map(encodeURIComponent).join("/") : ""}`;
 }
 
-// ── Landing page: the whole league and the news, no team needed ─────────────
-
-// The landing page's three menu groups. League and News are the hub's lists; Dynasty is the
-// way into the team drill-down, one entry before a team is followed and two after.
-function menuHomeGroups(team) {
-  const dynasty = team
-    ? [{ label: "My Team", route: "hub", hint: `${team.school}: roster, depth chart, schedule, recruiting, transfers and history.` },
-       { label: "Switch Team", route: "team-select", hint: "Pick a different team to follow." }]
-    : [{ label: "Follow a Team", route: "team-select", hint: "Pick a team to follow: its roster, depth chart, schedule, recruiting, transfers and history." }];
-  return [
-    { id: "league", title: "League", items: menuHubItems("league", team) },
-    { id: "news", title: "News", items: menuHubItems("news", team) },
-    { id: "dynasty", title: "Dynasty", items: dynasty },
-  ];
+// A route to a player's card. The team is only the roster the card falls back to for a player who has no
+// ratings row, so it may be left out.
+function menuPlayerPath(playerId, teamId = null) {
+  return `#/player/${playerId}${teamId ? "/" + teamId : ""}`;
 }
 
-// The Dynasty card's lead line: the followed team's record, rank and next game, or a note that
-// following a team is optional.
-function menuHomeTeamLine(d, team) {
-  if (!team) return '<p class="m-note">Optional. Follow a team to get its own roster, depth chart, schedule and recruiting.</p>';
-  const st = d.standings[team.id];
-  const next = menuNextGame(d.schedules[String(team.id)]);
-  const opp = next ? `${next.is_home ? "vs" : "@"} ${next.opponent || "TBD"}` : "No game scheduled";
-  return `<div class="m-homeline" style="--m-team:${_esc(team.color || "")}">${teamMark(team, "m-row-mark")}
-      <div><b>${_esc(team.school)}</b><small>${st ? recordText(st) : "No results yet"} · Rank #${menuTeamRank(team, d) ?? "—"}</small><small>Next: ${_esc(opp)}</small></div></div>`;
+// A team named inside a panel, as a small button: its mark and name, opening its page.
+function menuTeamChip(t) {
+  return `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</button>`;
 }
 
-menuRouter.register("home", {
-  title: "Home",
-  crumb: () => "HOME",
-  banner: false,
-  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Select" }, { action: "season", label: "Season" }],
-  async render(ctx) {
-    const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
-    ctx.d = d; ctx.team = null;
-    const card = g => `<nav class="m-panel m-group" aria-label="${_esc(g.title)}"><h3 class="m-h3">${_esc(g.title)}</h3>
-        ${g.id === "dynasty" ? menuHomeTeamLine(d, team) : ""}
-        ${g.items.map(it => `<button class="m-item m-item--sm" type="button" data-nav data-nav-group="home" data-route="${it.route}" data-hint="${_esc(it.hint)}">
-          <span class="m-item-label">${_esc(it.label)}</span></button>`).join("")}</nav>`;
-    return `<div class="m-home">
-      <div class="m-home-groups">${menuHomeGroups(team).map(card).join("")}</div>
-      <div class="m-home-live">${menuHubLeaguePanel(d, 8)}${menuHubNewsPanel(d)}</div>
-    </div>
-    <div class="m-hint" id="m-hint"></div>`;
-  },
-  mount: menuMountRouteItems,
-  prefer: () => ".m-item",
-});
+// ── Team page: any team ─────────────────────────────────────────────────────
 
-// The right-hand panel of the Team tab: the followed team's rating, offense and defense, record,
-// national rank and next game; or a prompt to pick a team.
-function menuHubTeamPanel(d, team) {
-  if (!team) return `<section class="m-panel m-teamcard"><p class="m-empty">No team chosen yet. Pick <b>Switch Team</b> to follow one.</p></section>`;
+// The right-hand panel of a team page: rating, offense and defense bars, record, national rank,
+// conference and next game. The rank, conference and opponent are buttons to where they lead.
+function menuTeamPanel(d, team) {
   const lv = d.liveById[team.id];
   const st = d.standings[team.id];
+  const rank = menuTeamRank(team, d);
   const next = menuNextGame(d.schedules[String(team.id)]);
-  const opp = next ? `${next.is_home ? "vs" : "@"} ${next.opponent || "TBD"}` : "";
-  return `<section class="m-panel m-teamcard" aria-label="Your team">
+  const oppId = next ? (String(next.home_team_id) === String(team.id) ? next.away_team_id : next.home_team_id) : null;
+  const opp = oppId != null ? d.teams.find(t => String(t.id) === String(oppId)) : null;
+  const nextText = next ? `${next.is_home ? "vs" : "@"} ${next.opponent || "TBD"}` : "No game scheduled";
+  const chip = (to, text) => `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${to}">${text}</button>`;
+  return `<section class="m-panel m-teamcard" aria-label="${_esc(team.school)}">
       <div class="m-preview-head" style="--m-team:${_esc(team.color || "")}">
         ${teamMark(team, "m-preview-mark")}
-        <div><h2>${_esc(team.school)}</h2><div class="m-sub">${_esc(team.conference || "")}</div></div>
+        <div><h2>${_esc(team.school)}</h2><div class="m-sub">${team.conference ? chip(`#/standings/${encodeURIComponent(team.conference)}`, _esc(team.conference)) : ""}</div></div>
       </div>
       <div class="m-facts">
-        <span>${st ? `Record ${recordText(st)}` : "No results yet"}</span>
-        <span>Rank #${menuTeamRank(team, d) ?? "—"}</span>
-        ${lv ? `<span class="m-live">TO DATE · WK ${d.live.through_week}</span>` : ""}
+        <span title="Regular season, then the postseason">${st ? `Record ${recordText(st)}` : "No results yet"}</span>
+        ${rank != null ? chip("#/rankings", `Rank #${rank}`) : "<span>Unranked</span>"}
+        ${lv ? `<span class="m-live">TO DATE · WK ${d.live.through_week}</span>` : isProjectedSeason(MENU.season) ? '<span class="m-proj">PROJECTED</span>' : ""}
       </div>
       ${menuBar("Overall", menuTeamOvr(team, d), lv ? "Earned to date" : "Team rating")}
       ${menuBar("Offense", menuSide(team, lv, "offense_rating"), menuSideHint(team, lv))}
       ${menuBar("Defense", menuSide(team, lv, "defense_rating"), menuSideHint(team, lv))}
       ${lv && team.overall_rating != null ? `<div class="m-note">Preseason projection ${Math.round(team.overall_rating)} → ${Math.round(lv.overall_rating)} so far</div>` : ""}
       <div class="m-next"><span class="m-next-label">NEXT GAME</span>
-        <span class="m-next-game">${next ? `${_esc(opp)} <small>${_esc(String(next.game_date || "").slice(0, 10))}</small>` : "No game scheduled"}</span></div>
+        ${opp ? chip(menuTeamPath(opp.id), `${_esc(nextText)} <small>${_esc(String(next.game_date || "").slice(0, 10))}</small>`)
+              : `<span class="m-next-game">${_esc(nextText)}${next ? ` <small>${_esc(String(next.game_date || "").slice(0, 10))}</small>` : ""}</span>`}</div>
     </section>`;
 }
 
-// The League tab's panel: the ten highest-ranked teams by power, with record and rating
-// (the landing page shows fewer, so it fits above the fold).
-function menuHubLeaguePanel(d, n = 10) {
-  const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, n);
-  const rows = top.map((t, i) => `<div class="m-hrow"><span class="m-rank">${i + 1}</span><span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
-      <span class="m-num">${d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—"}</span><span class="m-num">${menuPowerText(menuTeamPower(t, d))}</span></div>`).join("");
-  return `<section class="m-panel m-teamcard" aria-label="Top ten">
-      <h2 class="m-detail-name">Top ${n === 10 ? "ten" : n} · ${MENU.season}</h2>
-      <div class="m-hrow m-hrow--head"><span>#</span><span>TEAM</span><span>REC</span><span>POWER</span></div>
-      ${rows || '<p class="m-empty">No ranked teams.</p>'}
-      <p class="m-note">Ranked by power: team rating plus results, in points per game above an average team.</p>
-    </section>`;
+// The rating a player is best summarised by right now, as a pill: earned to date if he has one, else his
+// projection (a season being played) or his rating (a season played).
+function menuLeadPill(p, season) {
+  if (p.live_rating != null) return livePill(p);
+  if (hasTrio(p) && p.overall_rating != null) return projPill(p, season);
+  return ovrPill(p.overall_rating ?? p.rating_prev, { season, label: `Rating, ${season}` });
 }
 
-// The News tab's panel: where the season stands and the top of the playoff field.
-function menuHubNewsPanel(d) {
-  const field = menuPlayoffField(d, "12");
-  const status = d.live ? `Through week ${d.live.through_week}: ${d.live.games_completed.toLocaleString()} of ${d.live.games_scheduled.toLocaleString()} regular-season games played.`
-    : isProjectedSeason(MENU.season) ? "A season not yet played: every rating is a projection." : "A finished season.";
-  return `<section class="m-panel m-teamcard" aria-label="News">
-      <h2 class="m-detail-name">${MENU.season} season</h2>
-      <p class="m-note">${_esc(status)}</p>
-      <h3 class="m-h3">12-team field, top four seeds</h3>
-      ${field.slice(0, 4).map(f => `<div class="m-hrow"><span class="m-rank">${f.seed}</span><span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}</span><span class="m-num">${d.standings[f.team.id] ? `${d.standings[f.team.id].w}-${d.standings[f.team.id].l}` : "—"}</span><span class="m-num">${menuPowerText(menuTeamPower(f.team, d))}</span></div>`).join("")}
-      <p class="m-note">Open the Playoff Picture for the whole bracket.</p>
-    </section>`;
+// Fills a team page's Top players panel from the roster file, after the page is already drawn: the six
+// best by rating, each a button to his card. The roster is the heavy file, so the page does not wait for
+// it, and a failure is said in the panel instead of leaving it on "Loading".
+async function menuFillTopPlayers(el, team) {
+  try {
+    const roster = await fetchTeamRoster(team.id, MENU.season);
+    if (!el.isConnected) return;
+    const top = [...roster].filter(p => menuLeadRating(p) != null).sort((a, b) => menuLeadRating(b) - menuLeadRating(a)).slice(0, 6);
+    if (!top.length) {
+      el.innerHTML = `<h3 class="m-h3">Top players</h3><p class="m-empty">${_esc(menuEmptyRosterWhy(roster, team, "No rated players on this roster."))}</p>`;
+      return;
+    }
+    el.innerHTML = `<h3 class="m-h3">Top players</h3>${top.map(p => `
+      <button class="m-row m-row--pl" type="button" data-nav data-nav-group="top" data-to="${menuPlayerPath(p.player_id, team.id)}">
+        <span class="m-pos">${posBadge(p.position_group)}</span><span class="m-pname">${_esc(p.name || "—")}</span>
+        <span class="m-rating">${menuLeadPill(p, MENU.season)}</span></button>`).join("")}
+      <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(team.id, "roster")}">Full roster →</button>`;
+  } catch (e) {
+    if (el.isConnected) el.innerHTML = `<h3 class="m-h3">Top players</h3><p class="m-empty" role="alert">The roster did not load: ${_esc(e && e.message ? e.message : e)}. Open Roster to retry.</p>`;
+  }
+}
+
+menuRouter.register("team", {
+  title: ctx => (ctx.team ? ctx.team.school : "Team"),
+  crumb: () => "TEAM",
+  prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open" }, { action: "season", label: "Season" }],
+  async render(ctx) {
+    const d = await menuTeams(MENU.season);
+    const team = menuViewTeam(ctx, d);
+    ctx.team = team; ctx.d = d;
+    if (!team) return menuErrorPanel(`That team is not in the ${MENU.season} list.`, true);
+    const to = (label, route, hint) => `<button class="m-item" type="button" data-nav data-nav-group="team" data-to="${route}" data-hint="${_esc(hint)}"><span class="m-item-label">${label}</span></button>`;
+    const mine = team.id === MENU.teamId;
+    return `<div class="m-split m-split--hub">
+      <nav class="m-panel m-menu" aria-label="${_esc(team.school)}">
+        ${to("Roster", menuTeamPath(team.id, "roster"), "Every player, with last season, projection and to-date ratings.")}
+        ${to("Depth Chart", menuTeamPath(team.id, "depth"), "Position groups ordered by the to-date rating. Not an official chart.")}
+        ${to("Schedule", menuTeamPath(team.id, "schedule"), "Every game, byes, bowls, the result so far and what is next.")}
+        ${to("Recruiting", menuTeamPath(team.id, "recruiting"), "The recruiting class, with a map of where the players come from.")}
+        ${to("Transfers", menuTeamPath(team.id, "transfers"), "Players coming in and going out, with the rating before and after.")}
+        ${to("History", menuTeamPath(team.id, "history"), "Every season: record, conference and ratings.")}
+        <button class="m-item" type="button" data-nav data-nav-group="team" data-follow data-hint="${_esc(mine ? "Stop following this team." : "Follow this team: the home page shows it and the short menu entries open it.")}">
+          <span class="m-item-label">${mine ? "Following ✓" : "Follow this team"}</span></button>
+      </nav>
+      <div class="m-stack">${menuTeamPanel(d, team)}
+        <section class="m-panel" id="m-top"><h3 class="m-h3">Top players</h3><p class="m-empty">Loading…</p></section></div>
+    </div>
+    <div class="m-hint" id="m-hint"></div>`;
+  },
+  mount(stage, ctx) {
+    menuMountHints(stage);
+    const team = ctx.team;
+    stage.querySelector("[data-follow]")?.addEventListener("click", () => {
+      MENU.teamId = team.id === MENU.teamId ? null : team.id;
+      menuSaveState();
+      menuChrome.toast(MENU.teamId ? `${team.school} is now your team` : `No longer following ${team.school}`);
+      menuRouter.render();
+    });
+    const top = stage.querySelector("#m-top");
+    if (top) menuFillTopPlayers(top, team);       // not awaited: the roster is large
+  },
+  prefer: () => ".m-item",
+});
+
+// Makes the hint line under a menu list follow the selection: each item carries its own data-hint.
+function menuMountHints(stage) {
+  const hint = stage.querySelector("#m-hint");
+  stage.addEventListener("menu:select", e => {
+    const it = e.target.closest && e.target.closest("[data-hint]");
+    if (it && hint) hint.textContent = it.dataset.hint || "";
+  });
 }

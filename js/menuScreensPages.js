@@ -110,7 +110,7 @@ menuRegisterReader("research", {
   show: async (id, host) => {
     host.innerHTML = '<div id="finding-root"></div>';
     await initFinding(id);
-    document.title = "Research — CFB Dynasty Menu";
+    document.title = "Research — CFB Analytics";
   },
 });
 
@@ -171,7 +171,7 @@ menuRouter.register("season", {
       return `<section class="m-panel"><p class="m-empty">${MENU.season} ${isProjectedSeason(MENU.season) ? "has not been played: every rating is a projection." : "is a finished season; see Rankings for the final order."}</p></section>`;
     }
     const movers = [...live.teams].filter(t => t.change != null).sort((a, b) => b.change - a.change);
-    const mv = t => `<div class="m-hrow"><span class="m-rank"></span><span class="m-pname">${_esc(t.school)}</span><span class="m-num">${t.wins}-${t.losses}</span><span class="m-num">${t.change > 0 ? "▲" : "▼"} ${Math.abs(t.change).toFixed(1)}</span></div>`;
+    const mv = t => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="season-teams" data-to="${menuTeamPath(t.team_id)}"><span class="m-rank"></span><span class="m-pname">${_esc(t.school)}</span><span class="m-num">${t.wins}-${t.losses}</span><span class="m-num">${t.change > 0 ? "▲" : "▼"} ${Math.abs(t.change).toFixed(1)}</span></button>`;
     const bestP = [...live.players].sort((a, b) => b.overall_rating - a.overall_rating).slice(0, 10);
     const val = live.validation?.summary;
     return `<div class="m-split m-split--roster">
@@ -183,7 +183,7 @@ menuRouter.register("season", {
       </section>
       <aside class="m-panel m-detail">
         <h3 class="m-h3">Best players to date</h3>
-        ${bestP.map((p, i) => `<div class="m-hrow"><span class="m-rank">${i + 1}</span><span class="m-pname">${_esc(p.name)} <small>${_esc(p.position_group)} · ${_esc(p.team)}</small></span><span class="m-num">${Math.round(p.overall_rating)}</span><span class="m-num">${p.change == null ? "" : (p.change > 0 ? "▲" : "▼") + Math.abs(p.change).toFixed(0)}</span></div>`).join("")}
+        ${bestP.map((p, i) => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="season-players" data-to="${menuPlayerPath(p.player_id, p.team_id)}"><span class="m-rank">${i + 1}</span><span class="m-pname">${_esc(p.name)} <small>${_esc(p.position_group)} · ${_esc(p.team)}</small></span><span class="m-num">${Math.round(p.overall_rating)}</span><span class="m-num">${p.change == null ? "" : (p.change > 0 ? "▲" : "▼") + Math.abs(p.change).toFixed(0)}</span></button>`).join("")}
         <p class="m-note">To-date ratings are earned so far, rescaled to full-season pace, and provisional. ${val ? `Back-tested on ${val.through_week ? "2025 cut at week " + val.through_week : "2025"}: the rescaled number ran about ${Math.round((1 - val.median_ratio_paced) * -100)}% above where players ended up (median ratio ${val.median_ratio_paced}).` : ""}</p>
       </aside>
     </div>`;
@@ -198,7 +198,7 @@ menuRouter.register("team-history", {
   prompts: [{ action: "move", label: "Move" }, { action: "back", label: "Back" }],
   async render(ctx) {
     const d = await menuTeams(MENU.season);
-    const team = menuMyTeam(d);
+    const team = menuViewTeam(ctx, d);
     ctx.team = team;
     const hist = team ? await fetchTeamHistory(team.id) : [];
     if (!hist.length) return '<section class="m-panel"><p class="m-empty">No history on file for this team.</p></section>';

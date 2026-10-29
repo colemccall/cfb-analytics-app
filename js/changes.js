@@ -33,6 +33,67 @@
 
 const CHANGES = [
   {
+    id: "v4.15-home-team-pages-and-console-card",
+    version: "v4.15",
+    date: "2026-10-28",
+    title: "A real home page, a page for every team, links everywhere, and the player card back in the console frame",
+    summary: `The menu still opened inside Dynasty: a three-card list over a few panels, with team screens that only worked for the one team
+      you followed. This pass makes the home page the league at a glance, gives every team a page of its own, makes every team, player and
+      ranking a link to where you would want to go next, and rebuilds the player card in the console frame it had lost.`,
+    motivation: `The owner said the player cards had completely lost the console style, that the app still started in Dynasty (which they do not
+      like), and that everything should be linked: a true home page where every team, player, ranking and so on links to the pages of interest.
+      Ratings and rankings work was set aside for a later pass; this one is the interface.`,
+    did: [
+      { what: "The home page is the league, not a menu of Dynasty",
+        why: `Quick links to every screen along the top, a strip for the team you follow (or an offer to follow one), and panels: the top ten, the best
+          players, last week's results and the coming week's games (a played season shows its bowls and the playoff; a season not yet played its opening
+          week), the 12-team playoff picture, the biggest rating movers, the best recruiting classes and the biggest transfers. Every row opens something:
+          a team row its page, a player row his card, a game either team, a class its team's recruiting page, a transfer the player. The word Dynasty is gone from
+          the titles and breadcrumbs (they read HOME, TEAM, LEAGUE, NEWS); the old hub address opens the team page, or the home page for its League and News tabs.`,
+        cost: "A design change: one new screen and the panel, row and game-row markup. The home page loads the top-players, recruiting and transfer files beside the team files; a failed one is named in a banner and its panel says so." },
+      { what: "Any team has a page, and every team screen follows the team in the route",
+        why: `#/team/52 is a team's page (rating, offense and defense, record, rank, conference, next game, top players, and Roster, Depth Chart, Schedule,
+          Recruiting, Transfers and History); #/team/52/roster/QB and the rest are its screens. The older short routes (#/roster) still work and mean My Team.
+          Following a team is a button on its page and is optional: the home page and the quick menu use it, nothing needs it. The quick menu's team column
+          is the team you are looking at ("this team"), else the one you follow.`,
+        cost: "A team's page reads the roster file for its top players after the page is drawn (8-11 MB on first use); the file is shared with the roster screen." },
+      { what: "Links everywhere",
+        why: `One rule in the router: an element with data-to opens that route when activated by mouse, key or pad. Rankings, standings, schedule rows (the opponent),
+          playoff seeds and bracket boxes, recruiting classes and prospects, transfer rows, The Season's movers and best players, roster and depth-chart rows, the home panels and
+          the scores ticker (plain links) all open their team or player. A ranking's side panel, a game's side panel and a card have buttons onward (team page, position leaders, full stats).`,
+        cost: "A row opens its main entity; the second entity in a row (a game's other team) is a button in the side panel or its own button. A team we do not rate (FCS) is plain text." },
+      { what: "The player card is in the console frame again, with Overview, Stats and Career",
+        why: `The header is the roster screen's strip made large (photo, name, position, team button, class, height, weight, home state, the lead rating in a box with all three beneath it).
+          Overview: the three ratings in tiles, the position's key stats as big tiles, how each rating is built, the rating history, links to the team page and to the position's leaders, the transfer path.
+          Stats: every stat as ruled tables in columns. Career: the season-by-season table with a team button per season, and totals. LB and RB (Q and E) switch sections.`,
+        cost: "The card's team button and tabs add focus targets; nothing about the data changed." },
+    ],
+    tried: [
+      { what: "Links inside a row (the team and the player each a button in one row)",
+        result: "Not built: nested interactive elements in a row, and two focus targets per row, make the controller layout worse. A row opens its main entity.",
+        verdict: "rejected" },
+      { what: "Keeping the Dynasty hub with its Team, League and News tabs as the team page",
+        result: "The League and News tabs only repeated the home page; the team page is now the Team tab on its own.",
+        verdict: "replaced" },
+    ],
+    measured: [
+      { label: "Rows on the home page, and how many have a destination", before: "about 20 rows, none a link", after: "20 or more, 0 without a destination (a test)" },
+      { label: "Screens that work for any team, not only My Team", before: "0 of 7", after: "7 of 7 (team, roster, depth, schedule, recruiting, transfers, history)" },
+      { label: "UI smoke checks", before: "140", after: "142" },
+      { label: "Pipeline tests", before: "440", after: "440 passed (no pipeline change)" },
+    ],
+    gates: [
+      { check: "node tools/ui-smoke/smoke.mjs", result: "142 / 142, including the crawl of 1,757 cards and 240 roster tabs and a no-sideways-scroll check of the home page, a team page and every card section at 375 px" },
+      { check: "pytest tests -q; node --check js/*.js; doc-check 188/188; prose, theme and contrast checks", result: "440 passed; all clean" },
+    ],
+    unfixed: `**Ratings and rankings are not changed in this pass.** The strength model, how margin and the rating weigh in power, and the postseason question (Build Log v4.14) are the next work.
+      **A team's Top players waits for the roster file,** which is large; a past season's team page does the same. **Team History rows are not links.**
+      **No game log and no similar players on the card.** **The roster header strip has no photo.** **A real controller is still untested.** **Everything is uncommitted** in both repositories.`,
+    methods: [],
+    files: ["js/menuHome.js", "js/menuRouter.js", "js/menuScreens.js", "js/menuScreensTeam.js", "js/menuScreensLeague.js", "js/menuScreensClass.js", "js/menuScreensPages.js",
+            "js/menuCard.js", "js/menuChrome.js", "js/dataLoader.js", "css/menu.css", "menu.html", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.14-landing-page-and-robust-cards",
     version: "v4.14",
     date: "2026-10-28",

@@ -114,11 +114,19 @@ function menuCareerTable(rows, pg) {
   const gp = rows.reduce((n, r) => n + (_menuNum(r.games_played) || 0), 0);
   const heads = cols.map(([, h]) => `<th scope="col">${h}</th>`).join("");
   const cells = s => cols.map(([k, , kind]) => `<td>${menuStatText(s[k], kind)}</td>`).join("");
-  const body = lines.map(({ r, s }) => `<tr><th scope="row">${r.season}</th><td>${_esc(r.team_abbr || r.team || "—")}</td><td>${_menuNum(r.games_played) ?? "—"}</td>
+  const body = lines.map(({ r, s }) => `<tr><th scope="row">${r.season}</th><td>${r.team_id ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="career-teams" data-to="${menuTeamPath(r.team_id)}">${_esc(r.team_abbr || r.team || "—")}</button>` : _esc(r.team_abbr || r.team || "—")}</td><td>${_menuNum(r.games_played) ?? "—"}</td>
       <td>${ovrPill(r.overall_rating, { season: r.season, label: `Rating, ${r.season}`, why: menuNoRatingWhy(r, r.season) })}</td>${cells(s)}</tr>`).join("");
   return `<table class="m-stattable m-career-table"><thead><tr><th scope="col">YEAR</th><th scope="col">TEAM</th><th scope="col">GP</th><th scope="col">OVR</th>${heads}</tr></thead>
       <tbody>${body}</tbody>
       <tfoot><tr><th scope="row">CAREER</th><td></td><td>${gp || "—"}</td><td></td>${cells(all)}</tr></tfoot></table>`;
+}
+
+// The few stats worth a glance for his position, as big tiles: the position's career-table columns, regular
+// season and postseason together. "" when he has none (an offensive lineman, or no stat line on file).
+function menuKeyTiles(p, pg) {
+  const total = menuCombineStats(p.stats_season, p.stats_postseason);
+  return (MENU_CAREER_COLS[pg] || []).filter(([k]) => total[k] != null)
+    .map(([k, label, kind]) => `<div class="m-stat"><b>${menuStatText(total[k], kind)}</b><span>${_esc(label)}</span></div>`).join("");
 }
 
 // The rating history strip: one cell per season he is rated in, oldest first, then (for a season being

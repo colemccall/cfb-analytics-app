@@ -30,9 +30,9 @@ The app surfaces EDGE ratings â€” opponent-adjusted per-game production scores â
 
 ---
 
-## The Dynasty menu
+## The menu
 
-`menu.html` is a second front-end beside the site: team select, a hub, then roster, depth chart, player card, schedule, standings, rankings, recruiting and the transfer portal, one screen at a time. Mouse first, with keyboard and Gamepad API support. It has its own files (`css/menu.css`, `js/menu*.js`, token block `.menu-app`) and reads the same data through `dataLoader.js`; standings, the portal and the depth order share `js/leagueData.js` with the site. The layout follows the early-2010s console franchise menus from memory; art and copy are original. 2026 roster rows and cards show three ratings (last season, projection, earned to date), never merged. See the Guide ("The Dynasty menu") and Methods (`three-ratings`).
+`menu.html` is the app: a home page (the top ten, best players, week results, playoff picture, movers, recruiting classes, transfers, every row a link), a page for every team (`#/team/52`, with its roster, depth chart, schedule, recruiting, transfers and history), rankings, standings, players, the playoff bracket, recruiting, the transfer portal and the reference screens, one screen at a time. A player card has Overview, Stats and Career sections. Mouse first, with keyboard and Gamepad API support. It has its own files (`css/menu.css`, `js/menu*.js`, token block `.menu-app`) and reads the same data through `dataLoader.js`; standings, the portal and the depth order share `js/leagueData.js` with the site. A destination is written as `data-to="#/team/52"` and the router opens it, so any element can link. Following a team is optional (a button on its page). The layout follows the early-2010s console franchise menus from memory; art and copy are original. 2026 roster rows and cards show three ratings (last season, projection, earned to date), never merged. See the Guide ("The menu: home, teams and players") and Methods (`three-ratings`).
 
 ## Tech Stack
 

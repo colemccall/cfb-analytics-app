@@ -251,26 +251,29 @@ const GUIDE = [
   {
     id: "page-menu",
     group: "pages",
-    title: "The Dynasty menu",
-    summary: `The home page is a landing page laid out like the franchise menus of an early-2010s console football
-      game: three cards (League, News, Dynasty) over the current top teams and the season's playoff picture. It needs
-      no team. League is everything across teams (rankings, standings, players, recruiting, the portal); News is the
-      playoff bracket, the season page, research and how the app works; Dynasty is the optional way to follow one team
-      and drill into it through the hub, with Team, League and News tabs (roster, depth chart, schedule, recruiting,
-      transfers, history). Every other page wears the same look. It reads the same data as the rest of
-      the site, so a number here is the same number there. The look is original; the layout is from the
-      author's memory of that style and may not match it exactly.
+    title: "The menu: home, teams and players",
+    summary: `The app is one menu laid out like the franchise menus of an early-2010s console football game. It opens on the
+      home page: the top ten teams, the best players, last week's results and the coming week's games, the playoff picture, the
+      biggest rating movers, the best recruiting classes and the biggest transfers, with quick links to every screen along the top.
+      Every row on it is a link: a team opens its page, a player opens his card, a game opens either team. Any team has a page
+      (roster, depth chart, schedule, recruiting, transfers, history, and its top players); a team's page, a ranking, a standing,
+      a schedule opponent, a bracket box, a recruiting class and the scores ticker all lead to it. You can follow one team (on its
+      page) to keep it on the home page; nothing requires it. A player card opens on an Overview (his three ratings, his key
+      stats, how the rating is built), with Stats (every stat, regular season, postseason and total) and Career (every season,
+      with totals) one tab away. It reads the same data as the rest of the site, so a number here is the same number there.
+      The look is original; the layout is from the author's memory of that style and may not match it exactly.
 
       A 2026 roster row and player card show three ratings side by side: last season, the preseason
       projection, and earned to date. They are never combined.`,
     controls: [
-      { name: "Mouse", what: "Hover moves the highlight, click selects. Tabs along the top are clickable." },
-      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc on the landing page opens the quick menu too; Esc on the Dynasty hub returns to the landing page." },
+      { name: "Mouse", what: "Hover moves the highlight, click opens. A team, player, game or ranking row opens its page. Tabs along the top are clickable." },
+      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc on the home page opens the quick menu too; elsewhere it goes back." },
       { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start opens the quick menu; Select switches light and dark. The prompt bar at the bottom switches to controller labels." },
     ],
     tips: [
       "The bar along the bottom always lists what the buttons do on the current screen.",
-      "Your team and season are remembered on this device.",
+      "Your followed team and season are remembered on this device.",
+      "Any team name or player row is a link; the ticker along the bottom links to the top 25.",
     ],
     limits: `Controller support follows the browser's standard gamepad layout and has been tested here with a
       simulated pad only; an unusual controller may map differently. The depth chart is the order the ratings
