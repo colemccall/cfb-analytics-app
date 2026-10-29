@@ -729,7 +729,10 @@ same 11,342 player-season pairs for every variant`,
       { name: "Advanced season stats, 2026", source: "script 09, team_advanced_season", coverage: "138 teams" },
       { name: "Preseason projection", source: "script 16's engine=\"projected\" rows", coverage: "4,340 of the 5,468 rated players have one to compare with" },
     ],
-    formula: `EDGE_live    = EDGE_raw x sqrt(r_team)        r_team = regular-season games scheduled / completed
+    formula: `EDGE_live    = EDGE_raw x sqrt(r_team) x k(share)   r_team = regular-season games scheduled / completed
+                                                   share = his games / his team's completed games; k = 0.893 / 0.954 / 0.990 / 1.006 for share <=0.5 / <=0.75 / <=0.9 / above
+                                                   (a scale: nothing is pulled toward a mean)
+games damp (script 07) = confidence = max(0.25, g_eff/8) toward the position average, g_eff = share x 12 in a season in progress, g in a finished one
 stats_measured_live = stats_measured x r_team
 rating       = the ordinary chain (06 -> 07 -> 10) on those numbers, in a private data copy
 published    = players with a production or blended rating (>= 3 games with a countable stat)
@@ -757,7 +760,12 @@ back-test does: provisional numbers must not be able to leak into anything that 
       { label: "Script 07 distribution check, 2026", value: "warns on RB p90 (77.7), TE mean (57.5) and TE p90 (73.9): the recruiting-basis share above, informational and non-blocking by design" },
       { label: "Top five teams to date", value: "LSU 92.4, Indiana 92.3, Notre Dame 91.7, Ohio State 91.6, Georgia 91.5; Miami, the preseason first at 93.5, is 7-0 and rated 90.6" },
     ],
-    limits: `**Provisional, and back-tested on one season.** The 7% overshoot and the rank agreements come
+    limits: `**v4.20: the pace step is a scale, refit without the pull toward the position mean.** Measured on 2021-2025 (86,707 player-cuts): MAE 4.789 rating points against 4.866, but a 7-game player rated 85 or more finishes 1.60 points
+      lower on average than the scale says (0.59 with the pull) and one under 60 finishes 4.65 higher (4.21). Position and cut week add under 0.02 of MAE and are not in it. scripts/validate_pace_scale.py reproduces the table.
+      **The games damp reads the share of team games in a season in progress** (it used raw games out of 8, which damped a full-time starter at week 8 to 0.875 and cost a team with a bye); finished seasons keep the raw count.
+      Deleting it was measured and rejected: for finished-season players with 3-7 games it helps below a rating of 55 and over-penalises 70 and above. The live opponent map was empty until v4.20 (see the opponent-strength entry).
+
+      **Provisional, and back-tested on one season.** The 7% overshoot and the rank agreements come
       from 2025 cut at week 8; a second cut season would say whether they are stable. The rescale is not
       damped to remove the overshoot, because tuning it to one season is how a constant goes stale.
 
@@ -778,6 +786,9 @@ back-test does: provisional numbers must not be able to leak into anything that 
       **Records can be a game short** for the 30 games with no opponent score, and independents and
       conference games are derived from the schedule rather than read from a flag.`,
     alternatives: [
+      { label: "Refit the scale without the shrink (a pure games scale)", basis: "scripts/validate_pace_scale.py, 2021-2025, four cuts", status: "shipped (v4.20)", note: "MAE 4.866 -> 4.789; top tier 1.0 point more generous. The owner asked for a scale, not a shrink." },
+      { label: "Per-position and per-cut-week calibration constants", basis: "same", status: "rejected", note: "MAE 4.827 / 4.786 / 4.775 against 4.789 for the share of games alone." },
+      { label: "Delete the games damp in script 07", basis: "finished seasons 2016-2024, next-season rating", status: "rejected", note: "It helps below 55 and hurts at 70 and above; kept for finished seasons and made share-based in a season in progress." },
       { label: "Write the part-season ratings into the normal edge engine", basis: "simplest", status: "rejected", note: "Script 15 trains career curves on engine=edge. A 2026 row built from eight games would have been read as a finished season." },
       { label: "No correction: rate the games played as they stand", basis: "back-test", status: "rejected", note: "Final EDGE is 1.277x the week-8 value at the median, so every player would look about 28% worse than he ends up." },
       { label: "Damp the rescale to remove the 7% overshoot", basis: "four back-tested seasons (2022-2025), cuts at weeks 4, 6, 8, 10", status: "shipped", note: "v4.16: a light shrink toward the position mean plus a calibration by share of team games played. Median error 6.02/4.46/3.36/2.43 -> 5.48/4.07/2.96/2.10 EDGE points; 2025 week-8 final/paced 0.933 -> 0.983." },
@@ -788,8 +799,9 @@ back-test does: provisional numbers must not be able to leak into anything that 
     ],
     changelog: [
       { version: "v4.8", change: "Script 17, the --in-progress and --through-week options on script 06, validate_pace.py, the CFB_DATA_DIR and CFB_REFRESH_YEARS switches, and the Earned to date section." },
+      { version: "v4.20", change: "The pace step is a scale refit without the pull toward the position mean; the games damp reads the share of team games in a season in progress; the live opponent map is no longer empty." },
     ],
-    source: "scripts/17_live_season.py · scripts/validate_pace.py · changes.html#v4.8-live-and-retro",
+    source: "scripts/17_live_season.py · scripts/validate_pace.py · scripts/validate_pace_scale.py · changes.html#v4.8-live-and-retro",
   },
 
   {
@@ -915,25 +927,35 @@ making the engine more optimistic makes the larger problem worse.`,
   {
     id: "team-ratings",
     group: "team",
-    title: "Team ratings: built from that season's own players and team stats",
-    summary: `A team's rating for any season is built from two things that season produced: its players'
-      ratings and its own team stats. SP+ is not an input; it is published beside the rating as a
-      reference. The same formula rates a played season, a season in progress (on the games played so far)
-      and, with no stats, a projected one. Offense and defense are the same two readings split into their
-      offensive and defensive halves. Until v4.11 the headline was half SP+ and offense and defense were SP+'s own.`,
-    formula: `overall = 0.60 roster + 0.40 team stats        (renormalised when one is absent)
-roster  = 0.60 roster_to_ovr(slot score) + 0.40 roster_to_ovr(position-weighted composite)
-slot    = sum over QB, RB, WR, TE, DL(+EDGE), LB, DB(+CB,S), K/P of weight x (0.8 x mean of starters + 0.2 x mean of next 3)
-          starters 1/2/3/1/4/3/5/2; weights .194/.189/.036/.016/.150/.123/.286/.008; a group nobody is rated in drops out
-stats   = 0.50 offense + 0.50 defense (yards, 3rd down, havoc) + a turnover-margin adjustment
+    title: "Team ratings: built from that season's own players, team stats and results",
+    summary: `A team's rating for any season is built from three things that season produced: its players'
+      ratings (the roster, scored by starters and depth), its own team stats, and the points it has scored and allowed
+      against the opponents it played (results). SP+ is not an input; it is published beside the rating as a
+      reference, and no preseason or last-season number is an input either. The same formula rates a played season, a season in progress
+      (on the games played so far) and, with no stats or results, a projected one. Offense and defense are the same three readings split into their
+      offensive and defensive halves. Until v4.20 the headline was 0.60 roster + 0.40 stats and used no result; until v4.11 it was half SP+.`,
+    formula: `overall = 0.30 roster + 0.20 team stats + 0.50 results     (renormalised when one is absent; a team needs a roster or a stats reading to be rated)
+roster  = roster_to_ovr(slot score)                             (about 1.33 team points per player point near 74)
+slot    = sum over groups of weight x group score,  group score = 0.85 x mean(starters) + 0.15 x mean(depth)
+          group     starters  depth     weight   share of the final score
+          QB        1         QB 2       .139     4.2%
+          RB        2         RB 3-4     .091     2.7%
+          WR        5         WR 6-8     .087     2.6%
+          TE        1         TE 2-4     .029     0.9%
+          OL        line unit (one number, not five slots)   .101     3.0%
+          DL+EDGE   4         5-7        .131     3.9%
+          LB        4         5-7        .144     4.3%
+          DB (CB+S+DB) 6      7-10       .252     7.6%
+          K         1                    .012     0.4%
+          P         1                    .015     0.5%
+          a missing player is skipped, a group nobody is rated in drops out and the weights renormalise; every rated player counts
+stats   = 0.50 offense + 0.50 defense (yards, 3rd down, havoc) + a turnover-margin adjustment                      20% of the final score
           offense += 1.57 x (mean defense of the opponents faced), defense += 1.57 x (mean offense faced)
-          points per game against an average schedule, from our own opponent strengths; 0 when no schedule is known
           season in progress: stats half and line unit = league mean + w x (reading - league mean), w = [g/(g+8)] / [12/20], 1 from g = 12
-offense = 0.60 roster_to_ovr(0.50 pass_off + 0.50 run_off) + 0.40 team-stat offense
-defense = 0.60 roster_to_ovr(0.55 pass_def + 0.45 run_def) + 0.40 team-stat defense
-
-pass_off = 0.45 avg_top(QB,2) + 0.35 avg_top(WR+TE,5) + 0.20 line_unit
-run_off  = 0.40 avg_top(RB,3) + 0.40 line_unit + 0.10 QB + 0.10 WR/TE
+results = SP_OVERALL_ANCHORS( opponent-adjusted points scored + points prevented per game, against an average FBS team )   50% of the final score
+offense = 0.30 roster_to_ovr(0.50 pass_off + 0.50 run_off) + 0.20 team-stat offense + 0.50 results offense
+defense = 0.30 roster_to_ovr(0.55 pass_def + 0.45 run_def) + 0.20 team-stat defense + 0.50 results defense
+power   = rating part (0.60 roster + 0.40 stats, the old two-reading "play" rating) + conference part + results part
 
 Every term renormalises out when absent. avg_top() returns None, never 50.`,
     reality: `A team with no roster rating and no team stats for the season gets no row; SP+ alone no longer
@@ -953,7 +975,20 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       half, the stats half as shipped, the same stats unadjusted, the schedule itself and the part-season weight, so the rating can show its parts.
 
       **Part-season readings are shrunk (v4.18).** In a season still being played the stats half and the line unit keep w of their
-      distance from the league mean, w = 0.78 after 7 games, 0.56 after 4, 1.0 from 12. A finished season is never shrunk.`,
+      distance from the league mean, w = 0.78 after 7 games, 0.56 after 4, 1.0 from 12. A finished season is never shrunk.
+
+      **The roster is scored by starters and depth, and the headline reads results (v4.20).** The slot score has named starters and depth for every
+      position group (table in the formula), the line unit is one of its groups, kickers and punters are light (together 2.7% of the roster weight),
+      and every rated player counts. The position-weighted composite no longer enters the roster reading (it still drives the pass/run bars and
+      special teams). The results reading is the team's points strength to date from our own opponent strengths (utils/opponent_strength.team_strength),
+      and it carries half the headline. A team with games but no roster rating and no stats still gets no row. Power keeps its rating part as the old
+      roster-and-stats blend ("play" rating) so results are not counted twice. The headline of finished seasons moved with this: 2,309 team-seasons
+      by -3.80 on average (an average team is 72.7 on the results anchors and 79.0 on the roster ones), order kept at Spearman 0.887.
+
+      **Why the group weights look the way they do.** SLOT_WEIGHTS are half the weights fitted by non-negative least squares of the team's points
+      strength on the group scores and half one weight per starter slot. The fit alone gives the defensive backs 0.296, the quarterback 0.243 and the
+      receivers 0: a DB rating carries the most team-quality information per point and a WR rating overlaps the QB's. That is information, not how
+      much a position matters in football, which is why the mix is shown with its cost and the alternatives are listed.`,
     why: `The owner's rule: each season's team rating should come from that year's player ratings and stats.
       SP+ is a model we did not build, and a rating anchored to it cannot be explained from the roster and the
       box score. The cost was measured before the change and is not small, so it is stated here instead of
@@ -984,6 +1019,13 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       { label: "v4.18, does the position-weighted roster half earn its 40% (finals 2016-2025, Spearman with scoring margin)", value: "slot score alone 0.806; with the weighted half 0.817; without its line unit 0.801; without special teams 0.818; weighted half dealt to wrong teams 0.782" },
       { label: "v4.18, Kansas State through week 8 of 2026: where its rating comes from", value: "starters (slot) 21st of 138; position-weighted half 2nd (line unit 87.1, special teams 84.8); third-down rate 54.5% over 7 games graded 93, sacks plus tackles for loss graded 95" },
       { label: "v4.18, 2026 rank by rating before the schedule adjustment / after it / after the shrink", value: "Kansas State 7 / 10 / 11, Nebraska 3 / 6 / 7, Kentucky 62 / 40 / 38, Liberty 20 / 49 / 50; Power-4 minus the rest 3.68 / 7.13 / 5.98; non-Power-4 teams in the top 25 7 / 1 / 1" },
+      { label: "v4.20, roster layouts and group weights (1,309 team-seasons 2016-2025; Spearman with the same season's / the next season's points strength)", value: "layout and weights through v4.19 0.876 / 0.646; v4.20 layout fitted 0.881 / 0.657 (leave-one-season-out 0.878); football prior 0.745 / 0.554; equal per starter 0.742 / 0.560; fitted + equal (shipped) 0.834 / 0.624; fitted + prior 0.834 / 0.617; team stats alone 0.937 / 0.686" },
+      { label: "v4.20, starter share and rating floor (fitted weights)", value: "share 0.80 / 0.85 / 0.90: 0.880 / 0.881 / 0.881; floor 0 / 40 / 55: 0.881 / 0.881 / 0.880" },
+      { label: "v4.20, the position-weighted half beside the slot score (it counts the line unit again)", value: "slot score alone 0.834 / 0.623, weighted half alone 0.762 / 0.563, 60/40 mix 0.815 / 0.607" },
+      { label: "v4.20, each reading's Spearman with the NEXT season's points strength (1,306 team-seasons)", value: "roster 0.623, stats 0.686, results 0.731; old 60/40 blend 0.670; equal thirds 0.707; shipped 0.30 / 0.20 / 0.50 0.716; non-negative least squares leaving each season out 0.729 (all-seasons weights roster 0.06, stats 0, results 0.94); the readings correlate 0.85 (roster, stats), 0.84 (roster, results), 0.94 (stats, results)" },
+      { label: "v4.20, a season in progress: strength AFTER the cut on [results so far, last season's roster, last season's strength], cuts after weeks 4 / 6 / 8 / 10", value: "R2 results alone 0.50 / 0.53 / 0.51 / 0.49; last season's roster alone 0.37 / 0.34 / 0.31 / 0.29; all three 0.58 / 0.57 / 0.54 / 0.52; results share of the weights 0.52 / 0.62 / 0.61 / 0.64" },
+      { label: "v4.20, power backtest and rating-alone backtest (validate_rankings.py)", value: "power 71.3% / 13.27 -> 71.5% / 13.24; last season's rating alone 63.2% / 15.11 -> 64.5% / 14.81" },
+      { label: "v4.20, 2026 through week 8: overall rank (roster / stats / results rank), before -> after", value: "Kansas State 11 -> 27 (6 / 11 / 40), Nebraska 7 -> 17 (9 / 8 / 26), Kentucky 40 -> 24 (10 / 55 / 20), Boise State 23 -> 44, LSU 1 -> 1; power ranks 58, 19, 14, 17, 2; the headline correlates 0.987 with points strength" },
       { label: "The trap", value: "avg_top() returned a hard-coded 50.0 when a position had no rated players; with OL withdrawn that makes 40% of run offence an identical constant" },
       { label: "Line ratings computed", value: "2,295 team-seasons, 2008-2025, median 61-73 per season with no era trend; none for an unplayed season" },
     ],
@@ -1014,16 +1056,26 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       Power-4 over Group-of-6 gap in 2026 from 7.13 to 5.98 rating points, since level is part of what an early reading overstates.
       **Kansas State and Nebraska stay in the top 11 through week 8:** Kansas State's starters rank 21st but its position-weighted half
       ranks 2nd (line unit 87, special teams 85). The line unit's spread across teams is 15 points and special teams' 7.5, against 2-5 for each player
-      term; whether they belong at that scale in a part season is open.`,
+      term; whether they belong at that scale in a part season is open.
+
+      **v4.20: the headline leans on results.** It describes what a team has done more than what it is made of, and the stats half is 0.94 correlated with the results
+      reading, so the two are partly the same information. The weights were chosen by a stated rule (every reading at least 0.2, results the most, within 0.02 of the best next-season
+      Spearman), not found; the best blend on a grid is nearly all results (0.731 against 0.716). The level of finished seasons fell by 3.8 on average. The conference gap in the
+      2026 headline (SEC, Big Ten, Big 12, ACC minus the rest) is 11.6 points against about 7.5 that games implied in the v4.18 measure, so it may over-separate. The roster
+      reading at week 8 cannot be backtested (no historical cut ratings) and the weights come from finished seasons. The explainable group weights cost 0.047 of same-season fit against the pure fit.`,
     alternatives: [
       { label: "Keep SP+ in the headline (0.5 / 0.3 / 0.2)", basis: "the previous formula",
         status: "rejected", note: "Fits and predicts better (0.884 and 0.545 against 0.880 and 0.518) but is half an outside number; the owner chose the explainable rating. The cost is stated above." },
       { label: "Rebuild preseason offense and defense from the position sub-ratings alone", basis: "points per game, weeks 1-8 of 2026",
         status: "rejected", note: "Spearman 0.364 against 0.360 for the overall repeated; the old preseason split carried no information. Superseded: the split now uses the roster's offensive and defensive halves directly." },
       { label: "Drop the position-weighted half, or its line unit, from the roster half", basis: "finals 2016-2025, Spearman with scoring margin",
-        status: "rejected", note: "0.806 without the weighted half and 0.801 without the line unit, against 0.817 with both; the placebo scores 0.782. The structure is right for a finished season; the problem is the part-season noise." },
+        status: "shipped (v4.20)", note: "Rejected in v4.18 (0.806 without the weighted half against 0.817 with both) when the line unit lived only inside it. In v4.20 the line unit is a group of its own in the slot score, so the weighted half counts it again and the slot score alone scores 0.834 against 0.815 for the mix." },
       { label: "Replace the stats half with our own points strength", basis: "scripts/validate_stats_schedule.py",
-        status: "rejected", note: "Best accuracy (63.5% / 14.89, gap 6.46) but it puts results in the rating that power then adds again, and the rating stops saying how the team plays." },
+        status: "superseded (v4.20)", note: "Rejected in v4.18 because it would put results in a rating that power adds again. v4.20 keeps the stats half and adds results as a third reading, and gives power the old roster-and-stats rating as its rating part so nothing is counted twice." },
+      { label: "A headline that is results alone", basis: "scripts/validate_team_overall.py",
+        status: "rejected", note: "Best next-season Spearman (0.731), but the rating would stop showing the roster and the box score and would duplicate power." },
+      { label: "Football-prior or equal-per-starter group weights alone", basis: "scripts/validate_team_roster.py",
+        status: "rejected", note: "0.745 and 0.742 against 0.881 for the fitted weights, same season. The shipped half-and-half scores 0.834." },
       { label: "Weight the adjusted stats half 0.5 or 0.6 instead of 0.4", basis: "scripts/validate_stats_schedule.py",
         status: "rejected", note: "62.8% / 14.98 and 63.3% / 14.97, gaps 7.87 and 8.65: a gain inside noise, and the 60/40 weights are not tuned to the outcome used to judge them." },
       { label: "Substitute the line-unit rating for the OL term", basis: "/stats/season/advanced",
@@ -1033,8 +1085,9 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
     ],
     changelog: [{ version: "v4.11", change: "SP+ removed from the headline and from offense and defense; team stats refreshed before they are read; preseason offense and defense now differ." },
                 { version: "v4.16", change: "The flat top-22 mean is replaced by a slot score: starters and depth of every position group, weighted by a fitted-then-shrunk set of weights. Offensive line unchanged (line unit inside the position-weighted half)." },
-                { version: "v4.18", change: "The stats half is adjusted for the schedule faced (1.57 OVR per point per game, from our own opponent strengths); the roster half, the stats half, the schedule and the part-season weight are published in sub_ratings. Part-season readings of a season in progress are shrunk toward the league mean (0.78 at 7 games)." }],
-    source: "scripts/10_compute_team_ratings.py (compute_team_splits, build_schedule_map) · utils/opponent_strength.py (schedule_faced) · scripts/validate_stats_schedule.py · scripts/validate_early_reliability.py · tests/test_schedule_adjust.py · docs/FORMULAS.md §6",
+                { version: "v4.18", change: "The stats half is adjusted for the schedule faced (1.57 OVR per point per game, from our own opponent strengths); the roster half, the stats half, the schedule and the part-season weight are published in sub_ratings. Part-season readings of a season in progress are shrunk toward the league mean (0.78 at 7 games)." },
+                { version: "v4.20", change: "The roster is scored by named starters and depth (line unit as a group, kickers light) and the position-weighted half leaves the roster reading; a results reading (opponent-adjusted points) is added, so the headline is 0.30 roster + 0.20 stats + 0.50 results; power keeps the old roster-and-stats blend as its rating part. results_half, results_points and play_rating are published in sub_ratings." }],
+    source: "scripts/10_compute_team_ratings.py (compute_team_splits, group_scores, slot_score, build_schedule_map, build_strength_map) · utils/opponent_strength.py (schedule_faced, team_strength) · scripts/validate_team_roster.py · scripts/validate_team_overall.py · scripts/validate_stats_schedule.py · scripts/validate_early_reliability.py · tests/test_schedule_adjust.py · tests/test_team_ratings.py · tests/test_slots_and_pace.py · docs/FORMULAS.md §6",
   },
 
   {
@@ -1044,7 +1097,7 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
     summary: `Every game a player played is scaled by how good the opponent was on the side he faced: the opposing
       defense for an offensive player, the opposing offense for a defender. Until v4.17 that was SP+. It
       is now an offense rating and a defense rating for every team, solved from the season's own
-      results, with a conference level underneath and one pooled FCS team for every non-FBS opponent.
+      results, with a conference level underneath. A game against a non-FBS opponent counts at a fixed 0.85.
       Nothing outside goes in, and no player rating goes in either, so the player ratings can use it
       without a loop.`,
     inputs: [
@@ -1060,11 +1113,19 @@ weights: postseason 1.0, cross-conference 1.5
 z = strength / (sd across FBS teams), per side
 multiplier = 1 + 0.35 z  for z >= 0
            = 1 + 0.12 z  for z < 0
-  z clipped to +-2`,
+  z clipped to +-2
+non-FBS opponent: a fixed 0.85, every position, both sides of the ball
+a season with no team_records yet (one in progress): conferences from the teams table`,
     reality: `The strengths are put on the SP+-like scale the multiplier read before (mean 27, one standard deviation
       7.02) so the multiplier and the frozen anchors are unchanged. An opponent that is not an FBS team
       of ours is the pooled FCS team (about 24 points per game below an FBS average), not an average
       team as before. For a season in progress the strengths come from the games so far.
+      **Fixed in v4.20: a season in progress had no opponent adjustment at all.** team_records is harvested after a season, so build_opponent_map(2026) returned
+      an empty map and every live game got a multiplier of 1.0 (Kenny Minchey recomputed at 1.0 matches the live file, 80.2; with the map his Alabama, LSU, Oklahoma and Texas
+      A&M games count 1.53 to 1.63 and he rates 84.8). It now falls back to the teams table's conferences when a season has no records at all; a finished season is untouched.
+      **An FCS game counts at a flat 0.85,** the owner's setting (it was the pooled FCS team through the FBS curve, about 0.76, and 1.0 in the broken live run). Measured on
+      157,491 offensive player-games 2016-2025, the same players score 1.13 times as much against FCS as against FBS opponents (QB 1.10, RB 1.24, WR 1.10, TE 1.07; a relabelling placebo
+      gives 1.003); that equalises at 0.88, or 0.95 once the FBS games carry their own multiplier, so 0.85 is harsher than the data ask for. scripts/validate_fcs_weight.py reproduces it.
       **The cross-conference weight in the code is 1.5, not the 1.0 this entry gave until v4.18.** The grid
       below scored 1.0 best (70.0% against 69.6% at 1.5, a difference inside noise); 1.5 is what ran for the
       player ratings and what still runs. Moving it changes every player rating, so it is left for its own pass.`,
@@ -1080,7 +1141,7 @@ multiplier = 1 + 0.35 z  for z >= 0
       { label: "Power-4 minus Group-of-6, top-22 roster rating, 2025", value: "3.68 before, 4.37 after; the games imply about 7.8" },
       { label: "Reproduction", value: "validate_opponent_strength.py prints the grid and the postseason table; the k comparison reruns scripts 06 and 07 with the CFB_OPP_K environment variables" },
     ],
-    limits: `**It matches SP+ for prediction, not more.** It removes the outside number and the FCS-as-average error;
+    limits: `**The 0.85 FCS weight is a setting, not a measurement,** and it is applied to defense on offensive evidence only. **It changes finished seasons** (about 0.76 before). **It matches SP+ for prediction, not more.** It removes the outside number and the FCS-as-average error;
       it did not close the Power-4 versus Group-of-6 gap (4.4 of about 7.8 rating points). **Points are
       noisy early:** at week 8 a team has about 8 games, so in-progress strengths lean on the ridge and
       the conference level. **Points include garbage time.** **The postseason is thin:** opt-outs make a
@@ -1093,7 +1154,8 @@ multiplier = 1 + 0.35 z  for z >= 0
       { label: "A larger cross-conference weight", basis: "weeks 1-8 backtest", status: "rejected", note: "68.8% at 2.5 against 70.0% at 1.0." },
       { label: "Betting lines as an input or a scorer", basis: "the owner's rule", status: "rejected", note: "Matching the market is not the goal; lines were used only to confirm that a missing score is 0." },
     ],
-    changelog: [{ version: "v4.17", change: "Added: our own opponent strength replaces SP+ in script 06." }],
+    changelog: [{ version: "v4.17", change: "Added: our own opponent strength replaces SP+ in script 06." },
+                { version: "v4.20", change: "Fixed: a season in progress had an empty opponent map (multiplier 1.0 for every game). A non-FBS opponent now counts at a flat 0.85." }],
     source: "utils/opponent_strength.py · scripts/06_compute_edge_scores.py (build_opponent_map) · scripts/validate_opponent_strength.py",
   },
 
@@ -1144,6 +1206,50 @@ prior = position average + step for stars (unchanged); basis = blended`,
     ],
     changelog: [{ version: "v4.19", change: "Added: players with one or two productive games are rated from their stretch and the recruiting prior, weighted by games and counted events, capped at 72." }],
     source: "scripts/07_compute_player_ratings.py (low_game_rating) · scripts/06_compute_edge_scores.py (edge_all) · scripts/validate_low_game_weights.py · tests/test_low_game_ratings.py",
+  },
+
+  {
+    id: "qb-composite",
+    group: "ratings",
+    title: "Quarterbacks: half volume, half efficiency",
+    summary: `A quarterback's game score was yards plus 25 per touchdown minus 20 per interception, so a 400-yard game from 55 attempts beat a 280-yard game from 25 that
+      moved the ball better. The score is now half that volume score and half the same score restated at the median 28 attempts, which rewards a passer who
+      does more with each throw without making the median passer move. The blend was chosen on held-out data, not on any player.`,
+    inputs: [
+      { name: "Per-game passing line", source: "data/raw/stats.json, game_aggregate rows: passing C/ATT, yards, touchdowns, interceptions, rushing yards and touchdowns", coverage: "2008-2026 for every QB with a game row" },
+      { name: "Opponent defense strength", source: "utils/opponent_strength.py", coverage: "multiplies each game after the composite" },
+    ],
+    formula: `V       = passing yards + 0.7 rushing yards + 25 passing TD + 20 rushing TD - 20 interceptions     (the volume score, unchanged)
+V_norm  = V / max(attempts, 10) x 28
+game score = 0.5 V + 0.5 V_norm          (only when V > 0; other positions are untouched)
+EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen QB anchors`,
+    reality: `The reference of 28 is the median attempts in a QB game, so a typical passer's score does not move and the frozen EDGE_OVR_ANCHORS still apply. The floor of 10 attempts keeps a three-throw
+      relief appearance from being multiplied into a star turn. Every QB in every season is recomputed: 98% of QB player-seasons move (mean +0.65, 5th percentile -2.25, 95th +4.56, range -8.8 to +14.9), and
+      QBs rated 90+ went 12 to 6 in 2022 and 6 to 4 in 2025 (7 to 7 in 2019). In week 8 of 2026 Mensah (10.5 yards per attempt) rates 91.0, Madsen (14 TD, 0 INT, 7.6 yards per attempt) 82.2, Minchey 86.2, Atkinson 87.5;
+      the blend, the opponent map and the pace scale all moved these, and the entry on live ratings and the Build Log v4.20 separate them.`,
+    why: `The owner asked that efficiency and impact count for more than volume for a quarterback. The test is whether they predict his offense's later points beyond what volume does. 824 QB-seasons 2017-2025, features from the games through week 8,
+      outcome his offense's points over expectation (points scored plus the opponent's defensive strength) after week 8, last season's team offense as the control, leave-one-season-out.`,
+    evidence: [
+      { label: "Held-out R2, control + volume / control + efficiency / both", value: "0.3766 / 0.3813 / 0.3927; efficiency alone 0.2015 against volume alone 0.1813" },
+      { label: "Blend of the volume score with the same score at 28 attempts (lambda 0 / 0.25 / 0.5 / 0.75 / 1)", value: "0.3766 / 0.3905 / 0.3970 / 0.3916 / 0.3776" },
+      { label: "Placebo: attempts shuffled across games within a season, at lambda 0.5", value: "0.3608, below the 0.3766 of today, so the gain is the attempts, not the arithmetic" },
+      { label: "Interception weight x1.5 / x2 / x3 at the shipped blend", value: "0.3981 / 0.3985 / 0.3978: no better than 0.3970, left at -20" },
+      { label: "Points over expectation while he played (impact), alone / with the control", value: "0.4687 / 0.4979: the strongest predictor, and the team's offense, not his" },
+      { label: "Live 2026 QB distribution, 85+ and 90+ share and spread, against the 2025 final", value: "16.6% / 2.1% / 11.9 against 13.2% / 1.3% / 11.5" },
+      { label: "Reproduction", value: "scripts/validate_qb_composite.py" },
+    ],
+    limits: `**The gain is small:** 0.020 of held-out R2. **It moves every QB in every season,** and lowers the high-volume ones (QBs at 90+ fell in 2022 and 2025). **The outcome is a team result** (his offense's points), so the test cannot separate
+      the quarterback from his line and receivers; that is also why points scored while he played are not an input. **The blend is one number (0.5)** fitted on five seasons of one outcome. **Rushing is scaled with passing,** so a
+      running quarterback's rush yards are restated at 28 attempts too. **Madsen and Minchey rise, but not to 83-87 on efficiency alone:** Madsen's 7.6 yards per attempt ranks 68th of 169 QBs; his 14:0 touchdown-to-interception line is real and the score values it
+      little. **RB, WR, TE and defense scores are not changed** and have not been tested for the same question.`,
+    alternatives: [
+      { label: "Add points scored while the QB played (impact) to the score", basis: "validate_qb_composite.py", status: "rejected", note: "Predicts best (0.4687 alone) but is the team's offense; it would turn QB ratings into team ratings and make the roster reading partly a result." },
+      { label: "Double or triple the interception weight", basis: "same", status: "rejected", note: "0.3985 and 0.3978 against 0.3970: nothing." },
+      { label: "All efficiency (lambda 1)", basis: "same", status: "rejected", note: "0.3776, no better than volume alone (0.3766); a half blend beats both." },
+      { label: "Volume only (before)", basis: "the previous score", status: "replaced", note: "0.3766." },
+    ],
+    changelog: [{ version: "v4.20", change: "Added: a QB game score is half the volume score and half the same score at the median attempts (floored at 10)." }],
+    source: "scripts/06_compute_edge_scores.py (_off_stat_composite, QB_EFFICIENCY_BLEND) · scripts/validate_qb_composite.py · tests/test_player_inputs_v420.py",
   },
 
   {
