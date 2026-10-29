@@ -1,7 +1,9 @@
 // menuInput.js — one input layer for the menu: mouse, keyboard and game controller.
 //
 // Every device is turned into the same small vocabulary of ACTIONS, so a screen is
-// written once and works with all three:
+// written once and works with the mouse, the keyboard (Escape and Enter) and a controller.
+// Moving the selection by direction, switching tabs and paging are controller actions; with a
+// mouse each has a button on screen:
 //
 //   up down left right   move the selection
 //   select               activate the selected item          (A / Enter / click)
@@ -31,15 +33,11 @@
 const MENU_ACTIONS = ["up", "down", "left", "right", "select", "back", "tabPrev", "tabNext",
                       "pageUp", "pageDown", "alt", "season", "home"];
 
-// Keyboard → action. Arrow keys and WASD both move; Tab is left alone so ordinary
-// keyboard navigation of the page still works as a fallback.
-const MENU_KEYS = {
-  ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
-  w: "up", s: "down", a: "left", d: "right", y: "season",
-  Enter: "select", Escape: "back", Backspace: "back",
-  q: "tabPrev", e: "tabNext", "[": "tabPrev", "]": "tabNext",
-  PageUp: "pageUp", PageDown: "pageDown", " ": "alt", h: "home", m: "mode",
-};
+// Keyboard → action. The menu is for the mouse (hover selects, click opens, every control is a
+// button on screen) and for a game controller, so the keyboard has two keys only: Escape or
+// Backspace goes back and Enter opens the highlighted item. There are no arrow-key or WASD
+// moves: Tab and the browser's own keyboard navigation still work as a fallback.
+const MENU_KEYS = { Enter: "select", Escape: "back", Backspace: "back" };
 
 // Standard-mapping gamepad buttons → action.
 const MENU_PAD_BUTTONS = {

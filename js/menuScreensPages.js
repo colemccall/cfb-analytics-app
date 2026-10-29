@@ -130,6 +130,7 @@ menuRouter.register("players", {
     ctx.team = menuMyTeam(await menuTeams(MENU.season));
     const pos = ctx.params[0] || "ALL";
     const all = await fetchSeasonPlayers(MENU.season);
+    const hs = await fetchHeadshots();
     const list = all.filter(p => (pos === "ALL" || matchesPosition(p.position_group, pos)) && p.rating_status !== "not_rated");
     const sort = MENU_ROSTER_SORTS[_menuPlayersSort];
     const sorted = menuSortPlayers(list, sort).slice(0, 200);
@@ -137,9 +138,9 @@ menuRouter.register("players", {
     const trio = sorted.some(hasTrio);
     const head = trio ? `<span>${MENU.season - 1}</span><span>PROJ</span><span>LIVE</span>` : "<span>OVR</span>";
     const rows = sorted.map((p, i) => `
-      <button class="m-row m-row--player${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="players" data-pid="${p.id}" data-tid="${p.team_id}">
+      <button class="m-row m-row--player${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="players" data-pid="${p.id}" data-tid="${p.team_id}" data-to="${menuPlayerPath(p.id, p.team_id)}">
         <span class="m-rank">${i + 1}</span>
-        <span class="m-pname">${_esc(p.name || "—")}</span>
+        <span class="m-pname">${menuAvatar(p.id, p.name, hs)}${_esc(p.name || "—")}</span>
         <span class="m-pos">${posBadge(p.position_group)}</span>
         <span class="m-pmeta">${_esc(p.team_abbr || p.team || "")}</span>
         <span class="m-num">${classYearLabel(p.class_year)}</span>
@@ -149,10 +150,10 @@ menuRouter.register("players", {
         <div class="m-rowhead m-row--player${trio ? " is-trio" : ""}"><span>#</span><span>PLAYER</span><span>POS</span><span>TEAM</span><span>CL</span>${head}</div>
         ${rows || '<p class="m-empty">No players match.</p>'}
       </section>
-      <p class="m-foot">The top ${sorted.length} of ${list.length.toLocaleString()} rated players, sorted by ${sort.label.toLowerCase()}. Press ${menuInput.device === "pad" ? "X" : "Space"} to change the sort. Offensive linemen are not rated and are not listed.</p>`;
+      <p class="m-foot">The top ${sorted.length} of ${list.length.toLocaleString()} rated players, sorted by ${sort.label.toLowerCase()}. Use the Sort button in the bar below${menuInput.device === "pad" ? " (X)" : ""} to change the sort. Offensive linemen are not rated and are not listed.</p>`;
   },
   mount(stage, ctx) {
-    stage.querySelectorAll("[data-pid]").forEach(b => b.addEventListener("click", () => menuRouter.go(`#/player/${b.dataset.pid}/${b.dataset.tid}`)));
+    menuWirePhoto(stage);
     ctx.cleanups.push(menuInput.on("alt", () => { _menuPlayersSort = (_menuPlayersSort + 1) % MENU_ROSTER_SORTS.length; menuRouter.render(); return true; }));
   },
 });
@@ -167,6 +168,7 @@ menuRouter.register("season", {
     const d = await menuTeams(MENU.season);
     ctx.team = menuMyTeam(d); ctx.d = d;
     const live = d.live;
+    const hs = await fetchHeadshots();
     if (!live) {
       return `<section class="m-panel"><p class="m-empty">${MENU.season} ${isProjectedSeason(MENU.season) ? "has not been played: every rating is a projection." : "is a finished season; see Rankings for the final order."}</p></section>`;
     }
@@ -183,11 +185,12 @@ menuRouter.register("season", {
       </section>
       <aside class="m-panel m-detail">
         <h3 class="m-h3">Best players to date</h3>
-        ${bestP.map((p, i) => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="season-players" data-to="${menuPlayerPath(p.player_id, p.team_id)}"><span class="m-rank">${i + 1}</span><span class="m-pname">${_esc(p.name)} <small>${_esc(p.position_group)} · ${_esc(p.team)}</small></span><span class="m-num">${Math.round(p.overall_rating)}</span><span class="m-num">${p.change == null ? "" : (p.change > 0 ? "▲" : "▼") + Math.abs(p.change).toFixed(0)}</span></button>`).join("")}
+        ${bestP.map((p, i) => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="season-players" data-to="${menuPlayerPath(p.player_id, p.team_id)}"><span class="m-rank">${i + 1}</span><span class="m-pname">${menuAvatar(p.player_id, p.name, hs)}${_esc(p.name)} <small>${_esc(p.position_group)} · ${_esc(p.team)}</small></span><span class="m-num">${Math.round(p.overall_rating)}</span><span class="m-num">${p.change == null ? "" : (p.change > 0 ? "▲" : "▼") + Math.abs(p.change).toFixed(0)}</span></button>`).join("")}
         <p class="m-note">To-date ratings are earned so far, rescaled to full-season pace, and provisional. ${val ? `Back-tested on ${val.through_week ? "2025 cut at week " + val.through_week : "2025"}: the rescaled number ran about ${Math.round((1 - val.median_ratio_paced) * -100)}% above where players ended up (median ratio ${val.median_ratio_paced}).` : ""}</p>
       </aside>
     </div>`;
   },
+  mount(stage) { menuWirePhoto(stage); },
 });
 
 // ── A team's rating history ───────────────────────────────────────────────
@@ -203,7 +206,7 @@ menuRouter.register("team-history", {
     const hist = team ? await fetchTeamHistory(team.id) : [];
     if (!hist.length) return '<section class="m-panel"><p class="m-empty">No history on file for this team.</p></section>';
     const rows = hist.map(h => `<div class="m-row m-row--hist" role="row">
-        <span class="m-rank">${h.season}</span><span class="m-pmeta">${_esc(h.conference || "")}</span>
+        <span class="m-rank">${h.season}</span><span class="m-pmeta">${h.conference ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="#/standings/${encodeURIComponent(h.conference)}">${_esc(h.conference)}</button>` : ""}</span>
         <span class="m-num">${h.wins == null ? "—" : `${h.wins}-${h.losses}`}</span>
         <span class="m-rating">${h.overall_rating == null ? "—" : ovrPill(h.overall_rating, { season: h.season, label: `Team rating, ${h.season}` })}</span>
         <span class="m-num">${h.offense_rating == null ? "—" : Math.round(h.offense_rating)}</span>

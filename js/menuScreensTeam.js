@@ -99,7 +99,7 @@ function menuRosterHead(p, season, opts = {}) {
   return `<div class="m-rhead${opts.photo ? " m-rhead--card" : ""}">
       ${opts.photo || ""}
       <div class="m-rhead-pos">${posBadge(p.position_group)}</div>
-      <div class="m-rhead-name"><b>${_esc(p.name || "—")}</b><span>${p.stars ? "★".repeat(p.stars) + " recruit" : "unranked recruit"}</span>${teamBtn}</div>
+      <div class="m-rhead-name"><b>${opts.hs ? menuAvatar(p.player_id ?? p.id, p.name, opts.hs) : ""}${_esc(p.name || "—")}</b><span>${p.stars ? "★".repeat(p.stars) + " recruit" : "unranked recruit"}</span>${teamBtn}</div>
       <dl class="m-rhead-facts">
         <div><dt>CLASS</dt><dd>${classYearLabel(p.class_year)}</dd></div>
         <div><dt>HEIGHT</dt><dd>${menuHeight(p.height_in)}</dd></div>
@@ -128,6 +128,7 @@ menuRouter.register("roster", {
     const pos = ctx.params[0] || "ALL";
     const all = team ? await fetchTeamRoster(team.id, MENU.season) : [];
     const none = menuEmptyRosterWhy(all, team, "No players at this position.");
+    ctx.hs = await fetchHeadshots();
     const list = all.filter(p => pos === "ALL" || matchesPosition(p.position_group, pos));
     const sort = MENU_ROSTER_SORTS[_menuRosterSort];
     const sorted = menuSortPlayers(list, sort);
@@ -140,7 +141,7 @@ menuRouter.register("roster", {
     const rows = sorted.map((p, i) => `
       <button class="m-row m-row--roster${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="roster" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
         <span class="m-rank">${i + 1}</span>
-        <span class="m-pname">${_esc(p.name || "—")}</span>
+        <span class="m-pname">${menuAvatar(p.player_id, p.name, ctx.hs)}${_esc(p.name || "—")}</span>
         <span class="m-pos">${posBadge(p.position_group)}</span>
         <span class="m-num">${classYearLabel(p.class_year)}</span>
         <span class="m-num">${menuHeight(p.height_in)}</span>
@@ -150,7 +151,7 @@ menuRouter.register("roster", {
         ${menuRatingCells(p, MENU.season).join("")}
       </button>`).join("");
     return `<section class="m-panel m-list m-roster" aria-label="Roster">
-        <div id="m-rhead">${menuRosterHead(sorted[0], MENU.season)}</div>
+        <div id="m-rhead">${menuRosterHead(sorted[0], MENU.season, { hs: ctx.hs })}</div>
         <div class="m-rowhead m-row--roster${trio ? " is-trio" : ""}"><span>#</span>${head("name", "PLAYER")}${head("pos", "POS")}${head("class", "CL")}${head("ht", "HT")}${head("wt", "WT")}<span>ST</span>${head("stars", "★")}${ratingHeads}</div>
         <div class="m-rbody">${rows || `<p class="m-empty">${_esc(none)}</p>`}</div>
       </section>
@@ -159,12 +160,13 @@ menuRouter.register("roster", {
       : "Ratings shown are for the season viewed. Click a heading to sort."}</p>`;
   },
   mount(stage, ctx) {
+    menuWirePhoto(stage);
     const head = stage.querySelector("#m-rhead");
     const byId = new Map(ctx.players.map(p => [String(p.player_id), p]));
     // The strip follows the selection, whether it moves by mouse, key or stick.
     stage.addEventListener("menu:select", e => {
       const p = byId.get(e.target.closest?.("[data-pid]")?.dataset.pid);
-      if (p) head.innerHTML = menuRosterHead(p, MENU.season);
+      if (p) { head.innerHTML = menuRosterHead(p, MENU.season, { hs: ctx.hs }); menuWirePhoto(head); }
     });
     stage.querySelectorAll(".m-th[data-col]").forEach(b => b.addEventListener("click", () => {
       const i = MENU_ROSTER_SORTS.findIndex(x => x.col === b.dataset.col);
@@ -194,6 +196,7 @@ menuRouter.register("depth", {
     const unit = decodeURIComponent(ctx.params[0] || "Offense");
     const players = team ? await fetchTeamRoster(team.id, MENU.season) : [];
     const none = menuEmptyRosterWhy(players, team, "No players in this unit.");
+    ctx.hs = await fetchHeadshots();
     const trio = players.some(hasTrio);
     const groups = (DEPTH_SLOTS[unit] || []).filter(([g]) => players.some(p => (p.position_group || p.position) === g));
     const cards = groups.map(([g, n]) => {
@@ -201,7 +204,7 @@ menuRouter.register("depth", {
       const unrated = rows.length && rows.every(p => menuLeadRating(p) == null);
       const list = rows.slice(0, n).map((p, i) => `
         <button class="m-drow${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="depth-${g}" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
-          <span class="m-slot">${i + 1}</span><span class="m-pname">${_esc(p.name || "—")}</span>
+          <span class="m-slot">${i + 1}</span><span class="m-pname">${menuAvatar(p.player_id, p.name, ctx.hs)}${_esc(p.name || "—")}</span>
           ${menuRatingCells(p, MENU.season).join("")}
         </button>`).join("");
       return `<section class="m-panel m-group"><div class="m-group-head">${posBadge(g)}<span>${rows.length} on roster${unrated ? " · not rated" : ""}</span></div>${list}</section>`;
@@ -210,6 +213,7 @@ menuRouter.register("depth", {
       <p class="m-foot"><b>Not an official depth chart.</b> No source we hold has depth data, so each group is in the order of its
       ratings (best available first). Offensive linemen are not rated, so they are ordered by recruiting grade.</p>`;
   },
+  mount(stage) { menuWirePhoto(stage); },
 });
 
 // ── Player card ──────────────────────────────────────────────────────────
@@ -278,7 +282,7 @@ menuRouter.register("player", {
           <div class="m-stats">${tables || none}</div></section>`;
     } else if (tab === "career") {
       body = `<section class="m-panel m-career"><h3 class="m-h3">Career</h3>
-          ${careerFailed ? failedNote : rows.length ? `${menuCareerTable(rows, pg)}<p class="m-foot">Each season counts the regular season and the postseason together. Career totals sum the counts and recompute the rates.</p>` : '<p class="m-empty">No rated seasons on file for him.</p>'}</section>
+          ${careerFailed ? failedNote : rows.length ? `${menuCareerTable(rows, pg)}${menuCareerGrid(rows) ? `<h3 class="m-h3">Career statistics by season</h3>${menuCareerGrid(rows)}` : ""}<p class="m-foot">Each season counts the regular season and the postseason together. Career totals sum the counts and recompute the rates.</p>` : '<p class="m-empty">No rated seasons on file for him.</p>'}</section>
         <section class="m-panel"><h3 class="m-h3">Rating history</h3>${careerFailed ? failedNote : menuRatingHistory(rows, p, season)}</section>`;
     } else {
       const tiles = menuKeyTiles(p, pg);
@@ -295,7 +299,7 @@ menuRouter.register("player", {
         <section class="m-panel m-career"><h3 class="m-h3">Rating history</h3>${careerFailed ? failedNote : menuRatingHistory(rows, p, season)}
           <div class="m-linkrow">${team ? `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(team.id)}">${teamMark(team, "m-row-mark")} ${_esc(team.school)} →</button>` : ""}
             <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/players/${encodeURIComponent(pg)}">Best ${_esc(pg)} →</button></div></section>
-        ${moves.length ? `<section class="m-panel"><h3 class="m-h3">Transfer path</h3>${menuTransferPath(moves)}</section>`
+        ${moves.length ? `<section class="m-panel"><h3 class="m-h3">Transfer path</h3>${menuTransferPath(moves, d.teams)}</section>`
           : dataFailed("player_transfers.json") ? '<section class="m-panel"><h3 class="m-h3">Transfer path</h3><p class="m-empty">The transfer file did not load. Use Retry.</p></section>' : ""}`;
     }
     return `<div class="m-card">${head}${body}</div>`;

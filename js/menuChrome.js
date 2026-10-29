@@ -31,6 +31,7 @@ menuChrome.build = function (root) {
         <div class="m-crumb" id="m-crumb"></div>
         <h1 class="m-title" id="m-title">Home</h1>
       </div>
+      <nav class="m-nav" id="m-nav" aria-label="Sections"></nav>
       <div class="m-season" id="m-season">
         <button class="m-step" type="button" data-nav data-nav-group="season" data-step="1" aria-label="Previous season">◀</button>
         <span class="m-season-label" id="m-season-label"></span>
@@ -45,7 +46,7 @@ menuChrome.build = function (root) {
         <div class="m-ticker-run"><div class="m-ticker-track" id="m-ticker-track"></div></div><span class="m-ticker-end">CFB</span></div>
     </footer>
     <div class="m-toast" id="m-toast" role="status" aria-live="polite"></div>`;
-  for (const id of ["banner", "crumb", "title", "season", "season-label", "tabs", "stage", "prompts", "ticker-track", "toast"]) {
+  for (const id of ["banner", "crumb", "title", "season", "season-label", "nav", "tabs", "stage", "prompts", "ticker-track", "toast"]) {
     this.el[id] = root.querySelector(`#m-${id}`);
   }
   window.addEventListener("menu:device", () => this.renderPrompts());
@@ -64,7 +65,8 @@ menuChrome.build = function (root) {
 
 // Draws the header from a description: { title, crumb, team, season }. `team` is a
 // team row with a colour; its banner is the block in the top-left corner.
-menuChrome.setHeader = function ({ title, crumb, team, season }) {
+menuChrome.setHeader = function ({ title, crumb, team, season, section }) {
+  this.drawNav(section);
   this.el.title.textContent = title;
   this.el.crumb.textContent = crumb || "";
   this.el.season.hidden = season == null;
@@ -73,6 +75,27 @@ menuChrome.setHeader = function ({ title, crumb, team, season }) {
   this.el.banner.style.setProperty("--m-team", team?.color || "");
   this.el.banner.innerHTML = team ? teamMark(team, "m-banner-mark") : "";
   this.el.banner.classList.toggle("has-team", !!team);
+};
+
+// The sections that are always one click away, on every screen: where you are is highlighted. A team-scoped
+// screen belongs to Teams; a player card to Players. More opens the quick menu with everything else.
+const MENU_NAV = [["home", "Home", "#/home"], ["teams", "Teams", "#/team-select"], ["rankings", "Rankings", "#/rankings"],
+  ["standings", "Standings", "#/standings"], ["players", "Players", "#/players"], ["playoff", "Playoff", "#/playoff"],
+  ["recruiting", "Recruiting", "#/recruiting"], ["portal", "Portal", "#/portal"]];
+const MENU_SECTION = { home: "home", "team-select": "teams", team: "teams", roster: "teams", depth: "teams", schedule: "teams", game: "teams",
+  "team-recruiting": "teams", "team-portal": "teams", "team-history": "teams", rankings: "rankings", standings: "standings",
+  players: "players", player: "players", playoff: "playoff", recruiting: "recruiting", portal: "portal" };
+
+// Draws the section bar in the header. `section` is the route id of the screen being shown. The team you follow
+// gets its own button after Home.
+menuChrome.drawNav = function (routeId) {
+  const here = MENU_SECTION[routeId] || "more";
+  const mine = MENU.teamId ? `<button class="m-navbtn" type="button" data-nav data-nav-group="nav" data-to="${menuTeamPath(MENU.teamId)}">My Team</button>` : "";
+  this.el.nav.innerHTML = MENU_NAV.map(([id, label, to], i) =>
+    `<button class="m-navbtn${id === here ? " is-here" : ""}" type="button" data-nav data-nav-group="nav" data-to="${to}">${label}</button>${i === 0 ? mine : ""}`).join("")
+    + `<button class="m-navbtn${here === "more" ? " is-here" : ""}" type="button" data-nav data-nav-group="nav" data-nav-more>More</button>`;
+  this.el.nav.querySelector("[data-nav-more]").addEventListener("click", () => this.openMenu());
+  this.el.nav.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => menuRouter.go(b.dataset.to)));
 };
 
 // Draws the tab strip for a screen: { items: [{id,label}], active, go(id) }, or hides
@@ -110,19 +133,24 @@ menuChrome.renderPrompts = function () {
   if (!have.has("back")) fixed.push({ action: "back", label: "Back" });
   if (!have.has("season")) fixed.push({ action: "season", label: "Year" });
   if (!have.has("home")) fixed.push({ action: "home", label: "Menu" });
-  const all = [...this.prompts, ...fixed, { action: "mode", label: this.mode === "light" ? "Dark mode" : "Light mode" }];
+  const pad = menuInput.device === "pad";
+  // With a controller the bar lists its buttons, moving and tabs included. With the mouse it is a row of
+  // on-screen buttons only (Back, Year, Menu, the sort, light and dark): moving is pointing, tabs are the
+  // strip above, and no key labels are drawn.
+  const shown = pad ? this.prompts : this.prompts.filter(p => run[p.action] && p.action !== "select");
+  const all = [...shown, ...fixed, { action: "mode", label: this.mode === "light" ? "Dark mode" : "Light mode" }];
   this.el.prompts.innerHTML = all.map(p => {
     const act = run[p.action];
-    const glyph = `<span class="m-glyph m-glyph--${menuInput.device === "pad" ? "pad" : "key"}">${_esc(g[p.action] || "")}</span>`;
+    const glyph = pad ? `<span class="m-glyph m-glyph--pad">${_esc(g[p.action] || "")}</span>` : "";
     return act
       ? `<button class="m-prompt" type="button" data-prompt="${act}">${glyph}<span>${_esc(p.label)}</span></button>`
       : `<span class="m-prompt is-static">${glyph}<span>${_esc(p.label)}</span></span>`;
   }).join("");
   this.el.prompts.querySelectorAll("[data-prompt]").forEach(b =>
     b.addEventListener("click", () => menuInput.dispatch(b.dataset.prompt)));
-  const bump = menuInput.device === "pad" ? ["LB", "RB"] : ["Q", "E"];
   const bumpers = this.el.tabs.querySelectorAll(".m-bumper");
-  if (bumpers.length === 2) { bumpers[0].textContent = bump[0]; bumpers[1].textContent = bump[1]; }
+  bumpers.forEach(b => { b.hidden = !pad; });
+  if (bumpers.length === 2) { bumpers[0].textContent = "LB"; bumpers[1].textContent = "RB"; }
 };
 
 // A short message, bottom-centre, that fades by itself.

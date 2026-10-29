@@ -70,9 +70,9 @@ function leagueTransferRows(byTeam) {
 // Slots shown per position group, in the order a game-day depth chart lists
 // them: the starters plus the first reserves. A count, not a roster rule.
 const DEPTH_SLOTS = {
-  Offense:        [["QB", 2], ["RB", 3], ["WR", 5], ["TE", 3], ["OL", 7]],
-  Defense:        [["EDGE", 3], ["DL", 4], ["LB", 4], ["CB", 4], ["S", 3], ["DB", 3]],
-  "Special teams": [["K", 1], ["P", 1]],
+  Offense:        [["QB", 3], ["RB", 4], ["WR", 7], ["TE", 4], ["OL", 10]],
+  Defense:        [["EDGE", 4], ["DL", 6], ["LB", 6], ["CB", 5], ["S", 4], ["DB", 4]],
+  "Special teams": [["K", 2], ["P", 2]],
 };
 
 // The order players are listed in within a group. Rated players go by rating;

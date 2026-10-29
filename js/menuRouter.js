@@ -146,6 +146,7 @@ menuRouter.render = async function () {
     crumb: safe(() => (typeof def.crumb === "function" ? def.crumb(ctx) : def.crumb), ""),
     team: def.banner === false ? null : team || ctx.bannerTeam || null,
     season: def.season === false ? null : MENU.season,
+    section: route.id,
   });
   const tabs = safe(() => (def.tabs ? def.tabs(ctx) : null), null);
   this.tabs = tabs;
@@ -169,6 +170,8 @@ menuRouter.render = async function () {
   }
   stage.querySelectorAll("[data-retry]").forEach(b => b.addEventListener("click", () => menuRouter.render()));
   menuFocus.reset(def.prefer ? def.prefer(ctx) : null);
+  // The slideshow behind the screen (home: famous stadiums; a team's screens: that team). Never waits on or blocks the screen.
+  fetchBackdrops().then(b => menuBackdrop.apply(route, b, ctx.team)).catch(() => menuBackdrop.show({ kind: "none" }));
   document.title = `${title} — CFB Analytics`;
 };
 

@@ -337,6 +337,18 @@ async function fetchPlayerCard(playerId) {
   return shard[String(playerId)] || [];
 }
 
+// The slideshow photos, { home: [photo], teams: { team id: [photo] } } with each photo's url, credit, licence and
+// page (script 20), or null when the file is absent. Fetched once; a failure is not fatal (no photos, team colours).
+async function fetchBackdrops() {
+  return _load("backdrops.json");
+}
+
+// One season's per-game team statistics, {team_id: {yards_pg, rush_yards_pg, ...}} from team_stats_{season}.json, or {}
+// for a season with none (an unplayed one).
+async function fetchTeamStats(season = CONFIG.CURRENT_SEASON) {
+  return (await _load(`team_stats_${season}.json`)) || {};
+}
+
 // The best-rated players of a season, for the home page: a season being played from the to-date file, any other
 // season from its ratings_by_position file (the top 50 of each position group). Rows are { id, name, team, team_id,
 // position_group, rating, live }; team_id is null for a played season (that file names the school only). [] when

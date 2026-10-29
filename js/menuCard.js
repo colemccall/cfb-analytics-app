@@ -78,11 +78,23 @@ function menuCombineStats(a, b) {
   return out;
 }
 
+// A player-season's regular-season and postseason lines combined. A few players whose only game was a bowl have the
+// SAME line in both (the season aggregate repeated the postseason one: 21 of 1,389 figures checked for 2025, 1.5%),
+// so identical lines count once.
+function menuSeasonTotals(row) {
+  const reg = row && row.stats_season ? row.stats_season : {};
+  const post = row && row.stats_postseason ? row.stats_postseason : {};
+  const same = Object.keys(post).length > 0 && JSON.stringify(reg) === JSON.stringify(post);
+  return menuCombineStats(same ? {} : reg, post);
+}
+
 // One stat value as shown: a dash for none, a percentage for a fraction, whole numbers plain, the rest to one decimal.
 function menuStatText(v, kind) {
   const n = _menuNum(v);
   if (n == null) return "—";
-  if (kind === "pct") return `${(n * 100).toFixed(1)}%`;
+  // A percentage is stored as a fraction (0.712), but stats rebuilt from game rows hold it as a percent (71.2):
+  // both read as 71.2%. A fraction of exactly 1 (100%) stays 100.
+  if (kind === "pct") return `${(n > 1 ? n : n * 100).toFixed(1)}%`;
   return Number.isInteger(n) ? n.toLocaleString("en-US") : n.toFixed(1);
 }
 
@@ -91,7 +103,7 @@ function menuStatText(v, kind) {
 function menuStatTable(row) {
   const reg = row && row.stats_season ? row.stats_season : {};
   const post = row && row.stats_postseason ? row.stats_postseason : {};
-  const total = menuCombineStats(reg, post);
+  const total = menuSeasonTotals(row);
   const groups = MENU_STAT_GROUPS.map(g => {
     const rows = g.rows.filter(([k]) => _menuNum(reg[k]) != null || _menuNum(post[k]) != null);
     return { g, rows };
@@ -109,7 +121,7 @@ function menuStatTable(row) {
 // rating shown for a season is the earned one; a season being played shows its projection and to-date elsewhere.
 function menuCareerTable(rows, pg) {
   const cols = MENU_CAREER_COLS[pg] || [];
-  const lines = rows.map(r => ({ r, s: menuCombineStats(r.stats_season, r.stats_postseason) }));
+  const lines = rows.map(r => ({ r, s: menuSeasonTotals(r) }));
   const all = lines.reduce((acc, { s }) => menuCombineStats(acc, s), {});
   const gp = rows.reduce((n, r) => n + (_menuNum(r.games_played) || 0), 0);
   const heads = cols.map(([, h]) => `<th scope="col">${h}</th>`).join("");
@@ -124,9 +136,24 @@ function menuCareerTable(rows, pg) {
 // The few stats worth a glance for his position, as big tiles: the position's career-table columns, regular
 // season and postseason together. "" when he has none (an offensive lineman, or no stat line on file).
 function menuKeyTiles(p, pg) {
-  const total = menuCombineStats(p.stats_season, p.stats_postseason);
+  const total = menuSeasonTotals(p);
   return (MENU_CAREER_COLS[pg] || []).filter(([k]) => total[k] != null)
     .map(([k, label, kind]) => `<div class="m-stat"><b>${menuStatText(total[k], kind)}</b><span>${_esc(label)}</span></div>`).join("");
+}
+
+// Career statistics the way a console game lays them out: for each box-score group he has stats in, a table with a
+// column per season and a TOTAL column (regular season and postseason together; counts summed, longs maxed, rates
+// recomputed). Seasons without the group are dashes. "" when he has no stats at all.
+function menuCareerGrid(rows) {
+  const per = rows.map(r => ({ season: r.season, s: menuSeasonTotals(r) }));
+  const total = per.reduce((acc, x) => menuCombineStats(acc, x.s), {});
+  const tables = MENU_STAT_GROUPS.filter(g => !g.noTotal).map(g => {
+    const lines = g.rows.filter(([k]) => per.some(x => x.s[k] != null));
+    if (!lines.length) return "";
+    return `<table class="m-stattable m-careergrid"><thead><tr><th scope="col">${_esc(g.label)}</th>${per.map(x => `<th scope="col">${x.season}</th>`).join("")}<th scope="col">TOTAL</th></tr></thead>
+      <tbody>${lines.map(([k, label, kind]) => `<tr><th scope="row">${_esc(label)}</th>${per.map(x => `<td>${menuStatText(x.s[k], kind)}</td>`).join("")}<td><b>${menuStatText(total[k], kind)}</b></td></tr>`).join("")}</tbody></table>`;
+  }).join("");
+  return tables ? `<div class="m-stats">${tables}</div>` : "";
 }
 
 // The rating history strip: one cell per season he is rated in, oldest first, then (for a season being
@@ -176,10 +203,17 @@ function menuWhyBlock(p, rows = []) {
 }
 
 // His transfer moves, oldest first, as lines: year, from, to. "" when he has none.
-function menuTransferPath(moves) {
+function menuTransferPath(moves, teams = []) {
   if (!moves || !moves.length) return "";
   return `<ul class="m-why">${[...moves].sort((a, b) => (a.transfer_year || 0) - (b.transfer_year || 0))
-    .map(m => `<li><b>${_esc(String(m.transfer_year ?? "—"))}</b> ${_esc(m.from_school || "—")} → ${_esc(m.to_school || "no listed school")}</li>`).join("")}</ul>`;
+    .map(m => `<li><b>${_esc(String(m.transfer_year ?? "—"))}</b> ${menuSchoolLink(m.from_school, teams)} → ${menuSchoolLink(m.to_school, teams) || "no listed school"}</li>`).join("")}</ul>`;
+}
+
+// A school named in text: a button to its team page when it is one of ours, else plain text; "" for no school.
+function menuSchoolLink(name, teams) {
+  if (!name) return "—";
+  const t = teams.find(x => x.school === name);
+  return t ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">${_esc(name)}</button>` : _esc(name);
 }
 
 // The photo slot at the head of the card: a fixed-size frame so nothing moves when a photo arrives. It always
@@ -192,10 +226,19 @@ function menuPhotoHtml(p, hs) {
   return `<div class="m-photo"${img ? "" : ' aria-hidden="true"'}><span class="m-photo-initials">${_esc(initials)}</span>${img}</div>`;
 }
 
+// A small photo for a player inside a row: his ESPN image over his initials in a fixed frame, so rows do not
+// shift. Without a match (or with headshots off) it is the initials alone. menuWirePhoto drops a failed image.
+function menuAvatar(playerId, name, hs) {
+  const initials = String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const espnId = hs && hs.players ? hs.players[String(playerId)] : null;
+  const img = espnId ? `<img src="${_esc(String(hs.image).replace("{id}", espnId))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "";
+  return `<span class="m-avatar" aria-hidden="true"><span>${_esc(initials)}</span>${img}</span>`;
+}
+
 // Drops a photo that failed to load, so the initials show instead of a broken-image icon. Called after the
 // card is in the page; an image that already failed before this ran is caught by the complete check.
 function menuWirePhoto(root) {
-  root.querySelectorAll(".m-photo img").forEach(img => {
+  root.querySelectorAll(".m-photo img, .m-avatar img").forEach(img => {
     const drop = () => img.remove();
     img.addEventListener("error", drop);
     if (img.complete && img.naturalWidth === 0) drop();

@@ -35,12 +35,12 @@ function menuHomeTeamRow(t, i, d) {
 }
 
 // A player row: position, name, his team, rating. The whole row opens his card.
-function menuHomePlayerRow(p, d) {
+function menuHomePlayerRow(p, d, hs) {
   const team = p.team_id != null ? d.teams.find(t => t.id === p.team_id) : d.teams.find(t => t.school === p.team);
   const pill = p.live ? livePill({ live_rating: p.rating, live_through_week: d.live && d.live.through_week, live_games: null })
                       : ovrPill(p.rating, { season: MENU.season, label: `Rating, ${MENU.season}` });
   return `<button class="m-row m-row--mini m-row--player-mini" type="button" data-nav data-nav-group="hp-players" data-to="${menuPlayerPath(p.id, team && team.id)}">
-      <span class="m-pos">${posBadge(p.position_group)}</span><span class="m-pname">${_esc(p.name || "—")}</span>
+      <span class="m-pos">${posBadge(p.position_group)}</span><span class="m-pname">${menuAvatar(p.id, p.name, hs)}${_esc(p.name || "—")}</span>
       <span class="m-pmeta">${_esc(team ? team.school : p.team || "")}</span><span class="m-rating">${pill}</span></button>`;
 }
 
@@ -118,10 +118,11 @@ menuRouter.register("home", {
     const season = MENU.season;
     const d = await menuTeams(season);
     const [players, recruiting, transfers] = await Promise.all([fetchTopPlayers(season), fetchRecruiting(season), fetchLeagueTransfers(season)]);
+    const hs = await fetchHeadshots();
     ctx.d = d; ctx.team = null;
     const ranked = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d));
     const topTeams = menuHomePanel(`Top 10 · ${season}`, ranked.slice(0, 10).map((t, i) => menuHomeTeamRow(t, i + 1, d)).join(""), ["Full rankings", "#/rankings"]);
-    const topPlayers = menuHomePanel("Top players", [...players].sort((a, b) => b.rating - a.rating).slice(0, 10).map(p => menuHomePlayerRow(p, d)).join(""), ["All players", "#/players"]);
+    const topPlayers = menuHomePanel("Top players", [...players].sort((a, b) => b.rating - a.rating).slice(0, 10).map(p => menuHomePlayerRow(p, d, hs)).join(""), ["All players", "#/players"]);
     const field = menuPlayoffField(d, "12");
     const playoff = menuHomePanel("Playoff picture · 12 teams", field.slice(0, 8).map(f => `
       <button class="m-row m-row--mini" type="button" data-nav data-nav-group="hp-po" data-to="${menuTeamPath(f.team.id)}">
@@ -147,11 +148,10 @@ menuRouter.register("home", {
         <span class="m-pos">${m.position_group ? posBadge(m.position_group) : ""}</span><span class="m-pname">${_esc(m.name || "—")}</span>
         <span class="m-pmeta">${_esc(m.from_school || "—")} → ${_esc(m.to_school || "—")}</span></button>`).join(""), ["Transfer portal", "#/portal"]);
     return `<div class="m-home">
-      <div class="m-quick" role="navigation" aria-label="Screens">${MENU_HOME_LINKS.map(([label, to]) =>
-        `<button class="m-item m-item--sm m-qbtn" type="button" data-nav data-nav-group="quick" data-to="${to}"><span class="m-item-label">${_esc(label)}</span></button>`).join("")}</div>
       ${menuHomeMyTeam(d)}
       <div class="m-home-grid">${topTeams}${topPlayers}${menuHomeGamePanels(d).join("")}${playoff}${moversPanel}${recruitPanel}${portalPanel}</div>
     </div>`;
   },
+  mount(stage) { menuWirePhoto(stage); },
   prefer: () => ".m-hp .m-row",
 });

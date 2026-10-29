@@ -246,6 +246,7 @@ function menuLeadPill(p, season) {
 async function menuFillTopPlayers(el, team) {
   try {
     const roster = await fetchTeamRoster(team.id, MENU.season);
+    const hs = await fetchHeadshots();
     if (!el.isConnected) return;
     const top = [...roster].filter(p => menuLeadRating(p) != null).sort((a, b) => menuLeadRating(b) - menuLeadRating(a)).slice(0, 6);
     if (!top.length) {
@@ -254,9 +255,10 @@ async function menuFillTopPlayers(el, team) {
     }
     el.innerHTML = `<h3 class="m-h3">Top players</h3>${top.map(p => `
       <button class="m-row m-row--pl" type="button" data-nav data-nav-group="top" data-to="${menuPlayerPath(p.player_id, team.id)}">
-        <span class="m-pos">${posBadge(p.position_group)}</span><span class="m-pname">${_esc(p.name || "—")}</span>
+        <span class="m-pos">${posBadge(p.position_group)}</span><span class="m-pname">${menuAvatar(p.player_id, p.name, hs)}${_esc(p.name || "—")}</span>
         <span class="m-rating">${menuLeadPill(p, MENU.season)}</span></button>`).join("")}
       <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(team.id, "roster")}">Full roster →</button>`;
+    menuWirePhoto(el);
   } catch (e) {
     if (el.isConnected) el.innerHTML = `<h3 class="m-h3">Top players</h3><p class="m-empty" role="alert">The roster did not load: ${_esc(e && e.message ? e.message : e)}. Open Roster to retry.</p>`;
   }

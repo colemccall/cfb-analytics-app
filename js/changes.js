@@ -33,6 +33,129 @@
 
 const CHANGES = [
   {
+    id: "v4.17-own-opponent-strength-shutouts-and-ui",
+    version: "v4.17",
+    date: "2026-10-29",
+    title: "Our own opponent strength replaces SP+ in the player ratings; shutouts stop vanishing; a section bar, game screen and slideshow",
+    summary: `The owner asked for postseason and cross-conference weight and an opponent adjustment that is our own, then a recompute; and, along the way, for deeper depth charts,
+      a header that brings the screens together, a game screen from the schedule, and a changing background. Checking stats, recruiting and transfers against the raw tables
+      turned up a data defect that had been dropping shut-out losses from every record.`,
+    motivation: `The player ratings' opponent adjustment used SP+ (an outside number, soft on weak opponents, FCS opponents counted as average), which the owner ruled out and which is the
+      known cause of Group-of-6 players rating too close to Power-4 players. The owner also wanted the app to feel less team-centric and the schedule to open the game.`,
+    did: [
+      { what: "Opponent strength from our own results (utils/opponent_strength.py), used by script 06 in place of SP+",
+        why: `An offense and a defense rating per team, solved together from every game of the season by a ridge regression with a conference level underneath (cross-conference games weigh CROSS_WEIGHT,
+          the postseason POST_WEIGHT, every non-FBS opponent is one pooled FCS team estimated from the FBS-vs-FCS games), put on the z-score scale the multiplier already read (1 + 0.35 z above average, 1 + 0.12 z below, z clipped to +-2) so the frozen anchors still apply.
+          Settings from scripts/validate_opponent_strength.py (weeks 1-8 strengths predicting every later game, 2016-2025, leave-one-season-out): winner picks 69.5-70.0% across 36 settings (team ridge 3, conference ridge 0.5-3 equal within noise);
+          cross-conference weight above 1 did not help (70.0% at 1.0, 69.6% at 1.5, 68.8% at 2.5); a postseason weight of 1-2 predicted the next season slightly better (66.5-66.6% against 66.3%), so it is 1.0.
+          The k values were compared by rerunning 06 and 07 for 2022-2025: next-season Spearman of the team roster 0.440 for 0.35/0.12 against 0.441 with SP+, and 0.424, 0.418, 0.401 for harsher weak-opponent penalties, so 0.35/0.12 stays.
+          CFB_OPP_SOURCE=sp restores SP+ for comparison. Recomputed 2008-2025 end to end (06, 07, 10, 15 retrained, 16, 10 projected, 13, 14, 17, 12): 0 requests.`,
+        cost: "Predictive accuracy equals SP+'s (0.440 vs 0.441): the gain is that nothing outside is used and an FCS opponent is no longer average. Power-4 minus Group-of-6 in top-22 roster rating rose 3.68 to 4.37 points in 2025 (the games imply about 7.8), so most of the level gap is still not in the player ratings." },
+      { what: "A shut-out team's score was a gap, and the game had no result for it",
+        why: `The harvest stores 0 points as missing. A game with one score and one gap therefore had no result for the team that was shut out: it was absent from its record, schedule result, standings and every rating built on results.
+          725 FBS games 2008-2025 (about 40 a season); in 2025, 20 of 136 teams had a team-stat games count that disagreed with their schedule (Ball State's 31-0 loss to Purdue was missing). The betting-lines table records 0 for the gap in all 741 games it also holds.
+          utils/store.fill_shutouts now reads a single missing score as 0 (a game with neither score is unplayed and untouched). After the recompute and export, 0 of 136 teams disagree, and the power backtest reads 71.7% / 13.29 (was 70.6% / 13.12, on games that lacked the shutouts).`,
+        cost: "Every rating built on results moved slightly; the old numbers were wrong for the shut-out team." },
+      { what: "Verification of stats, recruiting and transfers against the raw tables",
+        why: `Recruiting: 1,600 prospects (2020, 2023, 2025, 2026) against raw stars, committed team and composite, 0 differences; class ranks dense and ordered; no team has more commits than the raw table.
+          Transfers: every exported move found in the raw table by (player, from, to), every 'in' has its 'out', ovr_previous and ovr_current equal the player's card rating for 0 of 300 sampled in each year;
+          157 raw 'transfers' that ended at the same school (2021-2026) are now dropped from the export. Stats: for 2025 the season line equals the regular-season game rows in 1,368 of 1,389 figures; in the other 21 (1.5%) the season line repeats the postseason line for a player whose only game was a bowl, so the card counts identical lines once.
+          About 3% of stat lines held a completion percentage as 58.2 instead of 0.582 (rebuilt from game rows); the card reads either.`,
+        cost: "None; found and fixed, not previously caught by any test." },
+      { what: "UI: a section bar on every screen, a game screen, a deeper depth chart, a slideshow backdrop, a fuller card",
+        why: `A bar of sections (Home, My Team, Teams, Rankings, Standings, Players, Playoff, Recruiting, Portal, More) is part of the header on every screen and marks where you are; the home page lost its separate links row. A schedule row opens a game screen: both teams
+          with record, conference record and our rank, the final score, date and venue, and a comparison of ratings, scoring, offense, defense, third downs and turnovers with national ranks and an arrow to the better side (season figures: the data has no per-game team statistics). The schedule has a team band with OVR, OFF, DEF and an opponent record column.
+          The depth chart lists 10 linemen, 7 receivers and so on. The home page shows famous stadiums and a team's screens show that team's, as a slideshow of freely licensed Commons photos linked with credit (script 20; 92 of 139 teams have photos, 284 in all, 23 for the home page; uniforms, locker rooms and cities are not freely licensed).
+          The player card gained career statistics by season with a total column.`,
+        cost: "Slideshow photos are linked from an outside host; a team with none uses its colours." },
+    ],
+    tried: [
+      { what: "Harsher weak-opponent penalties (0.35/0.25, 0.30/0.30, 0.45/0.35)",
+        result: "They widen the Power-4 over Group-of-6 gap (4.40, 4.56, 5.51 points) but lower the next-season fit (0.424, 0.418, 0.401 against 0.440).",
+        verdict: "rejected" },
+      { what: "A larger weight on cross-conference games in the strength fit",
+        result: "No gain: 70.0% at 1.0, 69.6% at 1.5, 68.8% at 2.5 (weeks 1-8 strengths, later games).",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Power-4 minus Group-of-6, top-22 roster rating, 2025", before: "3.68", after: "4.37" },
+      { label: "2026 live team rating: LSU / Kansas State", before: "91.9 / 87.6 at the start of this work", after: "89.0 / 85.4" },
+      { label: "Liberty, 2026: rating rank / power rank", before: "34 / 22", after: "20 / 21" },
+      { label: "Power backtest: winner / margin error", before: "70.6% / 13.12", after: "71.7% / 13.29 (shutouts restored; baselines moved with the games)" },
+      { label: "Teams whose team-stat games disagree with their schedule, 2025", before: "20 of 136", after: "0" },
+      { label: "Projection gates: offense / defense model MAE vs naive", before: "8.19 / 8.39", after: "8.18 / 8.39 (naive 9.08 / 9.58); interval coverage 79.0% / 76.8%" },
+      { label: "2025 player position means moved by", before: "-", after: "at most 0.24 rating points" },
+      { label: "Pipeline tests", before: "452", after: "456 passed" },
+      { label: "UI smoke checks", before: "144", after: "146 (and a 28-screen style audit)" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "456 passed" },
+      { check: "python scripts/validate_opponent_strength.py", result: "69.5-70.0% across the grid; postseason weight table printed" },
+      { check: "python scripts/validate_rankings.py", result: "power 71.7% / 13.29; rating alone 62.9%; placebo 58.1%" },
+      { check: "python scripts/validate_ratings.py --season 2025", result: "distributions inside the bounds" },
+      { check: "re-export", result: "0 API requests; player ratings changed only through the opponent adjustment (position means within 0.24)" },
+    ],
+    unfixed: `**The level gap is still about half of what the games show** (4.4 of about 7.8 rating points): Liberty is 20th by rating and 21st by power. A harsher weak-opponent penalty costs predictive fit, so the answer is probably not a bigger multiplier
+      but a different input (the rating of the competition level itself); that needs its own measured pass. **The slideshow is mostly stadiums** and 47 teams have none. **The game screen shows season figures, not that game's box score.**
+      **The Methods, Research and Build Log readers keep their document tables** (dark and consistent with the theme, not console rows). **Player cards still have no awards or trophies** (the data has none). **Everything is uncommitted** in both repositories.`,
+    methods: ["opponent-strength", "player-rating", "team-ratings", "power-rating"],
+    files: ["utils/opponent_strength.py", "utils/store.py", "scripts/06_compute_edge_scores.py", "scripts/12_export_frontend_json.py", "scripts/20_harvest_backdrops.py", "scripts/validate_opponent_strength.py",
+            "tests/test_store_shutouts.py", "js/menuChrome.js", "js/menuGame.js", "js/menuBackdrop.js", "js/menuCard.js", "js/menuScreensLeague.js", "js/leagueData.js", "css/menu.css", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
+    id: "v4.16-slot-team-rating-and-pace",
+    version: "v4.16",
+    date: "2026-10-29",
+    title: "Team ratings from every position group with depth; a calibrated in-season pace correction; the menu for mouse and controller only",
+    summary: `The owner said 2026 in-season team ratings were inflated (LSU, Kansas State), that the team rating should draw on every position with
+      mostly starters and some depth rather than the top 22, that the in-season pace scaling of player ratings runs high, and that the menu does not need arrow-key or WASD
+      movement. This pass replaces the flat top-22 half of the roster rating with a fitted slot score, replaces the pace rule with a calibrated one, recomputes, and removes the keyboard movement.`,
+    motivation: `LSU 91.9 and Kansas State 87.6 against 2025 finals of 80.5 and 79.6; the owner expected live player ratings to be lower and thought the pace scaling was a bit high.`,
+    did: [
+      { what: "The roster half of a team rating is a slot score",
+        why: `Each position group (QB, RB, WR, TE, DL with EDGE, LB, DB with CB and S, K and P) is scored from its starters (1, 2, 3, 1, 4, 3, 5, 2) with the next three as depth (80% starters, 20% depth) and the groups are weighted .194 / .189 / .036 / .016 / .150 / .123 / .286 / .008. A group nobody is rated in drops out and the weights renormalise. The weights are 0.75 x non-negative least squares of season scoring margin on the group scores (2016-2025, leave-one-season-out, 1,261 team-seasons) + 0.25 x a football prior, because the pure fit gives wide receivers and tight ends zero. Roster alone: Spearman with scoring margin 0.764 against 0.735 for the top-22 mean (pure fit 0.771, hand-picked weights 0.710). Blended with team stats: 0.879 against 0.872. The offensive line is untouched (the line unit still sits inside the position-weighted half).`,
+        cost: "A small gain: depth added 0.001 in the fit, and the fit is as good as it is because team stats carry most of the same-season signal. Football weights were pulled back toward a prior at a cost of 0.003 in rank fit." },
+      { what: "The in-season pace correction is calibrated",
+        why: `A part-season EDGE was multiplied by sqrt(games scheduled / games completed). Collected for 2022-2025 at cuts after weeks 4, 6, 8 and 10 (69,948 player-seasons): the final EDGE was 6% below the paced figure at weeks 6-10 (0.94), 14% below for players who had played under half of their team's games (0.866), and about 9% below for the top fifth of raters. The new rule: shrink toward the position's mean final EDGE of last season with weight g/(g+0.5), then multiply by 0.707 / 0.849 / 0.953 / 0.979 by the share of the team's completed games he played (<=0.5, <=0.75, <=0.9, above). Median error against the final EDGE at the four cuts: 6.02 / 4.46 / 3.36 / 2.43 before, 5.48 / 4.07 / 2.96 / 2.10 after, unbiased in every share bucket. 2025 week-8 final/paced: 0.933 before, 0.983 after.`,
+        cost: "In rating points the effect on a starter is small (a starter has played nearly every game, so his factor is 0.98): the 2026 mean live player rating moved 67.8 to 67.3, LSU 91.9 to 90.7 and Kansas State 87.6 to 85.7 together with the slot score." },
+      { what: "Recomputed",
+        why: `Script 10 for 2008-2026 and the projected 2026 rating, script 17 for 2026 (real key, cache only: 0 requests), scripts 13 and 14, then the export. Only team ratings and what derives from them moved: player ratings of every played season are identical, and in 2026 only the live fields moved. The power backtest is unchanged (70.6% winner picks, 13.12 margin error; rating alone 62.0%).`,
+        cost: "Every team rating moved a little: the slot score replaces the top-22 mean for all seasons." },
+      { what: "The menu is for the mouse and a controller; the keyboard moves nothing",
+        why: `Arrow keys, WASD, Q/E, brackets, paging and the space bar are gone. Escape or Backspace goes back and Enter opens the highlighted item; everything else is a button on screen. With a mouse the bottom bar is a row of buttons (Back, Season, Menu, Sort where a list has one, Light or Dark) with no key labels and the Q/E tab markers are hidden; a controller shows its own button labels and the markers again once a pad is in use. Controller movement is unchanged. Every classic page still redirects to its menu screen (checked: every HTML file except menu.html), so the whole app is the console menu.`,
+        cost: "No keyboard-only navigation beyond Tab, Enter and Escape." },
+    ],
+    tried: [
+      { what: "Hand-picked slot weights and a deeper-rotation score",
+        result: "Worse than the top-22 mean: 0.710 against 0.735 (roster alone); a half-and-half starter and depth mix 0.694.",
+        verdict: "rejected" },
+      { what: "Slot weights fitted without a prior",
+        result: "0.771 roster alone, but wide receivers and tight ends get zero weight and running backs 0.23; shrunk 25% toward the prior for a 0.003 loss.",
+        verdict: "shrunk" },
+      { what: "Pace: shrink toward last season's EDGE; per-position constants",
+        result: "Last season adds nothing over the position mean (equal to a shuffled placebo); per-position constants 2.97 against 2.99.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Roster alone vs scoring margin (Spearman)", before: "0.735 (top-22)", after: "0.764 (slot)" },
+      { label: "Blended with team stats (Spearman)", before: "0.872", after: "0.879" },
+      { label: "Pace: median error at weeks 4/6/8/10 (EDGE points)", before: "6.02 / 4.46 / 3.36 / 2.43", after: "5.48 / 4.07 / 2.96 / 2.10" },
+      { label: "2025 week 8 final/paced EDGE", before: "0.933", after: "0.983" },
+      { label: "2026 live: LSU / Kansas State team rating", before: "91.9 / 87.6", after: "90.7 / 85.7" },
+      { label: "Pipeline tests", before: "440", after: "452 passed" },
+      { label: "UI smoke checks", before: "143", after: "144" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "452 passed" },
+      { check: "python scripts/validate_rankings.py", result: "power 70.6% / 13.12, rating alone 62.0% (unchanged within 0.5)" },
+      { check: "python scripts/validate_pace.py", result: "2025 week 8: final/paced 0.983" },
+      { check: "node tools/ui-smoke/smoke.mjs", result: "144 / 144" },
+    ],
+    unfixed: `**The 2026 jump is mostly real in the data.** LSU's live roster really rates high (Leavitt 79 -> 92, Ross 73 -> 91); the pace and slot changes took 1 to 2 points, not 10. The remaining causes are the soft opponent adjustment in the player ratings (the Liberty finding) and team stats that are opponent-blind. **Depth did not matter in the fit** and an unrated-slot fill-in from projections was not built. **The offensive line was left alone on request.** **The pace fit is four seasons** and part of the first season's prior means is its own. **The mean live player rating hardly moved** because a starter's factor is 0.98. **Everything is uncommitted** in both repositories.`,
+    methods: ["team-ratings", "live-season"],
+    files: ["scripts/10_compute_team_ratings.py", "scripts/06_compute_edge_scores.py", "tests/test_slots_and_pace.py", "js/menuInput.js", "js/menuChrome.js", "js/guide.js", "css/menu.css", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.15-home-team-pages-and-console-card",
     version: "v4.15",
     date: "2026-10-28",
@@ -67,6 +190,10 @@ const CHANGES = [
           Overview: the three ratings in tiles, the position's key stats as big tiles, how each rating is built, the rating history, links to the team page and to the position's leaders, the transfer path.
           Stats: every stat as ruled tables in columns. Career: the season-by-season table with a team button per season, and totals. LB and RB (Q and E) switch sections.`,
         cost: "The card's team button and tabs add focus targets; nothing about the data changed." },
+      { what: "Photos on every top-player row, and the last unlinked names linked",
+        why: `A small photo (his ESPN image over his initials, in a fixed frame) now leads the player rows on the home page, a team's Top players, The Season's best players, the Players list and the roster header strip.
+          Schools in a transfer path, the opponents in a ranking's game table and the conference on Team History are buttons to their pages.`,
+        cost: "Same ESPN dependency as the card photo; an unmatched player shows initials." },
     ],
     tried: [
       { what: "Links inside a row (the team and the player each a button in one row)",

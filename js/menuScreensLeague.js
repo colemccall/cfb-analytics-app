@@ -28,6 +28,18 @@ function menuTeamById(d, id) {
 
 // ── Schedule ──────────────────────────────────────────────────────────────
 
+// The band above a schedule: the team's mark and name, record and conference, and its three ratings in boxes.
+function menuScheduleBand(d, team) {
+  const st = d.standings[team.id], lv = d.liveById[team.id];
+  const box = (label, v) => `<div class="m-sbox"><b>${v == null ? "—" : Math.round(v)}</b><span>${label}</span></div>`;
+  const rank = menuTeamRank(team, d);
+  return `<div class="m-sband" style="--m-team:${_esc(team.color || "")}">
+      ${teamMark(team, "m-preview-mark")}
+      <div class="m-sband-name"><b>${_esc(team.school)}</b><span>${st ? recordText(st) : "No results yet"}${st && st.cw + st.cl ? ` · ${st.cw}-${st.cl} in conference` : ""} · ${_esc(team.conference || "")}${rank != null ? ` · #${rank}` : ""}</span></div>
+      ${box("OVR", menuTeamOvr(team, d))}${box("OFF", menuSide(team, lv, "offense_rating"))}${box("DEF", menuSide(team, lv, "defense_rating"))}
+    </div>`;
+}
+
 menuRouter.register("schedule", {
   title: ctx => (ctx.team ? ctx.team.school : "Schedule"),
   crumb: () => "TEAM › SCHEDULE",
@@ -60,17 +72,19 @@ menuRouter.register("schedule", {
       const oppId = String(g.home_team_id) === String(team.id) ? g.away_team_id : g.home_team_id;
       const opp = menuTeamById(d, oppId);
       const played = g.result === "W" || g.result === "L";
-      return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}"${opp ? ` data-to="${menuTeamPath(opp.id)}"` : ""}>
+      return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}" data-to="#/game/${g.game_id}/${team.id}">
         <span class="m-rank">${g.season_type === "postseason" ? "POST" : g.week ? `W${g.week}` : "—"}</span>
         <span class="m-pname">${g.is_home ? "vs" : "@"} ${_esc(g.opponent || "TBD")}${g.neutral_site ? " (N)" : ""}</span>
         <span class="m-pmeta">${_esc(String(g.game_date || "").slice(0, 10))}</span>
         <span class="m-rating">${opp ? menuTeamPill(opp, d, MENU.season) : '<span class="trio-na" title="Not in our team list (non-FBS)">—</span>'}</span>
+        <span class="m-num">${opp && d.standings[opp.id] ? `${d.standings[opp.id].w}-${d.standings[opp.id].l}` : "—"}</span>
         <span class="m-result ${played ? (g.result === "W" ? "is-win" : "is-loss") : ""}">${played ? `${g.result} ${g.team_score}–${g.opp_score ?? 0}` : g === next ? "NEXT" : "—"}</span>
       </button>`;
     }).join("");
     return `<div class="m-split m-split--roster">
       <section class="m-panel m-list" aria-label="Schedule">
-        <div class="m-rowhead m-row--sched"><span>WK</span><span>OPPONENT</span><span>DATE</span><span>OPP OVR</span><span>RESULT</span></div>
+        ${team ? menuScheduleBand(d, team) : ""}
+        <div class="m-rowhead m-row--sched"><span>WK</span><span>OPPONENT</span><span>DATE</span><span>OPP OVR</span><span>OPP W-L</span><span>RESULT</span></div>
         ${rows || '<p class="m-empty">No schedule for this season.</p>'}
       </section>
       <aside class="m-panel m-detail" id="m-detail" aria-live="polite"></aside>
@@ -227,7 +241,7 @@ function menuPowerPanel(t, rank, ctx, games) {
   const n = live ? lv?.results_games : t.results_games;
   const st = d.standings[t.id];
   const gameRow = g => `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
-      <td>${g.post ? "POST" : `W${g.week ?? "—"}`}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${_esc(g.opp || "—")}</td>
+      <td>${g.post ? "POST" : `W${g.week ?? "—"}`}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${g.opp_id != null && d.teams.some(x => x.id === g.opp_id) ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(g.opp_id)}">${_esc(g.opp || "—")}</button>` : _esc(g.opp || "—")}</td>
       <td>${g.margin > 0 ? "W" : g.margin < 0 ? "L" : "T"} ${g.score}–${g.opp_score}</td>
       <td>${menuPowerText(g.value)}</td><td>${menuPowerText(g.expected)}</td><td><b>${menuPowerText(g.over)}</b></td></tr>`;
   const rows = games.filter(g => !g.post).map(gameRow).join("");

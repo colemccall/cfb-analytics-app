@@ -746,7 +746,8 @@ is mostly gone and a small overshoot remains. Script 17 runs in a private copy f
 back-test does: provisional numbers must not be able to leak into anything that trains on history.`,
     evidence: [
       { label: "Back-test, 2025 cut after week 8: final EDGE / unscaled week-8 EDGE, median", value: "1.277 (range 1.218 to 1.326 by position): an unscaled part-season runs about 28% low" },
-      { label: "Same, after the sqrt(r) rescale", value: "0.933 (range 0.896 to 0.976): the rescaled value runs about 7% above where the player ends up" },
+      { label: "Same, after the sqrt(r) rescale (the rule before v4.16)", value: "0.933 (range 0.896 to 0.976): the rescaled value runs about 7% above where the player ends up" },
+      { label: "v4.16 rule: shrink w = g/(g+0.5) toward the position's mean final EDGE last season, then x 0.707 / 0.849 / 0.953 / 0.979 by share of the team's completed games played (<=0.5 / <=0.75 / <=0.9 / above)", value: "2025 week 8 final/paced 0.983; across 2022-2025 and four cuts (69,948 player-seasons, leave-one-season-out) median error 5.48 / 4.07 / 2.96 / 2.10 against 6.02 / 4.46 / 3.36 / 2.43, unbiased in every share bucket. The old rule ran 14% high for players with under half their team's games" },
       { label: "Week-8 rank vs final rank, Spearman by position", value: "CB 0.857, DL 0.865, TE 0.873, EDGE 0.892, DB 0.893, WR 0.910, LB 0.911, RB 0.916, S 0.917, QB 0.949" },
       { label: "Players with a valid EDGE at the cut vs at the end, 2025", value: "4,912 vs 5,896: 984 (17%) cannot be rated yet at week 8" },
       { label: "Live 2026", value: "2,321 of 3,681 regular-season games complete, through week 8; median pace factor 1.714; 5,468 players rated (5,349 production, 119 blended) of 16,882 on rosters; 138 teams" },
@@ -779,7 +780,9 @@ back-test does: provisional numbers must not be able to leak into anything that 
     alternatives: [
       { label: "Write the part-season ratings into the normal edge engine", basis: "simplest", status: "rejected", note: "Script 15 trains career curves on engine=edge. A 2026 row built from eight games would have been read as a finished season." },
       { label: "No correction: rate the games played as they stand", basis: "back-test", status: "rejected", note: "Final EDGE is 1.277x the week-8 value at the median, so every player would look about 28% worse than he ends up." },
-      { label: "Damp the rescale to remove the 7% overshoot", basis: "back-test, one season", status: "experiment", note: "Needs a second back-tested season first." },
+      { label: "Damp the rescale to remove the 7% overshoot", basis: "four back-tested seasons (2022-2025), cuts at weeks 4, 6, 8, 10", status: "shipped", note: "v4.16: a light shrink toward the position mean plus a calibration by share of team games played. Median error 6.02/4.46/3.36/2.43 -> 5.48/4.07/2.96/2.10 EDGE points; 2025 week-8 final/paced 0.933 -> 0.983." },
+      { label: "Shrink the paced EDGE toward last season's EDGE", basis: "same four seasons", status: "rejected", note: "No better than the position mean (3.10 vs 2.97 at week 8) and equal to a placebo that shuffles last season across players." },
+      { label: "Per-position calibration constants", basis: "same four seasons", status: "rejected", note: "2.97 vs 2.99 at week 8: the share of games played explains the bias, position does not." },
       { label: "Scale the playing-time tier thresholds by pace", basis: "PLAYTIME_TIERS is frozen", status: "experiment", note: "Would move more players onto a production basis. A change to a frozen constant needs its own written case." },
       { label: "Fold the games played into the preseason projections", basis: "script 16", status: "experiment", note: "A different model from this one; not attempted." },
     ],
@@ -919,7 +922,9 @@ making the engine more optimistic makes the larger problem worse.`,
       and, with no stats, a projected one. Offense and defense are the same two readings split into their
       offensive and defensive halves. Until v4.11 the headline was half SP+ and offense and defense were SP+'s own.`,
     formula: `overall = 0.60 roster + 0.40 team stats        (renormalised when one is absent)
-roster  = 0.60 roster_to_ovr(mean of the top 22 starters) + 0.40 roster_to_ovr(position-weighted composite)
+roster  = 0.60 roster_to_ovr(slot score) + 0.40 roster_to_ovr(position-weighted composite)
+slot    = sum over QB, RB, WR, TE, DL(+EDGE), LB, DB(+CB,S), K/P of weight x (0.8 x mean of starters + 0.2 x mean of next 3)
+          starters 1/2/3/1/4/3/5/2; weights .194/.189/.036/.016/.150/.123/.286/.008; a group nobody is rated in drops out
 stats   = 0.50 offense + 0.50 defense (yards, 3rd down, havoc) + a turnover-margin adjustment
 offense = 0.60 roster_to_ovr(0.50 pass_off + 0.50 run_off) + 0.40 team-stat offense
 defense = 0.60 roster_to_ovr(0.55 pass_def + 0.45 run_def) + 0.40 team-stat defense
@@ -947,6 +952,7 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       weights renormalise across whatever is present, for every position. The OL term is replaced by the
       line-unit rating, a more honest input than the average of five recruiting ranks.`,
     evidence: [
+      { label: "v4.16 slot score vs the top-22 mean (Spearman with season scoring margin, leave-one-season-out, 1,261 team-seasons)", value: "roster alone 0.764 vs 0.735 (pure fit 0.771, hand-picked weights 0.710); blended with team stats 0.879 vs 0.872. Depth terms add 0.001; the placebo (slot ratings shuffled across teams) 0.03" },
       { label: "Fit to what the team did that season (Spearman vs mean scoring margin, 2016-2025, n = 1,255 team-seasons)", value: "old blend (0.5 SP+, 0.3 roster, 0.2 stats) 0.884; new (0.6 roster, 0.4 stats) 0.880; roster alone 0.785; team stats alone 0.875; SP+ alone 0.844" },
       { label: "Prediction of the NEXT season's margin (n = 1,118)", value: "old blend 0.545; new 0.518; last season's own margin carried forward 0.529. The new rating is 0.011 below the dumb baseline here; the old one was 0.016 above it. This is the cost of removing SP+." },
       { label: "Placebo: roster ratings shuffled across teams within a season", value: "same-season fit falls from 0.880 to 0.659 and next-season from 0.518 to 0.400, so the roster signal is real, not a re-weighting of what the stats already say" },
@@ -983,8 +989,66 @@ Every term renormalises out when absent. avg_top() returns None, never 50.`,
       { label: "Renormalise instead of defaulting to 50", basis: "nothing new",
         status: "shipped", note: "v4.3, and now universal rather than an OL special case." },
     ],
-    changelog: [{ version: "v4.11", change: "SP+ removed from the headline and from offense and defense; team stats refreshed before they are read; preseason offense and defense now differ." }],
+    changelog: [{ version: "v4.11", change: "SP+ removed from the headline and from offense and defense; team stats refreshed before they are read; preseason offense and defense now differ." },
+                { version: "v4.16", change: "The flat top-22 mean is replaced by a slot score: starters and depth of every position group, weighted by a fitted-then-shrunk set of weights. Offensive line unchanged (line unit inside the position-weighted half)." }],
     source: "scripts/10_compute_team_ratings.py (compute_team_splits) · tests/test_team_ratings.py · docs/FORMULAS.md §6",
+  },
+
+  {
+    id: "opponent-strength",
+    group: "ratings",
+    title: "Opponent strength: how good the opponent was, from our own results",
+    summary: `Every game a player played is scaled by how good the opponent was on the side he faced: the opposing
+      defense for an offensive player, the opposing offense for a defender. Until v4.17 that was SP+. It
+      is now an offense rating and a defense rating for every team, solved from the season's own
+      results, with a conference level underneath and one pooled FCS team for every non-FBS opponent.
+      Nothing outside goes in, and no player rating goes in either, so the player ratings can use it
+      without a loop.`,
+    inputs: [
+      { name: "Games", source: "games.json: one missing score is a shutout (0)", coverage: "2008-2026, postseason included" },
+      { name: "Conference of each team each season", source: "team_records.json", coverage: "FBS teams by season" },
+    ],
+    formula: `points(team i vs opponent j) = mu + off_i + dfn_j + home
+  one row per team per game
+off_i = conference offense level + team deviation
+dfn_j = conference defense level + team deviation
+  ridge: team 3, conference 0.5 (in games of prior)
+weights: postseason 1.0, cross-conference 1.0
+z = strength / (sd across FBS teams), per side
+multiplier = 1 + 0.35 z  for z >= 0
+           = 1 + 0.12 z  for z < 0
+  z clipped to +-2`,
+    reality: `The strengths are put on the SP+-like scale the multiplier read before (mean 27, one standard deviation
+      7.02) so the multiplier and the frozen anchors are unchanged. An opponent that is not an FBS team
+      of ours is the pooled FCS team (about 24 points per game below an FBS average), not an average
+      team as before. For a season in progress the strengths come from the games so far.`,
+    why: `The owner ruled out SP+ and said strength of schedule and conference should be our own. SP+ was also
+      soft on weak opponents and left FCS games at 1.00. The settings were chosen by prediction, not by
+      how a conference ought to look.`,
+    evidence: [
+      { label: "Weeks 1-8 strengths predicting every later regular-season FBS game, 2016-2025 (no 2020), calibrated leave-one-season-out, 36 settings", value: "winner 69.5-70.0%, margin error 12.97-13.53; power (with the rating prior) 70.6%; the differences among settings are within noise" },
+      { label: "Conference level (ridge 0.1 to none)", value: "70.0% at ridge 3, 69.9% with none: a conference level adds nothing to prediction once team deviations are free, so it is kept weak (0.5)" },
+      { label: "Weight on cross-conference games", value: "70.0% at 1.0, 69.6% at 1.5, 68.8% at 2.5: more weight does not help, so 1.0" },
+      { label: "Season s strengths predicting season s+1, with the postseason at weight 0 / 0.5 / 1 / 2", value: "66.3% / 66.3% / 66.5% / 66.6%, margin error 13.83 / 13.79 / 13.78 / 13.79: a small, steady gain, so 1.0" },
+      { label: "Player ratings recomputed 2022-2025 under each k pair: next-season Spearman of the team roster", value: "SP+ 0.441; own 0.35/0.12 0.440; 0.35/0.25 0.424; 0.30/0.30 0.418; 0.45/0.35 0.401" },
+      { label: "Power-4 minus Group-of-6, top-22 roster rating, 2025", value: "3.68 before, 4.37 after; the games imply about 7.8" },
+      { label: "Reproduction", value: "validate_opponent_strength.py prints the grid and the postseason table; the k comparison reruns scripts 06 and 07 with the CFB_OPP_K environment variables" },
+    ],
+    limits: `**It matches SP+ for prediction, not more.** It removes the outside number and the FCS-as-average error;
+      it did not close the Power-4 versus Group-of-6 gap (4.4 of about 7.8 rating points). **Points are
+      noisy early:** at week 8 a team has about 8 games, so in-progress strengths lean on the ridge and
+      the conference level. **Points include garbage time.** **The postseason is thin:** opt-outs make a
+      bowl roster differ from the season roster; its weight is the best of four tried, not a measured
+      truth. **The pooled FCS team is one number for very different programs.** **No home advantage by
+      team, no weather, no injuries.**`,
+    alternatives: [
+      { label: "SP+ as the opponent factor", basis: "the previous rule", status: "replaced", note: "Equal in prediction (0.441 against 0.440); outside number; FCS at 1.00." },
+      { label: "Harsher penalty for weak opponents (k_lo 0.25-0.35)", basis: "reruns of 06 and 07, 2022-2025", status: "rejected", note: "Gap 4.4-5.5 points but the next-season fit falls to 0.424-0.401." },
+      { label: "A larger cross-conference weight", basis: "weeks 1-8 backtest", status: "rejected", note: "68.8% at 2.5 against 70.0% at 1.0." },
+      { label: "Betting lines as an input or a scorer", basis: "the owner's rule", status: "rejected", note: "Matching the market is not the goal; lines were used only to confirm that a missing score is 0." },
+    ],
+    changelog: [{ version: "v4.17", change: "Added: our own opponent strength replaces SP+ in script 06." }],
+    source: "utils/opponent_strength.py · scripts/06_compute_edge_scores.py (build_opponent_map) · scripts/validate_opponent_strength.py",
   },
 
   {

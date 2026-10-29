@@ -266,9 +266,9 @@ const GUIDE = [
       A 2026 roster row and player card show three ratings side by side: last season, the preseason
       projection, and earned to date. They are never combined.`,
     controls: [
-      { name: "Mouse", what: "Hover moves the highlight, click opens. A team, player, game or ranking row opens its page. Tabs along the top are clickable." },
-      { name: "Keyboard", what: "Arrow keys or WASD move; Enter selects; Esc or Backspace goes back; Q and E (or [ and ]) switch tabs; Space sorts or cycles; Y changes season; H opens the quick menu (every screen, the year, light and dark); M switches light and dark. Esc on the home page opens the quick menu too; elsewhere it goes back." },
-      { name: "Game controller", what: "Plug one in and press any button. D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start opens the quick menu; Select switches light and dark. The prompt bar at the bottom switches to controller labels." },
+      { name: "Mouse", what: "The bar along the bottom is a row of buttons: Back, Year, Menu (every screen), Sort where a list has one, and Light or Dark mode. Hover moves the highlight, click opens. A team, player, game or ranking row opens its page. Tabs along the top are clickable." },
+      { name: "Keyboard", what: "There are no arrow-key or WASD controls: the menu is for the mouse and a controller. Esc or Backspace goes back and Enter opens the highlighted item; Esc on the home page opens the quick menu. Everything else is a button on screen." },
+      { name: "Game controller", what: "Plug one in and press any button. Controller movement turns on when a pad is plugged in and you press a button: D-pad or left stick moves; A selects; B goes back; X sorts; Y changes season; LB and RB switch tabs; Start opens the quick menu; Select switches light and dark. The bar at the bottom then shows the controller buttons." },
     ],
     tips: [
       "The bar along the bottom always lists what the buttons do on the current screen.",
