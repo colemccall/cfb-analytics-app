@@ -169,6 +169,13 @@ function menuRatingHistory(rows, p, season) {
   return cells.length ? `<div class="m-career-row">${cells.join("")}</div>` : '<p class="m-empty">No rated seasons on file for him.</p>';
 }
 
+// The line a rating built on one or two games carries: how many games, and what that is worth. "" for anyone else.
+function menuLowGameLine(games) {
+  const n = _menuNum(games);
+  if (n == null || n < 1 || n > 2) return "";
+  return `<li><b>${n} game${n === 1 ? "" : "s"}:</b> rated on ${n === 1 ? "the one game" : "the two games"} he has played. What he did moves a recruiting-based starting point only a few rating points, more for a second game and for a busier one, and a rating from this few games is capped well below a star's.</li>`;
+}
+
 // What each rating on the card is built from, in words: for a season being played, the earned rating of the season
 // before (from his card rows), where the projection came from, and the to-date rating's games; for any season, the
 // production score and the games it is over, the three jobs of a defensive back, and the basis. Nothing is inferred
@@ -185,7 +192,8 @@ function menuWhyBlock(p, rows = []) {
       lines.push(`<li><b>Projection:</b> ${_esc(PROJECTION_SOURCE_LABELS[p.projection_source] || "a model's estimate made before a game was played")}.</li>`);
     }
     if (p.live_rating != null) {
-      lines.push(`<li><b>To date:</b> the same production score over his ${p.live_games ?? "counted"} games so far this season, scaled to a full-season pace.</li>`);
+      const low = p.live_basis === "blended" ? menuLowGameLine(p.live_games) : "";
+      lines.push(low || `<li><b>To date:</b> the same production score over his ${p.live_games ?? "counted"} games so far this season, scaled to a full-season pace.</li>`);
     }
   }
   const edge = _menuNum(p.edge_score);
@@ -197,7 +205,7 @@ function menuWhyBlock(p, rows = []) {
     lines.push(`<li>A defensive back's overall is made of three jobs on one 0–10 scale: ball hawk <b>${_menuNum(a.ball_hawk)?.toFixed(1) ?? "—"}</b>, coverage <b>${_menuNum(a.coverage)?.toFixed(1) ?? "—"}</b>, run support <b>${_menuNum(a.run_support)?.toFixed(1) ?? "—"}</b>.</li>`);
   }
   if (p.rating_basis === "recruiting") lines.push("<li>No game production was on file, so this rating comes from his recruiting grade alone.</li>");
-  else if (p.rating_basis === "blended") lines.push("<li>Blended: part production, part recruiting grade, because he has few counted games.</li>");
+  else if (p.rating_basis === "blended") lines.push(menuLowGameLine(p.games_played) || "<li>Blended: part production, part recruiting grade, because he has few counted games.</li>");
   if (!lines.length) lines.push(`<li>${_esc(menuNoRatingWhy(p, p.season ?? MENU.season) || "No production detail is on file for this season.")}</li>`);
   return `<ul class="m-why">${lines.join("")}</ul>`;
 }

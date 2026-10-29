@@ -761,9 +761,9 @@ back-test does: provisional numbers must not be able to leak into anything that 
       from 2025 cut at week 8; a second cut season would say whether they are stable. The rescale is not
       damped to remove the overshoot, because tuning it to one season is how a constant goes stale.
 
-      **A part-season is a small sample.** A player at three games clears the bar for a rating on three
-      games. The rank agreements above are for players who clear it at week 8; the 17% who do not are
-      simply absent, not rated low.
+      **A part-season is a small sample.** A player at three games clears the bar for a production rating on three
+      games. The rank agreements above are for players who clear it at week 8; the 17% who do not were absent, not rated low,
+      until v4.19 gave one- and two-game players a small, capped rating of their own (see the low-game entry).
 
       **Team ratings move on schedule as well as players.** A team's rating blends this season's SP+ with
       its roster's ratings, so a team can rise because it beat good teams.
@@ -1095,6 +1095,55 @@ multiplier = 1 + 0.35 z  for z >= 0
     ],
     changelog: [{ version: "v4.17", change: "Added: our own opponent strength replaces SP+ in script 06." }],
     source: "utils/opponent_strength.py · scripts/06_compute_edge_scores.py (build_opponent_map) · scripts/validate_opponent_strength.py",
+  },
+
+  {
+    id: "low-game-players",
+    group: "ratings",
+    title: "Players with one or two games: a small, capped rating from what they did",
+    summary: `A production rating needs three productive games. A player with one or two (a rotation player, or one who was hurt) used to be
+      rated from his recruiting grade alone, so a good stretch counted for nothing. He now gets a rating built from the recruiting grade
+      and his stretch, weighted by how few games it was and how busy he was, and capped well below a star. Nothing is labelled provisional
+      on his card; the card says how many games the number is built on.`,
+    inputs: [
+      { name: "EDGE score for the games he has", source: "player_edge.json, field edge_all (script 06 keeps it where edge_score is withheld)", coverage: "2008-2026, players with one or two productive games" },
+      { name: "Recruiting-based starting rating", source: "position average plus a step for his stars (the existing fallback)", coverage: "every player" },
+    ],
+    formula: `R_edge = edge_to_ovr(edge_all)                      the full-season anchors on sum / sqrt(games): the game count is in the number
+rating = prior + w x (R_edge - mean R_edge of low-game players at his position and games), then 30 <= rating <= 72
+w = 0.115 (1 game, quiet)  0.175 (1 game, busy)  0.173 (2 games, quiet)  0.209 (2 games, busy)      busy = 4 or more counted events
+prior = position average + step for stars (unchanged); basis = blended`,
+    reality: `A typical low-game player stays where he was, because the deviation is measured from his peers' mean. A stretch 20 points
+      above them moves him 2.3 to 4.2 points; the largest move in the archive is 9.6. Players with three games or more are untouched (0 of 132,504 other
+      player-seasons moved). The tier blend that used to follow (a bench-tier player went back to recruiting alone) is skipped for these players,
+      or it would have taken the stretch out again. In a season in progress the rating is not rescaled to full-season pace: it is the same small adjustment.`,
+    why: `The owner asked for players who shone in few moments to count, without overrating them and with a ceiling. How much a short stretch
+      is worth was measured instead of assumed: the next season's earned rating is the only outside check on a few-game sample.`,
+    evidence: [
+      { label: "Low-game player-seasons 2016-2025 with an EDGE score / with an earned rating the next season", value: "16,583 / 5,621" },
+      { label: "Slope of next season's earned rating on R_edge (both against position-season means)", value: "0.139 with one game, 0.197 with two; 0.085, 0.155, 0.157, 0.194 across quartiles of counted events" },
+      { label: "Placebo: R_edge shuffled within position and season", value: "slope 0.011, against 0.167" },
+      { label: "Leave-one-season-out margin error against the next season's rating", value: "8.550 with no stretch information, 8.444 with one weight, 8.443 with the four cells: the cells add nothing over one weight" },
+      { label: "Recruiting stars, once the stretch is in", value: "coefficient -0.056: they add nothing to a next-season prediction for these players" },
+      { label: "Who changed", value: "20,055 player-seasons 2008-2025, every one a low-game player; median change -0.4, 95th percentile +2.8, maximum +9.6 (the cap is 72); 19,030 moved from a recruiting to a blended basis" },
+      { label: "2026 through week 8", value: "5,468 -> 7,583 rated players: 2,115 newly rated (1,326 with one game, 789 with two), mean 47.9, highest 69.4, 529 at 55 or more; 118 already rated on one or two games moved by up to 5.3" },
+      { label: "Effect on team ratings, 2026", value: "111 of 138 teams moved, mean +0.05, largest 1.27; Kansas State 84.51 -> 84.46, Nebraska 85.23 -> 85.30" },
+      { label: "Projection gates after the retrain", value: "offense 8.18 against naive 9.08, coverage 79.0%; defense 8.39 against 9.58, 76.8%: both as before" },
+      { label: "Reproduction", value: "validate_low_game_weights.py prints the slopes, the cross-validation and the placebo; explore_low_game_players.py is the earlier survey" },
+    ],
+    limits: `**A short stretch is weak evidence:** the slope is 0.15 to 0.21, so even a very good stretch moves a player a few points and the cap rarely binds.
+      **The outcome is next season's earned rating, which only exists for the 34% who go on to earn one:** the weights come from survivors and may understate or overstate those who never play again.
+      **The four weights are a monotone summary, not extra precision.** **Snaps are not used:** snap counts cover too few defenders (15 of 43,008 since 2016), so volume is counted events.
+      **The level is still the recruiting grade,** which carries no information for these players once the stretch is known (coefficient -0.056); it is kept so a typical low-game player does not move.
+      **Quality of the opponent is in the score, garbage time is not removed.** **Pre-2016 defenders have no per-game rows and are unchanged.**`,
+    alternatives: [
+      { label: "Rate a one- or two-game player by the full-season formula alone", basis: "R_edge", status: "rejected", note: "R_edge averages 39.6 against a recruiting prior of 48.2: the sqrt(games) in the score already counts a short stretch as small, and the formula alone is a worse level than the prior." },
+      { label: "Predict next season's rating directly and publish that", basis: "the next-season calibration", status: "rejected", note: "Survivors average 64; publishing it would give a typical bench player a starter's number." },
+      { label: "A hard ceiling at a lower value, or none", basis: "estimate distribution", status: "shipped at 72", note: "The top 5% by estimate went on to rate 67.6 on average (90th percentile 80.8): 72 is a cap that rarely binds and never makes a star of a few games." },
+      { label: "Label the rating provisional", basis: "the owner", status: "rejected", note: "The owner asked that it not be labelled; the card states the game count instead." },
+    ],
+    changelog: [{ version: "v4.19", change: "Added: players with one or two productive games are rated from their stretch and the recruiting prior, weighted by games and counted events, capped at 72." }],
+    source: "scripts/07_compute_player_ratings.py (low_game_rating) · scripts/06_compute_edge_scores.py (edge_all) · scripts/validate_low_game_weights.py · tests/test_low_game_ratings.py",
   },
 
   {
@@ -1467,7 +1516,7 @@ change chips = proj - prev, live - proj                               (shown onl
       A fall from PROJ to TO DATE is not by itself evidence the projection was wrong.
 
       **No number for players without the underlying data.** A player new to FBS in 2026 has no 2025 rating; a
-      player with fewer than three games has no to-date rating; offensive linemen have none of the three,
+      player with no productive game has no to-date rating (one or two games earn a small, capped one since v4.19); offensive linemen have none of the three,
       because the OL player rating is withdrawn. The cell states which.
 
       **259 rated players have no known game count.** The card shows "unknown", not a number.

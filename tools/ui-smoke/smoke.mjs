@@ -1237,9 +1237,9 @@ check("menu: M switches dark and light, and remembers it", async ctx => {
 });
 
 check("menu: a rostered player with no ratings row still opens a card, with a stated reason", async ctx => {
-  // Brandon Amaniampong (EDGE, 2 games, no projection) is on Nevada's (team 68) 2026 roster but has no
-  // row in players_2026.json.
-  const page = await openMenu(ctx, "#/player/1129716/68");
+  // Jeremy Naborne-Owens (LB, no game on record, no projection) is on Nevada's (team 68) 2026 roster but has no row in
+  // players_2026.json. (Until v4.19 this was Brandon Amaniampong, 2 games; one- and two-game players are rated now.)
+  const page = await openMenu(ctx, "#/player/1129736/68");
   await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   assert(!(await page.locator(".m-error").count()), "the card shows an error");
   const empty = await page.locator(".m-stats .m-empty").innerText();
@@ -1413,6 +1413,15 @@ check("menu: the defensive depth chart shows at least 5 of each kind of defensiv
   return null;
 });
 
+check("menu: a player rated on two games says so on his card", async ctx => {
+  const page = await openMenu(ctx, "#/player/62241/111");   // a UCLA defensive back with 2 games in 2026
+  await waitCount(page, ".m-why li", 1);
+  const why = await page.locator(".m-why").first().innerText();
+  assert(/2 games/i.test(why) && /the two games/i.test(why), `the card does not state the game count: ${why.slice(0, 200)}`);
+  assert(!/provisional/i.test(why), "the low-game line does not call the rating provisional");
+  return null;
+});
+
 check("menu: every screen's prompt bar always offers Back, Year and Menu", async ctx => {
   const page = await openMenu(ctx, "#/roster");
   await waitCount(page, ".m-row", 5);
@@ -1465,10 +1474,10 @@ check("menu: a roster file that fails to load shows a banner and Retry, and Retr
 });
 
 check("menu: a truncated career file is named on the card, and Retry brings the stats back", async ctx => {
-  const shard = `cards/${String(1129716 % constant("CARD_SHARDS")).padStart(4, "0")}.json`;
+  const shard = `cards/${String(1129736 % constant("CARD_SHARDS")).padStart(4, "0")}.json`;
   let mode = "bad-json";
   await faultRoute(ctx, `**/data/${shard}`, () => mode);
-  const page = await openMenu(ctx, "#/player/1129716/68");
+  const page = await openMenu(ctx, "#/player/1129736/68");
   await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   const banner = await page.locator(".m-error--banner").first().innerText();
   assert(banner.includes(shard), `banner: ${banner}`);

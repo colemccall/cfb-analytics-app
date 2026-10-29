@@ -151,7 +151,7 @@ const GUIDE = [
         meaning: "Marks the odd one out where projected and earned numbers sit side by side — a career chart, a transfer table. On a wholly projected season the page says it once at the top instead of badging every number." },
       { term: "To-date rating",
         sample: () => livePill({ live_rating: 88, live_games: 6, live_through_week: 8 }),
-        meaning: "What a player has earned so far in a season being played, rescaled to full-season pace. The solid underline is what tells it from a plain earned pill and a hatched projection. It is provisional: it needs three games, and it will move as the season does. Never averaged with the projection." },
+        meaning: "What a player has earned so far in a season being played, rescaled to full-season pace. The solid underline is what tells it from a plain earned pill and a hatched projection. It is provisional: on one or two games it moves only a little from a recruiting-based start, and it will move as the season does. Never averaged with the projection." },
       { term: "The three ratings",
         sample: () => ratingTrioCells({ rating_prev: 80, overall_rating: 84, projection_low: 78, projection_high: 90, live_rating: 88, live_games: 6, live_through_week: 8, live_status: "rated", rating_prev_status: "rated", position_group: "WR" }, CONFIG.CURRENT_SEASON).join(" "),
         meaning: `On a ${CONFIG.CURRENT_SEASON} player: last season earned, the preseason projection, and earned so far. Three different questions with three different numbers. A missing one is a dash with the reason on hover: a player with 1 or 2 games shows "(2 gm)", an offensive lineman is not rated, a newcomer has no last season.` },

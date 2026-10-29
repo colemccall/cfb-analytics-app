@@ -33,6 +33,75 @@
 
 const CHANGES = [
   {
+    id: "v4.19-low-game-players-and-why-kansas-state-rates-high",
+    version: "v4.19",
+    date: "2026-10-29",
+    title: "Players with one or two games get a small, capped rating; and a written account of why Kansas State and Nebraska rate high",
+    summary: `Two requests. First: a player who shone in a few moments (a rotation player, or one who was hurt) should count, without being overrated and with a ceiling.
+      Players under the 3-game line were rated from their recruiting grade alone. They are now rated from the recruiting grade plus what they did, weighted by games and counted events, capped at 72,
+      and the card says how many games the number is built on. Second: an explanation, with no change to any team rating, of why Kansas State and Nebraska rate so highly; it is recorded below because the site should be able to say it.`,
+    motivation: `v4.18 left Kansas State in 11th and Nebraska in 7th by rating, and the owner asked how, given the rosters and results. The owner also asked for low-snap players to be involved.
+      The evidence on the second was weak (a short stretch predicts the next season only a little), so the rule is small by design.`,
+    did: [
+      { what: "Low-game players are rated (script 06 keeps edge_all; script 07 low_game_rating; LOW_GAME_WEIGHT, LOW_GAME_CEILING)",
+        why: `rating = recruiting prior + w x (R_edge - the mean R_edge of low-game players at his position and games), between 30 and 72. R_edge is the full-season anchors on sum / sqrt(games), so the game count is already in the number;
+          w is 0.115 / 0.175 (one game, quiet / busy) and 0.173 / 0.209 (two games), busy meaning 4 or more counted events. The weights are the slope of the player's earned rating the next season on his R_edge, from 5,621 low-game player-seasons 2016-2025
+          who earned one (scripts/validate_low_game_weights.py): 0.139 with one game, 0.197 with two, 0.085 to 0.194 from the quietest to the busiest quartile; a shuffled-R_edge placebo gives 0.011. Cross-validated, one weight of 0.167 and the four cells score
+          the same (8.444 and 8.443 against 8.550 with no stretch information), so the cells are a monotone summary of games and volume, not extra precision. Recruiting stars add nothing once the stretch is known (coefficient -0.056) but stay as the level,
+          so a typical low-game player does not move. 20,055 player-seasons 2008-2025 changed, every one a low-game player (median -0.4, 95th percentile +2.8, largest +9.6); the other 132,504 did not move.
+          In 2026 through week 8, 2,115 players are newly rated (1,326 on one game, 789 on two; mean 47.9, highest 69.4, 529 at 55 or more), 118 already rated on one or two games moved by up to 5.3.`,
+        cost: `A short stretch is weak evidence, so the effect is small: 20 points above his peers is worth 2.3 to 4.2 rating points, and the cap rarely binds. The weights come from the third of low-game players who later earned a rating.
+          The tier blend that used to follow (a bench-tier player returned to recruiting alone) is skipped for these players. Team ratings moved little: 111 of 138 teams in 2026, mean +0.05, largest 1.27.` },
+      { what: "The player card states the game count (js/menuCard.js menuLowGameLine)",
+        why: "A card for a player rated on one or two games says so: how many games, that his stretch moves a recruiting-based start only a few points, and that a rating from so few games is capped well below a star's. The old to-date line, which described a scaled full-season production score, would have been wrong for him. A smoke check opens such a card. Nothing says provisional in that line; the to-date pill on every live number still says so, as it did.",
+        cost: "No new markup: one line in the existing why block." },
+      { what: "Explained, with no change: why Kansas State (84.5, 11th) and Nebraska (85.2, 7th) rate highly through week 8 of 2026",
+        why: `Headline = 0.60 roster + 0.40 stats. Kansas State: roster 84.1 (6th) and stats 85.3 (11th); against the league mean of 76.7 the stats half is worth 4.7 points, the starters' slot score 1.1, the position-weighted half 1.7 (line unit 0.7, special teams 0.3). Their starters rank 21st (slot score 74.25, league 71.9, sd 2.2; the roster scale turns one player point into 1.33 team points: 83.0). The position-weighted half ranks 3rd: a line unit of 87 (raw; 82.7 after the part-season shrink) from five short-sample line measures,
+          special teams of 84.8 (a punter at 87.1 and a kicker at 82.4, 2nd of 138) and four edge rushers rated 88, 80, 78 and 70 filling the front-four slots (8th). The stats half grades 54.5% third-down offense over 7 games at 93, 9.7 sacks plus tackles for loss at 95, 305 yards allowed at 88.7, on full-season anchors; the schedule adjustment adds 0.8 and 2.0, the part-season shrink takes it to 82.9 and 87.7.
+          Results: 4-3, losses to Cincinnati (by 5), Houston (19) and Arizona State (11); wins by 68 over an FCS team and 27 over a 1-7 Washington State. Their own points strength is +8.1 per game (40th of 138; z +0.65) against a rating of z +1.48; power puts them 60th.
+          Nebraska: roster 84.2 (5th) and stats 86.6 (8th). The slot score ranks 5th on the secondary alone: five defensive backs rated 86, 85, 80, 80 and 79 against a league mean of 72.3, in the group weighted most (0.286), is worth 1.75 of their 3.6 slot points; the offensive line unit (77.7 raw, 41st) and special teams (67.0, 66th) are middling.
+          The stats half grades 271 yards allowed at 95, an opponent third-down rate of 19.3% over 7 games at 95 and 9.4 sacks plus tackles for loss at 94. Results: 5-2, losses by 3 to Indiana (9th) and by 3 to Oregon (24th), and five wins over teams ranked 106th, 135th, FCS, 59th and 63rd. Points strength +12.8 (26th; z +1.03) against a rating of z +1.62; power puts them 17th.
+          The players are not the bug: among rated players of the same position, rating percentile minus per-game production percentile is 0.0 league-wide (Spearman 0.49 with per-game production, 0.55 with the season total), and +4.8 and +5.2 for these two teams; a 77 is a top-12% player because the rated pool averages 68.5.`,
+        cost: "None; nothing was changed. The finding is that the stats half is about 60% of each team's lead over the league mean, and that it and the position-weighted half rest on thin samples of third-down, havoc and line readings graded on fixed anchors." },
+    ],
+    tried: [
+      { what: "Rating a one- or two-game player by the full-season formula alone",
+        result: "R_edge averages 39.6 for these players against a recruiting prior of 48.2: the square root of games in the score already counts a short stretch as small, and the formula alone is a worse level than the prior.",
+        verdict: "rejected" },
+      { what: "Publishing the next-season prediction itself as the rating",
+        result: "Players who later earn a rating average 64; it would hand a typical bench player a starter's number.",
+        verdict: "rejected" },
+      { what: "Labelling the rating provisional",
+        result: "The owner asked that it not be; the card states the game count instead.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Players rated, 2026 through week 8", before: "5,468", after: "7,583 (2,115 newly rated, 529 of them at 55 or more)" },
+      { label: "Player-seasons changed, 2008-2025", before: "-", after: "20,055, all low-game; 132,504 unchanged" },
+      { label: "Low-game rating, change: median / 95th percentile / largest", before: "-", after: "-0.4 / +2.8 / +9.6 (cap 72)" },
+      { label: "Next-season margin error for low-game players, leave-one-season-out", before: "8.550 (no stretch information)", after: "8.444 (one weight) / 8.443 (four cells)" },
+      { label: "2026 team ratings", before: "Kansas State 84.51 (11th), Nebraska 85.23 (7th)", after: "84.46 (11th), 85.30 (7th); 111 teams moved, largest 1.27" },
+      { label: "Power backtest (validate_rankings.py): winner / margin error", before: "71.3% / 13.27", after: "71.3% / 13.27" },
+      { label: "Projection gates: offense / defense model error against naive", before: "8.18 vs 9.08 / 8.39 vs 9.58", after: "8.18 vs 9.08 / 8.39 vs 9.58; coverage 79.0% / 76.8%" },
+      { label: "Pipeline tests", before: "482 passed", after: "494 passed, 1 failed (see unfixed)" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "494 passed, 1 failed: the check that recruiting-based rows are over 5% of rated rows (only 392 of 8,369 rated 2025 rows are recruiting-based, 4.7%, against a floor of 5%)" },
+      { check: "python scripts/validate_low_game_weights.py", result: "shipped weights equal the fitted cells; placebo 0.011 against 0.167; exit 0" },
+      { check: "python scripts/validate_rankings.py", result: "power 71.3% / 13.27; rating alone 63.2% / 15.11; placebo 58.2%" },
+      { check: "python scripts/validate_ratings.py --season 2025", result: "exit 0; distributions unchanged" },
+      { check: "recompute: 06 and 07 for 2008-2025, 10 --all-seasons, 15 --retrain, 16, 10 --engine projected, 13, 14, 17 --season 2026, 12", result: "0 requests (no GET line in any log); projection distribution gate passed" },
+      { check: "UI smoke / node --check / doc, prose and theme checks", result: "148 of 148 UI checks pass (147 before, plus the low-game card check; two checks that used a 2-game player as their no-data example now use a player with no games); node --check on every js file clean; doc-check 194 of 194, prose-check and theme-check clean" },
+    ],
+    unfixed: `**One contract test fails, by design of this change, and was not edited:** the export-contract check on the rating basis expects more than 5% of rated rows to be recruiting-based, a guard that the tier derivation had not silently broken.
+      About 19,000 low-game players moved from a recruiting basis to a blended one, so the share is 4.7%. The project rule is never to change a gate in the same commit as the output it judges; the fix is to count recruiting and low-game blended rows together, and it needs the owner's decision.
+      **Kansas State and Nebraska are unchanged by this and still rate highly;** the explanation above is the finding, and the next measurements are the thin third-down, havoc and line readings on fixed anchors and the line unit's and special teams' scale (15 and 7.5 points of spread against 2-5 for player terms), not a tuning of either team.
+      **The weights come from players who later earned a rating,** a third of the group. **A rating from one or two games is the same small adjustment in a season in progress;** it is not rescaled to a full-season pace. **The to-date pill still says provisional on every live number, low-game players included,** as before.
+      **Players with no productive game are still rated from recruiting alone.** **Everything is uncommitted** in both repositories.`,
+    methods: ["low-game-players", "player-rating", "team-ratings"],
+    files: ["scripts/06_compute_edge_scores.py", "scripts/07_compute_player_ratings.py", "scripts/validate_low_game_weights.py", "scripts/explore_low_game_players.py", "tests/test_low_game_ratings.py", "js/menuCard.js", "js/menuScreensTeam.js", "js/guide.js", "js/methods.js", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.18-schedule-adjusted-stats-half",
     version: "v4.18",
     date: "2026-10-29",
