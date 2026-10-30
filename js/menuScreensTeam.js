@@ -296,6 +296,7 @@ menuRouter.register("player", {
               ? `<b>${season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional, and on one or two games it moves only a little from a recruiting-based start.`
               : "The rating is an earned one for the season shown: production, not talent."}</p></section>
         </div>
+        ${CONFIG.WEEKLY_SEASONS.includes(season) && season === MENU.season ? '<section class="m-panel" id="m-weekly"><h3 class="m-h3">Week by week</h3><p class="m-empty">Loading…</p></section>' : ""}
         <section class="m-panel m-career"><h3 class="m-h3">Rating history</h3>${careerFailed ? failedNote : menuRatingHistory(rows, p, season)}
           <div class="m-linkrow">${team ? `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(team.id)}">${teamMark(team, "m-row-mark")} ${_esc(team.school)} →</button>` : ""}
             <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/players/${encodeURIComponent(pg)}">Best ${_esc(pg)} →</button></div></section>
@@ -304,6 +305,10 @@ menuRouter.register("player", {
     }
     return `<div class="m-card">${head}${body}</div>`;
   },
-  mount(stage) { menuWirePhoto(stage); },
+  mount(stage, ctx) {
+    menuWirePhoto(stage);
+    const weekly = stage.querySelector("#m-weekly");
+    if (weekly) menuFillWeeklyPlayer(weekly, ctx.player, ctx.team, parseInt(ctx.params[0]));
+  },
   prefer: () => ".m-chip",
 });

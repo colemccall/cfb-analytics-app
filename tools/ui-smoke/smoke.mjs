@@ -1841,6 +1841,59 @@ check("menu: Rankings (All FBS) and Compare do not scroll sideways at 1280px or 
   return last;
 });
 
+// ── Week by week (v4.22): the weekly panels on the team page and the player card ──────────────────────────────
+// A rated player with a rating in every completed week, read from the files the page itself loads, so the check cannot drift from them.
+const WEEKLY = (() => {
+  try {
+    const dir = path.join(APP_ROOT, "data");
+    const wp = JSON.parse(fs.readFileSync(path.join(dir, "weekly_players_2026.json"), "utf8"));
+    const live = JSON.parse(fs.readFileSync(path.join(dir, "live_2026.json"), "utf8"));
+    const weeks = wp.weeks.length;
+    const team = new Map(live.players.map(p => [String(p.player_id), p.team_id]));
+    const pid = Object.keys(wp.players).find(id => wp.players[id].length === weeks && team.has(id));
+    return { weeks, pid, tid: team.get(pid) };
+  } catch (e) { return null; }
+})();
+
+check("menu: a team page shows its week-by-week panel with a chart, a table and a graded game each week", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  const page = await openMenu(ctx, "#/team/52");
+  await page.waitForSelector("#m-weekly .m-tl", { timeout: 20000 });
+  const rows = await page.locator("#m-weekly .m-ptable--weeks tbody tr").count();
+  assert(rows === WEEKLY.weeks, `the weekly table has ${rows} rows, expected ${WEEKLY.weeks}`);
+  assert(await page.locator("#m-weekly .m-tl-dot").count() >= WEEKLY.weeks - 1, "the chart is missing rating dots");
+  assert(await page.locator("#m-weekly .m-tl-grade").count() >= WEEKLY.weeks - 2, "the chart is missing game-grade markers");
+  const text = await page.locator("#m-weekly").innerText();
+  assert(!/undefined|NaN|null/.test(text), "the weekly panel shows undefined, NaN or null");
+  assert(/offensive-line unit is not in these numbers/i.test(text), "the panel does not say the line unit is left out");
+  return page;
+});
+
+check("menu: a player card shows his week-by-week panel with one row per completed week", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  const page = await openMenu(ctx, `#/player/${WEEKLY.pid}/${WEEKLY.tid}`);
+  await page.waitForSelector("#m-weekly .m-tl", { timeout: 20000 });
+  assert(await page.locator("#m-weekly .m-ptable--weeks tbody tr").count() === WEEKLY.weeks, "the player's weekly table is not one row per week");
+  const text = await page.locator("#m-weekly").innerText();
+  assert(!/undefined|NaN|null/.test(text), "the player's weekly panel shows undefined, NaN or null");
+  assert(/rescaled to full-season pace: a scale, not a shrink/i.test(text), "the player's panel does not explain the rating");
+  return page;
+});
+
+check("menu: the week-by-week panels do not scroll sideways at 1280px or on a phone", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  let last = null;
+  for (const hash of ["#/team/52", `#/player/${WEEKLY.pid}/${WEEKLY.tid}`]) {
+    for (const [width, height] of [[1280, 800], [375, 740]]) {
+      const page = await openMenu(ctx, hash, { width, height });
+      await page.waitForSelector("#m-weekly .m-tl", { timeout: 20000 });
+      assert(await noHorizontalScroll(page), `${hash} scrolls sideways at ${width}px`);
+      last = page;
+    }
+  }
+  return last;
+});
+
 const selected = checks.filter(c => !ONLY || c.name.startsWith(ONLY));
 const t0 = Date.now();
 for (const c of selected) {

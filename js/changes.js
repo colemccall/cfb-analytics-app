@@ -33,6 +33,76 @@
 
 const CHANGES = [
   {
+    id: "v4.22-week-nine-live-power-and-weekly-progression",
+    version: "v4.22",
+    date: "2026-10-30",
+    title: "Week 9 data, live power ranked on games alone, and a week-by-week progression with each game graded",
+    summary: `The owner asked to confirm the data through 10/29, noted that LSU and Alabama rate highly with two losses, asked whether anything in the power rating looks unusual against results, and asked for a week-by-week
+      progression of team and player ratings with a grade for each week. Three things shipped: the 2026 data is refreshed through the games of 10/29, the live power ranking no longer adds a rating part to the games (it is the games alone while a season is played), and the
+      team page and the player card gain a Week by week panel with a trend chart, a table, and a grade for each week's game. A data-reading gap found on the way is fixed: the live file's win-loss records left out games a team won by shutout.`,
+    motivation: `The data stopped at 10/25 (week 8). On power, the rating part of a season being played is built from the same games as the results part, so one team's games were counted twice, which is why 3-3 Oregon and South Carolina and 4-3 Kansas State
+      ranked in the 20s to 60s. The owner's rule is that no preseason or last-season number enters a live rating, so the prior that the validated backtest used (last season's rating) was never an option for the live season.`,
+    did: [
+      { what: "Targeted data refresh through 10/29 (5 API calls, the owner approved about 8)",
+        why: `The calls were /games for 2026, /games/players for week 9, /games/teams for week 9, /stats/season and /stats/season/advanced for 2026. No CFB_REFRESH_YEARS, no other cache key touched. Seven more games now carry scores (WKU-Delaware, Middle Tennessee-Kennesaw State, Missouri State-Sam Houston,
+          North Texas-Florida Atlantic, James Madison-Troy, plus two non-FBS games) and New Mexico State-Jacksonville State, 24-0, which the raw file stores with a missing 0 (see the shutout item). The week-9 player stats added 338 rows. The live file now reads through week 9: 2,532 games complete of 3,681.`,
+        cost: "Saturday's games (10/31) are still to come, and every ranking moved by the games of the week." },
+      { what: "Live power is the games alone (script 10 run_season; js/menuScreensLeague.js copy)",
+        why: `While a season is being played, every team's rating part is set to the same value, so the rating part is 0.00 for all 138 teams and power is the results part (margin capped at 28, plus 8 for a win or minus 8 for a loss, ridge-shrunk against each opponent's own results). A finished season keeps the rating part.
+          Measured on the validator's machinery (week-8 cut, 2016-2025 without 2020, 2,858 later FBS games): last season's rating as the prior 71.5% and margin error 13.24; flat prior 71.2% and 13.44; placebo 59.9% / 15.96 and 57.4% / 16.24; home team always 57.0%; the average margin 16.24.
+          Live 2026 power rank before to after: LSU 2 to 2, Alabama 3 to 4, Boise State 18 to 10, Kansas State 58 to 74, South Carolina 28 to 38, Oregon 27 to 30, Kentucky 15 to 21, Nevada 85 to 69, Fresno State 81 to 65; Spearman 0.984 between the two orders and 29 teams move 10 or more places.`,
+        cost: "0.3 points of winner accuracy and 0.20 points of margin error against the validated version, which is the price of the owner's rule that no last-season or preseason number enters a live rating. Early in a season power is a few games of margin." },
+      { what: "Week by week: weekly files, the Week by week panels, a trend chart (scripts/17b_weekly_progression.py, utils/box_scores.py, js/menuWeekly.js, js/ui.js trendChart, css/menu.css)",
+        why: `The weekly runner copies the data, removes the scores after week N and runs 06 (through week N), 07 and 10 (through week N) for each week 1 to 9, with no network (a dead proxy and a count of attempted requests, which must be 0). Script 10 reads the stats half for a cut week from the box scores of weeks 1 to N,
+          which sum to /stats/season exactly (55 of 55 shared statistics, 0 differences, all 138 teams). Script 06 now also writes each counted player-game's adjusted score for a season in progress, which turns one game into a grade. The team grade is the game as a strength (margin capped at 28, the home edge taken off, plus the opponent's strength that week) through the results anchors; the player grade is sqrt(12) times the game's adjusted score through his position's anchors.
+          This is new page markup, a trend chart and two panels: a design change the owner chose (a trend line, not only a table). Lines are SVG, labels and dots are HTML so no text is scaled below 12px, colours are tokens in menu.css, the phone rule is in the end-of-file block, and every chart has its table beside it.
+          Against the live file: all 7,587 rated players identical (largest difference 0.0); 138 teams, headline mean difference 0.26, largest 0.88 (the line unit, below).`,
+        cost: "The weekly team numbers leave out the offensive-line unit, because /stats/season/advanced has no weekly version. A full weekly run takes about 15 minutes. The weekly player file is 1.7 MB and loads only when a player card opens." },
+      { what: "The live file's records now count shutout wins (scripts/17_live_season.py reads games through fill_shutouts; the harvest keeps a zero)",
+        why: `The harvest stored a team's 0 points as missing (a falsy value in an or-chain), 2,330 games across 2008-2026 and no stored 0 anywhere. Every rating already reads games through fill_shutouts in the store, which restores the 0, so no rating was affected; script 17 read the raw file directly, so the live file's records omitted shutout wins by FBS teams (Oklahoma showed 3-3 and is 4-3; Iowa 3-2 and is 5-2; 204 games in 2026, 31 involving an FBS team and 15 between two FBS teams).
+          The harvest now keeps a 0 as 0 (scripts/01 _points). Existing rows are not rewritten.`,
+        cost: "None for ratings. Raw games.json still holds the missing zeros for 2008-2026; fill_shutouts is the reader's protection and must stay." },
+    ],
+    tried: [
+      { what: "Repair the zero scores in the 2026 raw file",
+        result: "Done and reverted. The live ratings did not change by a single hundredth (headline change mean 0.0, max 0.0, over 138 teams) because the store already restores the zeros on every read; the only visible effect was the records. A second copy of the truth in the raw file is a thing to keep in step for nothing. Reverted; the harvest is fixed instead and the readers use fill_shutouts.",
+        verdict: "replaced" },
+      { what: "Rebuild the weekly offensive-line unit from /stats/game/advanced rates",
+        result: "On 2025, plays-weighted per-game line yards, stuff rate, second-level yards and power success correlate 0.98, 0.98, 0.98 and 0.78 with the season values (mean absolute differences 0.045, 0.005, 0.024, 0.038): not equal, and no 2026 per-game file is on disk. The unit is left out and the difference is stated.",
+        verdict: "rejected" },
+      { what: "Keep last season's rating as the live power prior (the validated version)",
+        result: "71.5% / 13.24 against 71.2% / 13.44 for games alone. It is the more accurate and it breaks the owner's rule that no last-season or preseason number enters a live rating. Finished seasons keep it.",
+        verdict: "rejected" },
+      { what: "A game grade for every player who played",
+        result: "A walk-on with one counted play would get a grade; a single game's grade has a standard deviation of 18.2 rating points. Only a player holding a rating that week has a grade.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "2026 regular-season games counted as complete by the live file", before: "2,321 through week 8 (read raw: shutouts left out)", after: "2,532 of 3,681 through week 9 = 2,321 + 7 new games + 204 shutouts now counted" },
+      { label: "Power backtest, week-8 cut, 2,858 games: winner / margin error", before: "71.5% / 13.24 (last season's rating as the prior)", after: "71.2% / 13.44 (games alone)" },
+      { label: "Live power rank, LSU / Alabama / Boise State / Kansas State / South Carolina", before: "2 / 3 / 18 / 58 / 28", after: "2 / 4 / 10 / 74 / 38" },
+      { label: "Ranking settles: headline rank after week N against after week 9 (Spearman)", before: "-", after: "week 1 0.838, 2 0.912, 3 0.930, 4 0.965, 5 0.979, 6 0.987, 7 0.994, 8 0.998" },
+      { label: "Winner of later FBS games from the weekly headline (home edge added), 1,645 picks pooled", before: "home team always 58.7%, placebo 54.3%", after: "headline 62.2%, power 60.5%" },
+      { label: "Single-game grade, next-game correlation: players (24,405 pairs) / teams (829)", before: "placebo 0.001 / 0.087", after: "0.366 / 0.317" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "558 passed, 1 failed: the same export-contract check that recruiting-basis rows are at least 5% of rated rows (4.7%), deliberately not edited; the new tests cover box-score sums, both grades, the weekly files and the shutout reads" },
+      { check: "python scripts/validate_rankings.py machinery with a flat prior (scratch script)", result: "71.2% / 13.44; placebo 57.4% / 16.24 (the shipped validator is unchanged and still reports 71.5% / 13.24 for finished seasons)" },
+      { check: "17b_weekly_progression.py, 9 weeks", result: "0 requests in the children (the run fails otherwise); last week against live_2026.json: players 7,587 identical, teams mean 0.26 largest 0.88" },
+      { check: "node --check js/*.js / UI smoke / theme and prose checks", result: "155 of 155 (the first run failed one: mobile changes.html overflowed on this entry's verdict chips, shortened); the new checks: team and player weekly panels with their rows, chart and notes, and no sideways scroll at 375px and 1280px / node --check clean / doc-check 203 of 203 / prose, theme and contrast checks green" },
+    ],
+    unfixed: `**The weekly team numbers leave out the line unit** (up to 0.9 points at the latest week).
+      **The game grade is one game:** standard deviation 18.2 against 5.3 for the week-to-week change of a running rating; a team's is capped at a 28-point margin and uses power's home edge (5.7 points).
+      **Early-season power is a few games of margin.** There is no measure of how thin it is on the screen.
+      **The weekly accuracy evidence is one season, in sample** (62.2% against 58.7% for the home team); the validated claim is the 2016-2025 backtest.
+      **2024 and 2025 are not rebuilt by week,** which is where the grades could be tested against known endings.
+      **Raw games.json still stores missing zeros for 2008-2026;** fill_shutouts must stay in the store, and any new reader of the raw file must use it.
+      **One contract test still fails and was not edited** (recruiting-basis rows 4.7% against a 5% floor); **Everything is uncommitted** in both repositories; the spec, Build Log audit and pre-playoff marker test from the earlier request are not done.`,
+    methods: ["power-rating", "weekly-progression", "live-season"],
+    files: ["scripts/10_compute_team_ratings.py", "scripts/06_compute_edge_scores.py", "scripts/17_live_season.py", "scripts/17b_weekly_progression.py", "scripts/01_harvest_games_players_stats.py", "utils/box_scores.py",
+            "tests/test_weekly_progression.py", "tests/test_frontend_config.py", "js/menuWeekly.js", "js/ui.js", "js/config.js", "js/dataLoader.js", "js/menuScreens.js", "js/menuScreensTeam.js", "js/menuScreensLeague.js", "css/menu.css", "menu.html", "js/methods.js"],
+  },
+  {
     id: "v4.21-headline-weights-qb-tilt-and-rankings-views",
     version: "v4.21",
     date: "2026-10-29",

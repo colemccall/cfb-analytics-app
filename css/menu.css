@@ -550,6 +550,26 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-ptable td:nth-child(2) { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-detail { overflow-x: auto; }
 .m-ptable tr.is-loss td:nth-child(3) { color: var(--m-accent); }
+/* Week by week: the trend chart (ui.js trendChart) and its table. Lines are SVG, labels and dots are HTML (no text scaling). */
+.m-tl { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 0.2rem 0.4rem; margin: 0.5rem 0; }
+.m-tl-y, .m-tl-plot { height: 9rem; position: relative; }
+.m-tl-y span { position: absolute; right: 0; transform: translateY(-50%); font-size: var(--fs-sm); color: var(--m-muted); line-height: 1; }
+.m-tl-plot { margin: 0 0.7rem; }
+.m-tl-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.m-tl-grid { stroke: color-mix(in srgb, var(--m-line) 45%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.m-tl-line { fill: none; stroke: var(--m-accent); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.m-tl-dot, .m-tl-grade { position: absolute; width: 0.6rem; height: 0.6rem; transform: translate(-50%, -50%); box-sizing: border-box; }
+.m-tl-dot { border-radius: 50%; background: var(--m-accent); box-shadow: 0 0 0 2px var(--m-bg-0); }
+.m-tl-grade { transform: translate(-50%, -50%) rotate(45deg); border: 2px solid var(--m-muted); background: var(--m-bg-0); }
+.m-tl-x { grid-column: 2; position: relative; height: 1.2rem; margin: 0 0.7rem; }
+.m-tl-x span { position: absolute; transform: translateX(-50%); font-family: var(--font-display); font-weight: 700; letter-spacing: 0.06em; font-size: var(--fs-label); color: var(--m-muted); }
+.m-tl-legend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: var(--fs-sm); color: var(--m-muted); }
+.m-tl-key { display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.4rem; box-sizing: border-box; vertical-align: middle; }
+.m-tl-key--dot { border-radius: 50%; background: var(--m-accent); }
+.m-tl-key--grade { transform: rotate(45deg); border: 2px solid var(--m-muted); }
+.m-twrap { overflow-x: auto; }
+.m-ptable--weeks td:nth-child(2) { max-width: none; overflow: visible; text-overflow: clip; white-space: nowrap; }
+.m-ptable--weeks .m-wk-game { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Readers, players, history */
 .m-split--read { grid-template-columns: minmax(240px, 30%) minmax(0, 1fr); height: calc(100% - 0.4rem); min-height: 20rem; }
 .m-readlist { overflow: auto; max-height: 100%; }
@@ -719,4 +739,7 @@ button.m-vs-side.is-selected { background: linear-gradient(#c8161f, var(--m-hot)
   .m-rowhead.m-row--cmp, .m-row--cmp { grid-template-columns: 1.6rem minmax(0, 1fr) 3.6rem 3.4rem; }
   .m-row--cmp > :nth-child(n+5), .m-rowhead.m-row--cmp > :nth-child(n+5) { display: none; }
   .m-rowhead.m-row--cmp > span:nth-child(4) { display: block; }
+  .m-tl-y, .m-tl-plot { height: 7rem; }
+  .m-ptable--weeks .m-wk-power { display: none; }
+  .m-ptable--weeks .m-wk-game { max-width: 7.5rem; }
 }

@@ -287,7 +287,8 @@ menuRouter.register("team", {
           <span class="m-item-label">${mine ? "Following ✓" : "Follow this team"}</span></button>
       </nav>
       <div class="m-stack">${menuTeamPanel(d, team)}
-        <section class="m-panel" id="m-top"><h3 class="m-h3">Top players</h3><p class="m-empty">Loading…</p></section></div>
+        <section class="m-panel" id="m-top"><h3 class="m-h3">Top players</h3><p class="m-empty">Loading…</p></section>
+        ${CONFIG.WEEKLY_SEASONS.includes(MENU.season) ? '<section class="m-panel" id="m-weekly"><h3 class="m-h3">Week by week</h3><p class="m-empty">Loading…</p></section>' : ""}</div>
     </div>
     <div class="m-hint" id="m-hint"></div>`;
   },
@@ -302,6 +303,8 @@ menuRouter.register("team", {
     });
     const top = stage.querySelector("#m-top");
     if (top) menuFillTopPlayers(top, team);       // not awaited: the roster is large
+    const weekly = stage.querySelector("#m-weekly");
+    if (weekly) menuFillWeeklyTeam(weekly, team, ctx.d);
   },
   prefer: () => ".m-item",
 });

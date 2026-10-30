@@ -799,6 +799,7 @@ back-test does: provisional numbers must not be able to leak into anything that 
     ],
     changelog: [
       { version: "v4.8", change: "Script 17, the --in-progress and --through-week options on script 06, validate_pace.py, the CFB_DATA_DIR and CFB_REFRESH_YEARS switches, and the Earned to date section." },
+      { version: "v4.22", change: "The live records read games through fill_shutouts (shutout wins were missing from them); weekly snapshots of the same chain are in weekly-progression." },
       { version: "v4.20", change: "The pace step is a scale refit without the pull toward the position mean; the games damp reads the share of team games in a season in progress; the live opponent map is no longer empty." },
     ],
     source: "scripts/17_live_season.py · scripts/validate_pace.py · scripts/validate_pace_scale.py · changes.html#v4.8-live-and-retro",
@@ -1280,16 +1281,16 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       team they call strong costs little. The Rankings screen shows the two parts and every game behind the second.`,
     inputs: [
       { name: "Team rating", source: "script 10 (the season's own roster ratings and team stats)", coverage: "every rated team-season; for a season in progress, the rating to date" },
-      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 8" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 9" },
     ],
-    formula: `rating part  = 0.98 * (team rating - mean team rating)
+    formula: `rating part  = 0.98 * (team rating - mean team rating)     [0 for every team while the season is being played, v4.22]
 value(game)  = clip(margin, +-28) + 8 if won, - 8 if lost            (from the team's side)
 expected     = (rating part - opponent's rating part) +- home edge
 results part = ridge-shrunk average of (value - expected) over the team's games        (lambda = 2)
 power        = rating part + results part                              (points per game vs an average team)`,
     reality: `The results part is solved for all teams together (a ridge regression), so an opponent's own results
       move what its games are worth, but the per-game table on the Rankings screen is computed from the ratings
-      alone, so its OVER values average to roughly the results part, not exactly. A conference part exists in the code
+      alone, so its OVER values average to roughly the results part, not exactly. **A season being played (v4.22) is ranked on the games alone:** script 10 passes the same quality to every team, so the rating part is 0.00 for all 138 teams and power equals the results part. A finished season keeps the rating part. A conference part exists in the code
       and is switched off (see limits). A projected season has no games and is ranked on the rating part alone.`,
     why: `A ranking has to answer both how good a team is and what it has done, and the two must be read against
       each other: a result means something only against what the teams were expected to do. So each team starts from its
@@ -1307,6 +1308,8 @@ power        = rating part + results part                              (points p
       { label: "Liberty, 2026 through week 8", value: "rating 83.3 (34th); results +9.2 from beating Ball State by 36, Sam Houston by 32, Kennesaw State by 28 and others whose ratings (71 to 77) are close to its own, so those wins read as large over-performance; power 22nd" },
       { label: "2026 through week 8", value: "LSU rating rank 1, power rank 3 (rating +12.7, results +9.3); Kansas State rating rank 8, power rank 62 (results -7.4: 4-3 with losses by 5, 19 and 11)" },
       { label: "Reproduction", value: "python scripts/validate_rankings.py refits the rating slope and exits 1 if it drifts more than 10% from BETA" },
+      { label: "v4.22: the rating part removed while a season is played. Week-8 cut, 2016-2025 without 2020, 2,858 later FBS games, calibrated leave-one-season-out", value: "last season's rating as the prior 71.5% and MAE 13.24; flat prior (games alone) 71.2% and 13.44; placebo with the results dealt to the wrong teams 59.9% / 15.96 and 57.4% / 16.24; home team always 57.0%; always the average margin MAE 16.24. The cost of dropping the prior is 0.3 points of winner accuracy and 0.20 points of margin error." },
+      { label: "v4.22: 2026 through week 9, power rank before and after (138 teams)", value: "Spearman 0.984 between the two orders, 29 teams move 10 or more places. LSU 2 to 2, Alabama 3 to 4, Boise State 18 to 10, Kansas State 58 to 74, South Carolina 28 to 38, Oregon 27 to 30, Kentucky 15 to 21, Nevada 85 to 69, Fresno State 81 to 65." },
     ],
     limits: `**Not a resume.** Power credits margin as well as winning, so a team that wins big can rank above an
       unbeaten team that wins close. The win bonus makes every win and loss count; it does not put an unbeaten
@@ -1319,8 +1322,12 @@ power        = rating part + results part                              (points p
       rates 34th. Power's results part corrects for it only partly. Fixing it means changing the player ratings' opponent
       adjustment, which needs its own measured pass and is not done.
 
-      **The weights come from one back-test** whose quality input (last season's rating) is not the one used for a season
-      in progress, so there the rating part already reflects some of the season's play and is partly counted twice.
+      **The weights come from one back-test** whose quality input was last season's rating. A season in progress now uses no
+      rating part at all (v4.22), which is not what the back-test fitted: the slope and the ridge strength were fitted with a
+      prior, and a flat-prior refit was not done. The measured cost of the swap is 0.3 points of winner accuracy.
+
+      **Games alone is thin early.** After four games a team's power is four games of margin; it is not the stable reading of a
+      full season, and nothing in the table says how thin. The ridge (lambda 2) is the only brake.
 
       **Early in a season results are thin.** The ridge keeps a team near its rating after a few games.
 
@@ -1331,17 +1338,74 @@ power        = rating part + results part                              (points p
       **Power rewards margin and rating more than a resume would.** Power is a prediction-shaped number. A sweep of the margin cap, the win bonus and the prior's weight (60 settings, 2016-2025) moved winner accuracy only between 67.6% and 70.7%, so the choice among them is a judgement about what the ranking is for. In 2026 through week 8, LSU is 3rd on a rating part of +12.7 and a results part of +9.3; Kentucky is 23rd on +1.1 and +12.3, with the head-to-head win over LSU. Kentucky's results part is already above LSU's; the gap is the team rating (91.9, 1st, against 80.1, 61st).`,
     alternatives: [
       { label: "Rank by the team rating alone", basis: "the previous rule", status: "rejected", note: "It ignores every result; LSU first with two losses, Kansas State eighth at 3-3." },
-      { label: "Results from zero, no rating prior (an opponent-adjusted margin rating)", basis: "the same back-test", status: "rejected", note: "70.4% and 13.37: worse than starting from the rating, and it credits a weak conference's wins as if its opponents were average." },
+      { label: "Results from zero, no rating prior (an opponent-adjusted margin rating)", basis: "the same back-test", status: "shipped", note: "Rejected for a finished season at 70.4% and 13.37 against 70.7% and 13.12, and still not used there. Shipped in v4.22 for a season being played, the owner's rule being that last season's rating and the preseason never enter a live number: re-measured on the current data it is 71.2% and 13.44 against 71.5% and 13.24 with last season's rating. It credits a weak conference's wins as if its opponents were average; that is its cost." },
       { label: "Add a measured conference level", basis: "out-of-conference results", status: "rejected", note: "A gain of 0.1 point, and on 8 weeks it would add 9.7 points to every SEC team on thin data. Left in the code, switched off." },
       { label: "Add SP+, strength of schedule or strength of record", basis: "the owner's rule", status: "rejected", note: "Excluded by choice: they are outside numbers, and the owner suspects they inflate the SEC and Big Ten. (Our measurements say the opposite problem exists: our own ratings under-separate levels.)" },
       { label: "Rank by win-loss record", basis: "wins first", status: "rejected", note: "Not built or backtested. A near win/loss margin cap of 7 scored 69.1% against 70.0% at a cap of 28." },
     ],
     changelog: [
+      { version: "v4.22", change: "A season being played ranks on its games alone: the rating part is 0 for every team. Finished seasons unchanged." },
       { version: "v4.14", change: "Postseason games listed apart in the per-game table, shown and not counted." },
       { version: "v4.12", change: "Added: power from the rating plus a results rating, used by Rankings, the ticker, the hub and the playoff picture." },
       { version: "v4.13", change: "Rebuilt on the rating as a prior with a win bonus and a per-game explanation; conference level measured and switched off." },
     ],
     source: "utils/results_rating.py · scripts/validate_rankings.py · scripts/10_compute_team_ratings.py (attach_power) · scripts/12_export_frontend_json.py (export_power_games)",
+  },
+  {
+    id: "weekly-progression",
+    group: "team",
+    title: "Week by week: the rating after each completed week, and each week's game graded",
+    summary: `A team or player card for the season being played shows how the number stood after every completed week, with that week's single game graded on the same scale.
+      Each week is the live chain run again as the season stood then: the games after that week are removed, and nothing later can reach back. Two things are shown for every week: the running
+      rating (the headline for a team, the earned rating for a player) and the one game played that week, as a grade. The running number is the one the rest of the site shows, at an earlier date;
+      the grade is a separate, noisier reading of a single game. Both are provisional in the same way live ratings are, and neither uses last season, the preseason, or any outside number.`,
+    inputs: [
+      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026 only; weeks 1 to 9 on file" },
+      { name: "Per-game player stats up to week N", source: "data/raw/stats.json game_aggregate rows (script 06 --through-week)", coverage: "2026" },
+      { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 9, 138 FBS teams" },
+    ],
+    formula: `after week N:   run 06 (in progress, through N) -> 07 -> 10 (through N) on the games of weeks 1..N
+team rating   = 1/6 roster + 1/6 stats + 2/3 results                     (the live headline, built from weeks 1..N)
+team game grade   = results_to_ovr( clip(margin, +-28) - home edge (home) / + home edge (away) + opponent strength after week N )
+player rating = the live earned rating after week N                       (a scale for the games played, not a shrink)
+player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position )     (one game read as a 12-game season)`,
+    reality: `The stats half for week N is the sum of the per-game box scores of weeks 1 to N, which equals /stats/season exactly (55 of 55 statistics shared by the two sources, all 138 FBS teams, 0 mismatches).
+      The offensive-line unit is NOT in the weekly team numbers: it comes from /stats/season/advanced, which has no weekly version, so the roster reading of every weekly team number leaves it out and renormalises.
+      For the latest week this is the only difference from the live headline: mean 0.26 and largest 0.88 rating points over 138 teams. Players have no such difference: all 7,587 rated players match the live file exactly.
+      A game's grade uses the opponent strengths as they stood after that week's games (the same ridge solve as the results reading) and is not revised later.`,
+    why: `The owner wanted to see how a team or player got to the number, week by week, and to grade each week along the way. Re-running the chain per week, rather than slicing the final numbers, is the only way a week's number can honestly be
+      "what the model said then": the pace scale, the opponent map, the pool averages and the results solve all depend on how many games were played. The grade is kept apart from the running number because one game is a different kind of evidence.`,
+    evidence: [
+      { label: "Summed box scores against /stats/season, 2026 through week 9", value: "55 of 55 shared statistics, 138 teams: 0 differences above 0.5 (tests/test_weekly_progression.py)" },
+      { label: "Latest week against the live file", value: "7,587 players compared, largest rating difference 0.0; 138 teams, headline difference mean 0.26, largest 0.88 (the line unit)" },
+      { label: "How fast the ranking settles: headline rank after week N against after week 9, 138 teams (Spearman)", value: "week 1 0.838, week 2 0.912, week 3 0.930, week 4 0.965, week 5 0.979, week 6 0.987, week 7 0.994, week 8 0.998" },
+      { label: "Winner of every later FBS game (home edge added), by the rating after week N, 2026 weeks 2 to 9, 1,645 picks pooled (a game is counted once for each earlier week)", value: "headline 62.2%, power 60.5%, home team always 58.7%, placebo with the ratings dealt to the wrong teams 54.3%. Real, small and thin: this season has too few later games to support more." },
+      { label: "Does a single game's grade carry signal into the next game?", value: "player: correlation between a grade and the same player's next grade 0.366 over 24,405 consecutive pairs, placebo 0.001; team: 0.317 over 829 pairs, placebo 0.087" },
+      { label: "How noisy is one game?", value: "the standard deviation of a player's game grade is 18.2 rating points; the week-to-week change in his running rating is 5.3" },
+      { label: "Rebuilding the weekly line unit from per-game advanced rates (2025 as a test)", value: "correlation with the season values 0.98 (line yards), 0.98 (stuff rate), 0.98 (second level) and 0.78 (power success): close, not equal, so it was not used" },
+    ],
+    limits: `**The weekly team numbers leave out the offensive-line unit** (up to 0.9 rating points at the latest week), so the last point of a team's line can differ slightly from the number shown elsewhere.
+
+      **A game grade is one game.** It swings far more than the running number (18.2 against 5.3 points for players) and a team's grade is capped at a 28-point margin, so a 60-point win grades like a 28-point one. The home edge used is power's (5.7 points in 2026), not a separate estimate for the headline scale.
+
+      **Grades use that week's opponent strengths and are never revised,** so the same game graded today with nine weeks of data could differ.
+
+      **Early weeks are thin.** After week 1 the ranking agrees with week 9 at Spearman 0.84; a player's first one or two games are rated by the low-game rule (capped at 72). Players with no rating that week have no row, and a grade exists only for a player who holds a rating that week.
+
+      **The accuracy evidence is one season and in-sample.** The picks above beat the home-team baseline by 3.5 points and the placebo by 7.9, on overlapping games from one year; the validated claim for rating-based prediction is the 2016 to 2025 backtest under Power.
+
+      **2026 only.** 2024 and 2025 are not rebuilt by week (owner's choice), and a team without a roster or stats reading in a week has no row for it.`,
+    alternatives: [
+      { label: "Slice the final ratings by week (no re-run)", basis: "cheapest", status: "rejected", note: "Final numbers contain games after the week, so a week's number would not be what was known then." },
+      { label: "A backfill of 2024 and 2025 by week", basis: "the owner's markers", status: "experiment", note: "Not requested; the 2024 and 2025 per-game files exist, so it is possible and would give a place to test the grades." },
+      { label: "Rebuild the weekly line unit from per-game advanced rates", basis: "2025 test", status: "rejected", note: "Correlates 0.78 to 0.98 with the season values, not equal; no 2026 per-game advanced file is on disk." },
+      { label: "Re-grade every game with the latest opponent strengths", basis: "stability", status: "experiment", note: "Would make a game's grade fixed and reproducible from final data; the shipped version shows what the model said that week." },
+      { label: "Player game grades for everyone who played", basis: "completeness", status: "rejected", note: "A walk-on with one counted play would get a grade; only players holding a rating that week have one." },
+    ],
+    changelog: [
+      { version: "v4.22", change: "Added: weekly team and player files, the Week by week panels on the team page and the player card, and the trend chart." },
+    ],
+    source: "scripts/17b_weekly_progression.py · utils/box_scores.py · scripts/06_compute_edge_scores.py (--through-week, save_game_scores) · scripts/10_compute_team_ratings.py (--through-week) · js/menuWeekly.js · js/ui.js (trendChart)",
   },
 
   // ── Research ──────────────────────────────────────────────────────────────

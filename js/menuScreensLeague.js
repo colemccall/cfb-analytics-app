@@ -209,7 +209,7 @@ menuRouter.register("rankings", {
       </section>
       <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see how its power is made.</p></aside>
     </div>
-    <p class="m-foot">Ranked by <b>power</b>: what a team's players and stats say it should do (the rating part) plus how much better or worse it has actually played than that (the results part), in points per game above an average team. Our own numbers, not a poll, and nothing external: no SP+, strength of schedule or strength of record. ${ctx.list === "live"
+    <p class="m-foot">Ranked by <b>power</b>: ${ctx.list === "live" ? "how a team has played against the opponents it has met, margin and result, in points per game above an average team. While the season is played it is the games alone: the rating is not added, because it is built from the same games and would count them twice." : "what a team's players and stats say it should do (the rating part) plus how much better or worse it has actually played than that (the results part), in points per game above an average team."} Our own numbers, not a poll, and nothing external: no SP+, strength of schedule or strength of record. ${ctx.list === "live"
         ? "To date is built from this season's games so far; provisional."
         : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season."}</p>`;
   },
@@ -260,7 +260,7 @@ function menuPowerPanel(t, rank, ctx, games) {
     <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span>
       <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">Open team page →</button></div>
     <div class="m-pparts">
-      <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
+      <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${live ? "not used while the season is played: power is the games alone" : rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
       <i>+</i>
       <div><span>RESULTS PART</span><b>${menuPowerText(resultsPart)}</b><small>${n ? `from ${n} game${n === 1 ? "" : "s"}, below` : "no games yet"}</small></div>
       <i>=</i>
@@ -279,7 +279,7 @@ function menuPowerPanel(t, rank, ctx, games) {
 // The columns of the Compare screen: key, label, what it is. Power is our ranking (the Rankings screen sorts by it);
 // the others are the number the team is rated at and the three readings that number is made of.
 const MENU_CMP = [
-  ["power", "Power", "Our ranking: the team rating plus how much better or worse the team has actually played than that, in points per game above an average team."],
+  ["power", "Power", "Our ranking: how the team has played, margin and result against the opponents it met, in points per game above an average team. A finished season adds the team rating; a season being played uses the games alone."],
   ["head", "Headline", "The team rating: roster, stats and results blended (the shares are below)."],
   ["results", "Results", "The points the team has scored and allowed against the opponents it played, adjusted for their strength."],
   ["roster", "Roster", "Its players' ratings, scored by starters and depth in every position group."],

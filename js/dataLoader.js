@@ -210,6 +210,19 @@ async function fetchLive(season = CONFIG.CURRENT_SEASON) {
   return _load(`live_${season}.json`);
 }
 
+// The week-by-week files written by script 17b for a season being played: weekly_teams_{season}.json
+// ({ weeks, teams: { team_id: { school, weeks: [...] } } }) and weekly_players_{season}.json
+// ({ weeks, fields, players: { player_id: [[week, rating, games, basis, game_id, grade], ...] } }).
+// null for a season with no file (CONFIG.WEEKLY_SEASONS), without a request.
+async function fetchWeeklyTeams(season = CONFIG.CURRENT_SEASON) {
+  if (!CONFIG.WEEKLY_SEASONS.includes(Number(season))) return null;
+  return _load(`weekly_teams_${season}.json`);
+}
+async function fetchWeeklyPlayers(season = CONFIG.CURRENT_SEASON) {
+  if (!CONFIG.WEEKLY_SEASONS.includes(Number(season))) return null;
+  return _load(`weekly_players_${season}.json`);
+}
+
 // Every team's schedule for one season, keyed by team id — the League
 // standings are computed from these results. {} when the season has no file.
 async function fetchSeasonSchedules(season = CONFIG.CURRENT_SEASON) {

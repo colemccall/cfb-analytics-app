@@ -356,6 +356,49 @@ function sparkline(values, { w = 90, h = 24, stroke = "var(--accent)" } = {}) {
   </svg>`;
 }
 
+// ── Trend chart — one season's number by week ───────────────────────────────
+// points: [{ week, value, grade, tip }] in week order. `value` is the cumulative rating after that week (null = none, which
+// breaks the line rather than bridging it); `grade` is that week's single game on the same scale (null = no game or none
+// graded). One y axis for both because both are 0-99 ratings. The lines are SVG that stretches (non-scaling strokes); the
+// axis labels and the dots are HTML, so no text is ever scaled below the 12px floor and every dot can carry a tooltip.
+// Colours come from the CSS classes (.m-tl-*), never from here, so a theme switch needs no hook. A table must accompany it
+// (the callers draw one): the chart is the shape, the table is the numbers.
+function trendChart(points, { label = "" } = {}) {
+  const pts = (points || []).filter(p => p.week != null);
+  const vals = pts.flatMap(p => [p.value, p.grade]).filter(v => v != null);
+  if (!pts.length || !vals.length) return "";
+  const step = Math.max(...vals) - Math.min(...vals) <= 20 ? 5 : 10;
+  let lo = Math.floor((Math.min(...vals) - 2) / step) * step, hi = Math.ceil((Math.max(...vals) + 2) / step) * step;
+  if (hi - lo < 2 * step) hi = lo + 2 * step;
+  hi = Math.min(hi, 100); lo = Math.max(lo, 0);          // ratings run 0-99; an axis past 100 is empty space
+  if (hi - lo < 2 * step) lo = Math.max(0, hi - 2 * step);
+  const w0 = pts[0].week, w1 = pts[pts.length - 1].week;
+  const x = w => (w1 === w0 ? 50 : ((w - w0) / (w1 - w0)) * 100);
+  const y = v => ((hi - v) / (hi - lo)) * 100;
+  const ticks = [];
+  for (let t = lo; t <= hi; t += step) ticks.push(t);
+  const runs = [];
+  let cur = [];
+  for (const p of pts) {
+    if (p.value == null) { if (cur.length) runs.push(cur); cur = []; } else cur.push(`${x(p.week).toFixed(2)},${y(p.value).toFixed(2)}`);
+  }
+  if (cur.length) runs.push(cur);
+  const dot = (cls, p, v) => `<span class="${cls}" style="left:${x(p.week).toFixed(2)}%;top:${y(v).toFixed(2)}%" title="${_esc(p.tip || "")}"></span>`;
+  return `<div class="m-tl" role="img" aria-label="${_esc(label)}">
+    <div class="m-tl-y">${ticks.map(t => `<span style="top:${y(t).toFixed(2)}%">${t}</span>`).join("")}</div>
+    <div class="m-tl-plot">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        ${ticks.map(t => `<line class="m-tl-grid" x1="0" x2="100" y1="${y(t).toFixed(2)}" y2="${y(t).toFixed(2)}"/>`).join("")}
+        ${runs.filter(r => r.length > 1).map(r => `<polyline class="m-tl-line" points="${r.join(" ")}"/>`).join("")}
+      </svg>
+      ${pts.filter(p => p.grade != null).map(p => dot("m-tl-grade", p, p.grade)).join("")}
+      ${pts.filter(p => p.value != null).map(p => dot("m-tl-dot", p, p.value)).join("")}
+    </div>
+    <div class="m-tl-x">${pts.map(p => `<span style="left:${x(p.week).toFixed(2)}%">W${p.week}</span>`).join("")}</div>
+    <div class="m-tl-legend"><span><i class="m-tl-key m-tl-key--dot"></i>Rating after the week</span><span><i class="m-tl-key m-tl-key--grade"></i>That week's game</span></div>
+  </div>`;
+}
+
 // ── States: loading / empty / error ─────────────────────────────────────────
 // Skeletons are shaped like the content they replace. Spinners never.
 function skeletonRows(n = 5) {

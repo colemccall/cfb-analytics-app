@@ -52,6 +52,10 @@ const CONFIG = {
   // being played). Guarded against the files on disk by tests/test_frontend_config.py.
   LIVE_SEASONS:       [2026],
 
+  // Seasons with weekly_teams_{season}.json and weekly_players_{season}.json (script 17b: the ratings as they stood after
+  // each completed week). Guarded against the files on disk by tests/test_frontend_config.py.
+  WEEKLY_SEASONS:     [2026],
+
   // Seasons with a transfers_{season}.json (the league-wide portal tab reads them).
   // Guarded against the files on disk by tests/test_frontend_config.py.
   TRANSFER_SEASONS:   [2021, 2022, 2023, 2024, 2025, 2026],
