@@ -282,6 +282,36 @@ const GUIDE = [
   },
 
   {
+    id: "page-rankings",
+    group: "pages",
+    title: "Rankings and Compare: the top 25, every FBS team, and the readings side by side",
+    summary: `**Rankings** lists teams by power, our own measure of quality plus results, in points per game above an average team. It
+      opens on the **Top 25**; the **All FBS** chip beside it lists every ranked team, with the same row, the same panel and your own
+      team highlighted. The tabs choose the list: to date for a season being played, the preseason projection or the final for a
+      played one. Select a team to see how its power is made and every game behind it.
+
+      **Compare** puts the numbers a team is rated from beside the ranking: power (our ranking), the headline team rating, and the
+      results, roster and stats readings it is made of, each with its own rank. The tabs sort the list by any of the five. An arrow
+      marks a reading that sits 20 or more places from our ranking: up means that reading likes the team more than our ranking does,
+      down means less. It is how you see a team whose box score and roster look better than its results, or the other way round.
+      Select a team for its five numbers with what each one is and how much of the headline it carries.`,
+    controls: [
+      { name: "Top 25 / All FBS", what: "Two chips above the Rankings list. The address keeps the view, so a link to the full list opens on it." },
+      { name: "Compare the readings", what: "A chip on Rankings, and Compare in the League list of the quick menu, open the Compare screen for the same list (to date, preseason or final)." },
+      { name: "Sort by (Compare tabs)", what: "Power, Headline, Results, Roster or Stats. The number at the left is the rank under the chosen sort; the small number under each reading is that reading's own rank." },
+      { name: "Arrow on a reading", what: "▲ or ▼: the reading ranks the team 20 or more places higher or lower than power does. The tooltip says how many." },
+    ],
+    tips: [
+      "A blank reading has a reason in its tooltip: a preseason list has no stats or results yet, and a team with no games has no results.",
+      "Roster and stats are built from the same box scores, so they usually move together; results are the scoreboard.",
+    ],
+    methods: ["power-rating", "team-ratings"],
+    limits: `Compare shows numbers the pipeline already publishes; it adds none. The rank of a reading is among the teams that have it.
+      A season in progress is provisional and the readings are built from the games played so far. The gap marker is a fixed 20 places,
+      not a statistical test, so a marked team is a team to look at, not a team that is wrong.`,
+  },
+
+  {
     id: "page-home",
     group: "pages",
     page: "index.html?classic",

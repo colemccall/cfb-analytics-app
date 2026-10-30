@@ -33,6 +33,86 @@
 
 const CHANGES = [
   {
+    id: "v4.21-headline-weights-qb-tilt-and-rankings-views",
+    version: "v4.21",
+    date: "2026-10-29",
+    title: "The headline is two thirds results, quarterbacks tilt slightly toward passing, and Rankings gains an All FBS view and a Compare screen",
+    summary: `The owner asked how Kansas State, Nebraska and LSU can read so high on stats and roster while the results ranking is nearly right, and set the headline at results 2/3, roster 1/6, stats 1/6.
+      The ratings are close, so the other changes are small: a minor tilt of the quarterback score toward passing volume (passing volume slightly underrated, rushing volume slightly overrated), a top 25 beside an all-FBS ranking, and a Compare screen
+      that lays our ranking beside the headline, results, roster and stats readings for every team. One export defect found on the way is fixed: the 2026 Preseason list was showing part-season numbers for about half the teams.`,
+    motivation: `After v4.20 Kansas State was 27th, Nebraska 17th and LSU 1st on the headline, with roster ranks 6th, 9th and 3rd and stats ranks 11th, 8th and 1st, against results ranks 40th, 26th and 2nd. The owner could not see how the first two readings got that high.
+      The measurements below answer it and also say the roster and stats readings add nothing to prediction that the results do not, which is why the owner's 2/3 weight on results is supported.`,
+    did: [
+      { what: "Why the stats and roster readings run high (explained, no change behind it)",
+        why: `The box score is not the scoreboard. Through week 8 of 2026 the points margin per game and the yardage margin per game rank (of 139) Kansas State 35th and 17th, Nebraska 10th and 11th, LSU 6th and 2nd, Kentucky 55th and 75th; the stats half grades yards, third-down rate and sacks plus tackles for loss. Kansas State scores 7.5 points per 100 yards and Nebraska 8.3 against a league 7.3.
+          The numbers were built in three easy games: Kansas State was +35 points and 491 yards per game against Nicholls (FCS), Washington State and Tulane, then -6 (398 gained, 397 allowed, 1-3) against Cincinnati, Houston, Kansas and Arizona State; Nebraska +35 and 521 yards against Ohio, Bowling Green and North Dakota (FCS), then +9 (362 gained, 306 allowed) against Michigan State, Maryland, Indiana and Oregon, with two 3-point losses. A season average counts the easy games as much as the hard ones.
+          The roster reading is the same box score: roster and stats correlate 0.85 and stats and results 0.94. Kansas State has no elite group (QB 42nd, RB 38th, WR 48th, TE 36th, line 18th, DL 10th, LB 31st, DB 47th, K 10th, P 2nd) but is above the league mean in all ten, and the groups add; Nebraska's roster is its defensive backs (6th, the largest weight); LSU is elite (QB 3rd, DL 1st, results 2nd).
+          Rebuilding the stats half from per-game box scores (yards, third-down conversions and sacks plus TFL through the same ridge solver as points) leaves Kansas State 15th, Nebraska 3rd and LSU 1st and predicts worse (R2 0.435 against 0.500 for the shipped style at the week-8 cut), so it is a conversion gap, not a schedule artefact.`,
+        cost: "None; nothing was changed for this item. It corrects a statement in this registry: per-game yards and third downs are on file (the API cache holds /games/teams for 2014-2026, which script 06 already reads for the defensive context map); they are not in data/raw." },
+      { what: "The headline is 2/3 results, 1/6 roster, 1/6 stats (script 10 W_ROSTER_BLEND, W_STATS_BLEND, W_RESULTS_BLEND; scripts/validate_team_overall.py)",
+        why: `The owner's setting, as the FCS weight is. The measurements support it. Each reading's Spearman with the NEXT season's points strength, 1,306 team-seasons 2016-2025: roster 0.623, stats 0.686, results 0.731, the old 60/40 blend 0.671, the shipped blend 0.724, the best blend on a grid (all results) 0.731; fitted weights roster 0.06, stats 0, results 0.94.
+          Part 3 of the validator, cuts after weeks 6 / 8 / 10, 2017-2025, leaving each season out: the strength shown afterwards on last season's strength alone R2 0.451 / 0.441 / 0.399, on points so far 0.565 / 0.557 / 0.510, on both 0.591 / 0.586 / 0.536, and adding the stats half built from the per-game box scores 0.591 / 0.586 / 0.536 (+0.000 each). On the 2021-2025 cut runs (n = 661 per cut) points plus last season give 0.580 / 0.580 / 0.559; the stats half adds -0.001 / 0.000 / 0.000 and a cut-time roster reading +0.001 / -0.001 / -0.002 (python scripts/validate_team_overall.py --cut-roster). Neither reading says anything about the rest of the season that points so far do not.
+          The rule from v4.20 (every reading at least 0.2) is replaced by: roster and stats each at least 0.1 and the blend within 0.02 of the best. Power is untouched: its rating part is still the old 60/40 roster-and-stats blend.`,
+        cost: `The roster and stats readings are nearly cosmetic in the headline (a third of it, adding nothing to prediction) and are kept so the rating still says what a team is made of. The headline describes what a team has done more than what it is made of. Live 2026 through week 8, overall rank before to after: LSU 1 to 1 (92.6 to 93.2), Nebraska 17 to 18 (84.7 to 84.0), Kentucky 24 to 26 (83.0 to 82.9), Kansas State 27 to 31 (82.6 to 81.2), Boise State 44 to 49 (79.0 to 78.0); the mean falls 0.85, the largest team moves 2.4, 2 teams move 10 places or more. Finished seasons (2,309 team-seasons, weights and QB tilt together): mean +0.06, standard deviation 1.48, range -4.5 to +5.4, order kept at Spearman 0.996 (lowest season 0.988); the 2025 mean falls from 75.0 to 74.1 and its spread rises from 8.65 to 9.21.` },
+      { what: "A minor tilt of the quarterback score toward passing (OFFENSIVE_COMPOSITE['QB'] in script 06; scripts/validate_qb_composite.py)",
+        why: `The owner's judgement: passing volume slightly underrated, rushing volume slightly overrated. Passing yards 1.00 to 1.05, rushing yards 0.70 to 0.60, rushing touchdowns 20 to 18; passing touchdowns, interceptions, the efficiency blend, the attempts reference and the frozen anchors are untouched. The held-out data neither ask for nor forbid it: leaving each season out, a rushing yard is worth 0.68 of a passing yard on his offense's later points (0.32 to 1.35 across seasons) against 0.70 before and 0.57 now, and the touchdown weights cannot be read from a points outcome because a touchdown is points.
+          Held-out R2 (control + blended score) 0.3983 at the shipped blend against 0.3970 before; volume alone 0.3750 against 0.3766; placebo 0.3597; so the tilt costs no accuracy.`,
+        cost: `6,201 of 6,317 QB player-seasons 2008-2025 move: mean +0.51, median +0.49, 5th percentile +0.03, 95th +1.06, range -3.8 to +8.6; QBs rated 90+ go 7 to 10 (2019), 6 to 9 (2022), 4 to 6 (2025). The EDGE score of every other position is identical, but their part-time and recruiting-basis ratings (37,320 player-seasons) move by at most 0.06: the v4.20 recompute ran script 06 and 07 season by season, so each season's pool average (used by the games damp and the fallback rating) was taken while later seasons still held older scores. This pass ran all of 06 and then all of 07, the documented order, so the pools are consistent; the same correction is inside the QB movement. Live: Atkinson 87.5 to 88.3, Mensah 91.0 to 92.4, Madsen 82.2 to 82.8, Minchey 86.2 to 86.9; QBs at 90+ 5 to 7 and at 85+ 39 to 41 of 369.` },
+      { what: "Rankings: Top 25 and All FBS; a new Compare screen (js/menuScreensLeague.js, css/menu.css, config.js HEADLINE_WEIGHTS)",
+        why: `This is new page markup and a new screen, a design change flagged as such before it was built. Rankings gets two chips, Top 25 (the existing list) and All FBS (every ranked team, the same row, panel and highlight), kept in the address after /rankings (live or pre, then top or all). Compare (the address is /compare, then the sort key, then live or pre) lists every team with our ranking (power) and the headline, results, roster and stats readings, each with its own rank;
+          the tabs sort by any of the five and an arrow marks a reading that sits 20 or more places from power; selecting a team opens its five numbers with what each is and its share of the headline. A preseason list has only the rating and power (blank readings say why). The live file carries the readings (script 17 build_export: roster_half, stats_half, results_half, results_points, play_rating); finished seasons already had them in sub_ratings. Registered in the quick menu and the Rankings tab; described in the guide ("Rankings and Compare").`,
+        cost: "One grid template and a few cell styles in menu.css with the phone rule in the narrow-screen block at the end of the file; on a phone the screen shows rank, team, power and headline and the rest is in the detail panel. The gap marker is a fixed 20 places, not a statistical test." },
+      { what: "The 2026 Preseason list no longer shows part-season numbers (script 12 export_team_ratings)",
+        why: `The computed file holds an earned row for 2026 (script 10 --all-seasons runs it on the games played) beside the projection, the export sorted rows by rating, and the app read whichever came last, so for each team the lower of the two: Nevada showed 65 for a projected 70. A season the app treats as projected now exports its projection row only; the earned-to-date numbers reach the app through the live file, beside it. A contract test checks one row per team for a projected season.`,
+        cost: "The Preseason tab for 2026 changes for the teams that were showing the earned row; no played season is affected." },
+    ],
+    tried: [
+      { what: "Rebuild the stats half from per-game box scores with game-by-game opponent adjustment",
+        result: "Held-out R2 0.435 against 0.500 for the shipped style at the week-8 cut (prior-season strength alone 0.425); Kansas State 15th, Nebraska 3rd, LSU 1st: the same teams stay high.",
+        verdict: "rejected" },
+      { what: "Switch the results reading to power's own machinery (margin capped at 28, 8 for a win, conference level off) or turn the conference level off",
+        result: "Predicts later games equally well (winner 68.8% with the level on, 69.0% off, 69.2% power's machinery; margin error 13.48 / 13.46 / 13.59 at the week-8 cut, 2016-2025, leaving each season out). It would put Boise State 14th-26th (49th now) and Kentucky 20th-39th (26th now): it cannot be chosen on prediction and the owner asked for no large changes. Not adopted; one line to change later.",
+        verdict: "rejected" },
+      { what: "Fit the headline weights (results alone is the best, 0.731)",
+        result: "Drops the roster and the box score from the rating and duplicates power; the owner's 2/3, 1/6, 1/6 scores 0.724.",
+        verdict: "rejected" },
+      { what: "Any games ramp or shrink toward a mean for the team readings",
+        result: "Lowers every rating and reorders nothing (v4.20 measurement).",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Headline Spearman with the NEXT season's points strength", before: "0.716 (0.30 / 0.20 / 0.50)", after: "0.724 (1/6, 1/6, 2/3); best 0.731" },
+      { label: "Does the stats half add to points so far + last season at the week-6 / 8 / 10 cuts (R2)", before: "-", after: "0.591 / 0.586 / 0.536 with and without it (+0.000)" },
+      { label: "QB held-out R2 at the shipped blend / volume only", before: "0.3970 / 0.3766", after: "0.3983 / 0.3750 (placebo 0.3597)" },
+      { label: "QB player-seasons moved (6,317); other positions' part-time and recruiting-basis ratings (37,320) by at most 0.06", before: "-", after: "6,201; mean +0.51, 5th +0.03, 95th +1.06; 90+ in 2019 / 2022 / 2025: 7 / 6 / 4 -> 10 / 9 / 6" },
+      { label: "Live QBs at 90+ / 85+ of 369", before: "5 / 39", after: "7 / 41" },
+      { label: "Atkinson / Mensah / Madsen / Minchey, live", before: "87.5 / 91.0 / 82.2 / 86.2", after: "88.3 / 92.4 / 82.8 / 86.9" },
+      { label: "Live rank by headline: LSU / Nebraska / Kentucky / Kansas State / Boise State", before: "1 / 17 / 24 / 27 / 44", after: "1 / 18 / 26 / 31 / 49" },
+      { label: "Finished team-seasons, headline change (2,309)", before: "-", after: "mean +0.06, sd 1.48, range -4.5 to +5.4; order Spearman 0.996" },
+      { label: "Power backtest: winner / margin error", before: "71.5% / 13.24", after: "71.5% / 13.24" },
+      { label: "Rating alone, last season: winner / margin error; slope against BETA 0.98", before: "64.5% / 14.81; 1.034 (5.5% drift)", after: "64.3% / 14.78; 0.997 (1.8% drift)" },
+      { label: "Projection gates: offense / defense model error against naive, coverage", before: "8.06 vs 9.01, 78.6% / 8.42 vs 9.59, 78.0%", after: "8.08 vs 9.02, 79.2% / 8.44 vs 9.59, 78.2%" },
+      { label: "Pipeline tests", before: "534 passed, 1 failed", after: "540 passed, 1 failed (see unfixed)" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "540 passed, 1 failed: the export-contract check that recruiting-basis rows are at least 5% of rated rows (4.7%), the same failure as v4.19 and v4.20, deliberately not edited" },
+      { check: "python scripts/validate_ratings.py --season 2025", result: "exit 0; QB 438 rated, mean 65.2, 90+ 6, 85+ 40" },
+      { check: "python scripts/validate_rankings.py", result: "power 71.5% / 13.24; rating alone 64.3% / 14.78; placebo 59.9% / 15.96; slope 0.997 against BETA 0.98" },
+      { check: "validate_reliability.py / validate_vs_draft.py / validate_low_game_weights.py / validate_qb_composite.py / validate_team_overall.py", result: "all exit 0; reliability gate pass at every position; draft bands monotone (66.8% / 31.4% / 13.5% / 5.1% / 3.7%); low-game weights within 0.007 of a refit; overall gate: shipped 0.724 against best 0.731, roster and stats at least 0.1" },
+      { check: "recompute 06 and 07 for 2008-2025, 10 --all-seasons, 15 --retrain, 16, 10 --engine projected, 13, 14, 17 (offline), 12", result: "0 requests (no GET line in any log; a dead proxy so a cache miss could not reach the API); projection distribution gate passed" },
+      { check: "UI smoke / node --check / doc, prose and theme checks", result: "152 of 152 (the new checks: 25 and 138 rows, five readings, sort tab, gap marker, preseason blanks, no sideways scroll at 375px and 1280px) / clean / 198 of 198 functions documented, registry prose clean, themes and contrast green" },
+    ],
+    unfixed: `**One contract test still fails and was not edited:** the check that recruiting-basis rows are at least 5% of rated rows (4.7%); counting recruiting and low-game blended rows together needs the owner's go-ahead.
+      **Boise State is 49th on the headline (power has them 17th)** and Nebraska is above Kentucky. The results reading carries a conference level and the 2026 Pac-12 is a new league whose level comes out low; with the level off Boise State is 26th and Kentucky 39th, so the choice trades one case for another and was left alone. The player ratings' opponent adjustment carries the same conference level (0.5).
+      **The QB tilt is a judgement, not a measurement:** the held-out ratio of a rushing to a passing yard is 0.68 with a wide spread.
+      **The roster and stats readings add nothing to prediction beyond results** (Part 3), so they are explanation, not signal, in the headline. The cut-time roster reading is an approximation (paced EDGE through the anchors, no tier or damp, no line unit).
+      **Yards that do not become points are not modelled** (turnovers, red zone, special teams, garbage time).
+      **The UI smoke gamepad check is timing-sensitive:** it failed once under CPU load and when run alone on a cold start and passes on an idle machine. **Everything is uncommitted** in both repositories.`,
+    methods: ["team-ratings", "qb-composite", "power-rating"],
+    files: ["scripts/06_compute_edge_scores.py", "scripts/10_compute_team_ratings.py", "scripts/12_export_frontend_json.py", "scripts/17_live_season.py", "scripts/validate_team_overall.py", "tests/test_team_ratings.py", "tests/test_player_inputs_v420.py", "tests/test_export_contract.py", "tests/test_frontend_config.py", "js/menuScreensLeague.js", "js/menuChrome.js", "js/config.js", "js/guide.js", "css/menu.css", "tools/ui-smoke/smoke.mjs", "js/methods.js", "js/changes.js"],
+  },
+
+  {
     id: "v4.20-live-adjustment-fcs-qb-and-results",
     version: "v4.20",
     date: "2026-10-29",
@@ -141,7 +221,7 @@ const CHANGES = [
       **The conference gap widened:** SEC, Big Ten, Big 12 and ACC minus the rest is 11.6 headline points in 2026 (roster 6.7, stats 12.5, results 14.2); the earlier measure of what games imply was 7.5, so the headline may over-separate.
       **The pace scale over-rates the best 7-game players by 1.6 points on average** (the cost of no shrink), and under-rates those below 60.
       **The games damp over-penalises finished-season part-timers rated 70 and above** (bias +6.9 at 70-80 against +2.6 without it); finished seasons were left alone, and that is a separate pass.
-      **FCS 0.85 is harsher than the data** (0.88 raw, 0.95 once FBS games are adjusted) and defense is not measured on its own. **Per-game yards are not on file,** so the stats half cannot be backtested at the week-8 cut. **The 2026 team numbers are provisional** (7 or 8 games), the roster reading at week 8 cannot be backtested (no historical cut ratings), and the weights come from finished seasons.
+      **FCS 0.85 is harsher than the data** (0.88 raw, 0.95 once FBS games are adjusted) and defense is not measured on its own. **Per-game yards are on file in the API cache (this entry said they were not; corrected in v4.21),** so the stats half can be backtested at the week-8 cut: it adds 0.000 beyond points so far and last season. **The 2026 team numbers are provisional** (7 or 8 games), the roster reading at week 8 cannot be backtested (no historical cut ratings), and the weights come from finished seasons.
       **Script 11 was not rerun** (recruiting only, unchanged inputs). **Everything is uncommitted** in both repositories.`,
     methods: ["team-ratings", "opponent-strength", "live-season", "qb-composite", "power-rating"],
     files: ["scripts/06_compute_edge_scores.py", "scripts/07_compute_player_ratings.py", "scripts/10_compute_team_ratings.py", "utils/opponent_strength.py", "scripts/validate_fcs_weight.py", "scripts/validate_qb_composite.py", "scripts/validate_pace_scale.py", "scripts/validate_team_roster.py", "scripts/validate_team_overall.py", "tests/test_player_inputs_v420.py", "tests/test_slots_and_pace.py", "tests/test_team_ratings.py", "js/methods.js", "js/changes.js"],

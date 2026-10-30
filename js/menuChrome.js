@@ -83,7 +83,7 @@ const MENU_NAV = [["home", "Home", "#/home"], ["teams", "Teams", "#/team-select"
   ["standings", "Standings", "#/standings"], ["players", "Players", "#/players"], ["playoff", "Playoff", "#/playoff"],
   ["recruiting", "Recruiting", "#/recruiting"], ["portal", "Portal", "#/portal"]];
 const MENU_SECTION = { home: "home", "team-select": "teams", team: "teams", roster: "teams", depth: "teams", schedule: "teams", game: "teams",
-  "team-recruiting": "teams", "team-portal": "teams", "team-history": "teams", rankings: "rankings", standings: "standings",
+  "team-recruiting": "teams", "team-portal": "teams", "team-history": "teams", rankings: "rankings", compare: "rankings", standings: "standings",
   players: "players", player: "players", playoff: "playoff", recruiting: "recruiting", portal: "portal" };
 
 // Draws the section bar in the header. `section` is the route id of the screen being shown. The team you follow
@@ -214,7 +214,7 @@ menuChrome.openMenu = function () {
       <h2 class="m-ovl-title">MENU</h2>
       <div class="m-ovl-cols">
         <div>${teamCol}</div>
-        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/standings", "Standings")}${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting")}${item("#/portal", "Transfer Portal")}${item("#/team-select", "All Teams")}</div>
+        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/compare", "Compare ratings")}${item("#/standings", "Standings")}${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting")}${item("#/portal", "Transfer Portal")}${item("#/team-select", "All Teams")}</div>
         <div><h3 class="m-ovl-h">NEWS</h3>${item("#/playoff", "Playoff Picture")}${item("#/season", "The Season")}${item("#/research", "Research")}${item("#/guide", "How It Works")}${item("#/methods", "Methods")}${item("#/changes", "Build Log")}</div>
       </div>
       <div class="m-ovl-opts">

@@ -28,6 +28,11 @@ const CONFIG = {
   // tests/test_frontend_config.py.
   POWER_GAME_SEASONS: [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
 
+  // The shares of the headline team rating (roster, stats, results), for the Compare screen's explanation. Mirrors
+  // W_ROSTER_BLEND / W_STATS_BLEND / W_RESULTS_BLEND in scripts/10_compute_team_ratings.py; guarded by
+  // tests/test_frontend_config.py.
+  HEADLINE_WEIGHTS: { roster: 1 / 6, stats: 1 / 6, results: 2 / 3 },
+
   // Player cards are served as cards/NNNN.json shards (script 12 export_player_cards): the file for a
   // player is player_id % CARD_SHARDS, zero-padded to four digits. Guarded against the script's
   // constant by tests/test_frontend_config.py.

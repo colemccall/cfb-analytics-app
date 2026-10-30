@@ -419,6 +419,15 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: rg
 .m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3.4rem minmax(0, 1fr) 6.4rem 4.6rem 4.6rem 6.4rem; }
 .m-rowhead.m-row--stand, .m-row--stand { grid-template-columns: 2.2rem minmax(0, 1fr) 4.4rem 4.4rem 3.6rem 3.6rem 4.6rem; }
 .m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 2.4rem minmax(0, 1fr) 9rem 4rem 4.6rem 5.6rem; }
+/* Compare: rank, team, then five readings (power, headline, results, roster, stats), each a value over its own rank. */
+.m-rowhead.m-row--cmp, .m-row--cmp { grid-template-columns: 2.4rem minmax(0, 1fr) repeat(5, 4.6rem); }
+.m-cmp { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; min-width: 0; }
+.m-cmp-pw { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); }
+.m-cmp-rank { font-size: var(--fs-label); color: var(--m-muted); white-space: nowrap; }
+.m-cmp-rank.is-gap { color: var(--m-text); font-weight: 800; text-decoration: underline; }
+.m-cmp-table th, .m-cmp-table td { vertical-align: top; text-align: left; padding: 0.25rem 0.5rem; }
+.m-viewbar { margin: 0 0 0.6rem; }
+.m-chip.is-view { box-shadow: inset 0 -3px 0 var(--m-hot); }
 .m-rowhead.m-row--portal, .m-row--portal { grid-template-columns: 2.4rem minmax(0, 1.1fr) 3.6rem minmax(0, 1.4fr) 4rem 4rem 5.2rem; }
 .m-rowhead.m-row--class, .m-row--class { grid-template-columns: 2.4rem minmax(0, 1.2fr) 4.4rem 4.4rem 4.4rem 5rem; }
 .m-rowhead.m-row--prospect, .m-row--prospect { grid-template-columns: 3.4rem minmax(0, 1.1fr) 3.6rem 4rem 4.6rem 3.2rem minmax(0, 1fr); }
@@ -707,4 +716,7 @@ button.m-vs-side.is-selected { background: linear-gradient(#c8161f, var(--m-hot)
   .m-rhead-ovr { grid-column: 1 / -1; }
   .m-rowhead.m-row--roster, .m-row--roster, .m-rowhead.m-row--roster.is-trio, .m-row--roster.is-trio { grid-template-columns: 1.6rem minmax(0, 1fr) repeat(3, 3.2rem); }
   .m-row--roster > :nth-child(n+3):nth-child(-n+8), .m-rowhead.m-row--roster > :nth-child(n+3):nth-child(-n+8) { display: none; }
+  .m-rowhead.m-row--cmp, .m-row--cmp { grid-template-columns: 1.6rem minmax(0, 1fr) 3.6rem 3.4rem; }
+  .m-row--cmp > :nth-child(n+5), .m-rowhead.m-row--cmp > :nth-child(n+5) { display: none; }
+  .m-rowhead.m-row--cmp > span:nth-child(4) { display: block; }
 }
