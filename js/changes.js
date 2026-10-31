@@ -33,6 +33,64 @@
 
 const CHANGES = [
   {
+    id: "v4.23-game-logs-units-and-rankings-by-method-and-week",
+    version: "v4.23",
+    date: "2026-10-30",
+    title: "A Games tab on the player card, the rating on the chart, a team's units by week, and Rankings that flips method and shows any week",
+    summary: `The owner asked for game-by-game stats on the player card, for the rating progression to be easier to read (the number on the chart, not only the table), for a team's change over the season to be easy to read as a unit, and for Rankings to flip between methods, like AP against Coaches against CFP, with the choice of whether the team rating is factored.
+      All four are built. The owner's question, whether power should already weigh the team rating and stats, is answered below: it did until v4.22, and for a season being played it is now the games alone because the rating part re-counts the same games; the new button puts the choice in the reader's hands.`,
+    motivation: `The v4.22 weekly panels showed the rating in a table and a small chart without numbers, the player card had season totals only, and the team page showed one rating line. The owner wanted to read a team week to week "as a unit", and to see rankings at any week.`,
+    did: [
+      { what: "Rankings: a method button and a week selector (js/menuScreensLeague.js, js/menuWeekly.js; script 10 power_blend; script 12 expected_blend)",
+        why: `While a season is played the Rankings list can be ranked three ways: Games only (power from the results alone, the v4.22 default), Rating + games (the rating part, 0.98 points per point of the roster-and-stats play rating, plus the results part solved against it, which is what power was before v4.22) and Rating (the headline: roster 1/6, stats 1/6, results 2/3). A played season offers Power and Rating. A second row selects any completed week 1 to 9 (the current numbers are the latest chip), and a rank cell shows movement since the week before.
+          Rating + games is computed by script 10 beside the games-only power for the live season (power_blend, rating_part_blend, results_blend); script 12 exports its per-game expectation (expected_blend, over_blend) so the detail table matches the method. An earlier week has no per-game table (it is built from today's games) and says so.
+          The answer to the owner's question: power did weigh the rating (the play rating, 60% roster and 40% stats) and the results. For a season being played the rating part is built from the same games as the results, so v4.22 set it to zero. Both versions are now one click apart. The rating-weighted version is not backtested with the play rating as its prior (the validated prior was last season's rating, 71.5% against 71.2% for games alone); that is not done and is said on the screen.`,
+        cost: "This is new page code (chips, a week selector, a movement marker, a rating-method panel), a design change the owner asked for. The rank column is wider to fit the movement marker; the footer text names the method. The blend method is not validated." },
+      { what: "A Games tab on the player card (scripts/12 export_game_logs, gamelog_{season}_{team}.json, js/menuWeekly.js, js/menuScreensTeam.js)",
+        why: `Script 12 now writes one file per team with each player's box score for every game he is on record in (the per-game stat blobs script 01 stores, values as stored). The Games tab lists a row per game (opponent, result, a one-line summary for his position, the game grade and his rating after the week) and then a table per box-score group he has stats in. A stat the box score does not list is a dash, never a zero. Per-game keys differ from the season totals (passingC/ATT, kickingFG), so the tab has its own column list.`,
+        cost: "About 5 MB across the 138 team files for 2026 only (a card loads its team's, about 40 KB). Game logs for finished seasons are not exported." },
+      { what: "The rating progression is easier to read (js/ui.js trendChart labels, js/menuWeekly.js)",
+        why: `The chart writes each rating above its dot, a summary line gives the first and last value, the change, the high and the low (and a team's rank movement), and the tables gain a Change column (arrows with the rounded difference).`,
+        cost: "Labels sit above the dots, so a very high rating near 99 is close to the top edge." },
+      { what: "A team's units by week (script 10 roster_groups, scripts/17 and 17b, js/menuWeekly.js)",
+        why: `The team page gains a matrix of units by week: the rating, offense, defense, the roster, stats and results readings and each position group (QB, RB, WR, TE, DL, LB, DB, K, P) as a pill per week, with the change from the first week to the last. The position groups are the starters-plus-depth scores the roster reading is made of, now published with the team rating.`,
+        cost: "The offensive line is not in the matrix (the line unit has no weekly version); a position group can move because a player is hurt or leaves, not only because players play better; and the early roster readings are held down by the low-game cap (72), so LSU's roster reading rising from 74 to 89 over nine weeks is partly that cap lifting." },
+      { what: "The Rankings game table is re-exported (scripts/12 run after the final v4.22 live file)",
+        why: `The v4.22 detail table was last exported before the live power moved to games alone, so its expected column could still carry rating parts. Re-running the export refreshes it.`,
+        cost: "None; it is a stale-file fix." },
+    ],
+    tried: [
+      { what: "A rating-weighted power as the default for the season being played",
+        result: "It counts the roster and stats evidence twice (they come from the games the results part reads) and is not backtested with the play rating as its prior.",
+        verdict: "rejected" },
+      { what: "A schedule screen with the rating and grade on each game row",
+        result: "Not built: the team page's weekly table already lists the game, its grade and the rating after it, row by row; a second place would be two copies to keep in step.",
+        verdict: "not built" },
+      { what: "Dropping all-zero defensive lines from the game log to save size",
+        result: "A tackle count of 0 is a measured value, and the page's rule is that missing is not zero; dropping the zeros would turn them into gaps.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Rank agreement between the three methods, live 2026 week 9 (Spearman)", before: "-", after: "games and rating + games 0.984, games and rating 0.866, rating + games and rating 0.933 (138 teams)" },
+      { label: "Teams more than 10 places apart, Games only against Rating + games", before: "-", after: "29 of 138; against the rating 74 of 138; rating + games against the rating 65 of 138. Boise State 10 / 18 / 47 and Kansas State 74 / 58 / 31 by games / rating + games / rating" },
+      { label: "Game-log export", before: "-", after: "138 team files, 8,079 players, 35,520 player-games, 5.5 MB; every row is on its team's schedule" },
+    ],
+    gates: [
+      { check: "pytest tests -q", result: "564 passed, 1 failed: the same export-contract check that recruiting-basis rows are at least 5% of rated rows (4.7%), deliberately not edited; new tests cover the live blend fields, the weekly ranks and units, the game-log export and its join to the schedule, and the GAMELOG_SEASONS guard" },
+      { check: "node --check js/*.js / doc, prose, theme and contrast checks / UI smoke", result: "159 of 159 (new: the labelled chart with change column and units matrix, the Games tab, Rankings by method and week with movement, and no sideways scroll at 375px and 1280px; two older checks updated for the Games tab and the longer Rankings address) / node --check clean / doc-check 211 of 211 / prose, theme and contrast checks green" },
+      { check: "scripts/17 and 17b, 9 weeks, offline", result: "0 requests in the children; last week against live_2026.json: players identical, teams within the line unit" },
+    ],
+    unfixed: `**Rating + games is not validated** with the play rating as its prior; only the last-season-prior version is (71.5% against 71.2% for games alone).
+      **The offensive line is not in the weekly units or the weekly ratings.**
+      **An earlier week of the Rankings has no per-game table,** because that table is built from today's games.
+      **Game logs exist for 2026 only,** and the weekly files for 2026 only.
+      **The grades and units have no backtest** against known endings; 2024 and 2025 are not rebuilt by week.
+      **One contract test still fails and was not edited** (recruiting-basis rows 4.7% against a 5% floor). **Everything is uncommitted** in both repositories; the ratings spec, the Build Log audit and the pre-playoff marker test from the earlier request are still not done.`,
+    methods: ["power-rating", "weekly-progression"],
+    files: ["scripts/10_compute_team_ratings.py", "scripts/17_live_season.py", "scripts/17b_weekly_progression.py", "scripts/12_export_frontend_json.py", "tests/test_weekly_progression.py", "tests/test_frontend_config.py",
+            "js/menuWeekly.js", "js/menuScreensLeague.js", "js/menuScreensTeam.js", "js/ui.js", "js/config.js", "js/dataLoader.js", "css/menu.css", "js/methods.js", "js/changes.js"],
+  },
+  {
     id: "v4.22-week-nine-live-power-and-weekly-progression",
     version: "v4.22",
     date: "2026-10-30",

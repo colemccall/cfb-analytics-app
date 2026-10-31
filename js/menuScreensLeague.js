@@ -179,39 +179,63 @@ menuRouter.register("rankings", {
       return `<section class="m-panel"><p class="m-empty">Polls (AP, Coaches, CFP) are not shown: no poll data is on disk, and fetching it
         needs a CollegeFootballData /rankings harvest. The lists beside this one are our own team ratings.</p></section>`;
     }
-    // Ranked by power (quality plus results), not by the rating alone: the rating never looks at a
-    // scoreboard. The rating is still shown beside it, and the panel explains the number.
-    const val = t => ctx.list === "live" ? d.liveById[t.id]?.overall_rating : t.overall_rating;
-    const pw = t => ctx.list === "live" ? d.liveById[t.id]?.power_rating : t.power_rating;
-    const ranked = d.teams.filter(t => pw(t) != null).sort((a, b) => pw(b) - pw(a));
+    // The list, by one of the methods the chips offer (menuRankMethods): power from the games alone, power with a rating part added, or the rating.
+    // A season being played can also be read as it stood after any completed week. The rating is shown beside the ranking either way, and the
+    // detail panel explains the number.
+    const live = ctx.list === "live";
+    const wk = live ? await fetchWeeklyTeams(MENU.season) : null;
+    ctx.method = menuRankMethod(ctx.list, ctx.params[2]);
+    ctx.week = live ? menuRankWeek(ctx.params[3], wk, d.live.through_week) : null;
+    const snap = live ? menuRankSnapshot(d, wk, ctx.week) : null;
+    const prev = live ? menuRankPrev(d, wk, ctx.week, ctx.method) : null;
+    ctx.snap = snap;
+    const val = t => live ? snap.get(t.id)?.head : t.overall_rating;
+    const sortKey = t => live ? menuRankKey(ctx.method, snap.get(t.id)) : ctx.method === "rating" ? t.overall_rating : t.power_rating;
+    const pw = t => live ? (ctx.method === "blend" ? snap.get(t.id)?.blend : snap.get(t.id)?.games) : t.power_rating;
+    const ranked = d.teams.filter(t => sortKey(t) != null).sort((a, b) => sortKey(b) - sortKey(a));
     ctx.ranked = ranked; ctx.pw = pw; ctx.val = val;
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
+    const recordOf = t => {
+      const e = live && ctx.week != null ? snap.get(t.id) : null;
+      return e && e.w != null ? `${e.w}-${e.l}` : d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—";
+    };
+    const lastHead = live && ctx.method === "blend" ? "BLEND" : "POWER";
+    const lastTitle = ctx.method === "blend" && live ? "Points per game above an average team: the rating part plus the results part" : "Points per game above an average team";
     const row = (t, i) => `
       <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}" data-to="${menuTeamPath(t.id)}">
-        <span class="m-rank">${i + 1}</span>
+        <span class="m-rank">${i + 1}${live ? menuRankMove(i + 1, prev ? prev.get(t.id) ?? null : null) : ""}</span>
         <span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
         <span class="m-pmeta">${_esc(t.conference || "")}</span>
-        <span class="m-num">${d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—"}</span>
-        <span class="m-rating">${ctx.list === "live" ? livePill({ live_rating: val(t), live_through_week: d.live.through_week }) : ovrPill(val(t), { season: MENU.season, label: "Team rating" })}</span>
-        <span class="m-num" title="Points per game above an average team: team rating plus results">${menuPowerText(pw(t))}</span>
+        <span class="m-num">${recordOf(t)}</span>
+        <span class="m-rating">${live ? livePill({ live_rating: val(t), live_through_week: ctx.week ?? d.live.through_week }) : ovrPill(val(t), { season: MENU.season, label: "Team rating" })}</span>
+        <span class="m-num" title="${lastTitle}">${menuPowerText(pw(t))}</span>
       </button>`;
     // Two views of the same list: the top 25 (with your team's row below it when it is lower) or every ranked team.
     const all = ctx.view === "all";
     const top = (all ? ranked : ranked.slice(0, 25)).map(row).join("");
     const mineRow = !all && mineIdx >= 25 ? `<div class="m-gap">· · ·</div>${row(ranked[mineIdx], mineIdx)}` : "";
-    const viewChip = (id, text) => `<button class="m-chip${ctx.view === id ? " is-view" : ""}" type="button" data-nav data-nav-group="links" data-to="#/rankings/${ctx.list}/${id}"${ctx.view === id ? ' aria-current="true"' : ""}>${text}</button>`;
-    return `<div class="m-facts m-viewbar">${viewChip("top", "Top 25")}${viewChip("all", `All FBS · ${ranked.length}`)}
+    const href = (view, method, week) => `#/rankings/${ctx.list}/${view}/${method}${week != null ? `/w${week}` : ""}`;
+    const chip = (to, text, on, title = "") => `<button class="m-chip${on ? " is-view" : ""}" type="button" data-nav data-nav-group="links" data-to="${to}"${on ? ' aria-current="true"' : ""}${title ? ` title="${_esc(title)}"` : ""}>${text}</button>`;
+    const methods = menuRankMethods(ctx.list);
+    const latest = live ? d.live.through_week : null;
+    const weekChips = live && wk ? wk.weeks.map(w => chip(href(ctx.view, ctx.method, w === latest ? null : w), `W${w}`, (ctx.week ?? latest) === w, w === latest ? "The current numbers, through the latest completed week" : `As it stood after week ${w}`)).join("") : "";
+    const how = methods.find(m => m[0] === ctx.method);
+    const status = live
+      ? (ctx.week != null ? `This is the ranking as it stood after week ${ctx.week}, from the games through it; the arrows are movement since week ${ctx.week - 1}.`
+        : "To date is built from this season's games so far; provisional. The arrows are movement since the week before.")
+      : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season.";
+    return `<div class="m-facts m-viewbar">${chip(href("top", ctx.method, ctx.week), "Top 25", ctx.view === "top")}${chip(href("all", ctx.method, ctx.week), `All FBS · ${ranked.length}`, ctx.view === "all")}
         <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/compare/power/${ctx.list}">Compare the readings →</button></div>
+      <div class="m-facts m-viewbar" role="group" aria-label="Rank by"><span class="m-viewlabel">RANK BY</span>${methods.map(([id, label, what]) => chip(href(ctx.view, id, ctx.week), label, ctx.method === id, what)).join("")}</div>
+      ${weekChips ? `<div class="m-facts m-viewbar" role="group" aria-label="Week"><span class="m-viewlabel">WEEK</span>${weekChips}</div>` : ""}
     <div class="m-split m-split--roster">
       <section class="m-panel m-list" aria-label="${all ? `All ${ranked.length} ranked teams` : "Top 25"}">
-        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span title="Regular season; the postseason is on the team's panel">REC</span><span>RATING</span><span>POWER</span></div>
+        <div class="m-rowhead m-row--rank"><span>#</span><span>TEAM</span><span>CONF</span><span title="Regular season; the postseason is on the team's panel">REC</span><span>RATING</span><span>${lastHead}</span></div>
         ${top}${mineRow}
       </section>
-      <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see how its power is made.</p></aside>
+      <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see how its number is made.</p></aside>
     </div>
-    <p class="m-foot">Ranked by <b>power</b>: ${ctx.list === "live" ? "how a team has played against the opponents it has met, margin and result, in points per game above an average team. While the season is played it is the games alone: the rating is not added, because it is built from the same games and would count them twice." : "what a team's players and stats say it should do (the rating part) plus how much better or worse it has actually played than that (the results part), in points per game above an average team."} Our own numbers, not a poll, and nothing external: no SP+, strength of schedule or strength of record. ${ctx.list === "live"
-        ? "To date is built from this season's games so far; provisional."
-        : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season."}</p>`;
+    <p class="m-foot">Ranked by <b>${_esc(how[1])}</b>: ${_esc(how[2])} Our own numbers, not a poll, and nothing external: no SP+, strength of schedule or strength of record. ${status}</p>`;
   },
   mount(stage, ctx) {
     const detail = stage.querySelector("#m-detail");
@@ -224,6 +248,9 @@ menuRouter.register("rankings", {
       if (!hit) return;
       const mine = ++token;
       try {
+        // Another week has no per-game table (it is built from today's games), and the rating method has none by design.
+        if (ctx.week != null) { detail.innerHTML = menuWeekRankPanel(hit.t, hit.rank, ctx.snap.get(hit.t.id), ctx.week, ctx); return; }
+        if (ctx.method === "rating") { detail.innerHTML = menuRatingPanel(hit.t, hit.rank, ctx); return; }
         const games = (await fetchPowerGames(MENU.season))[String(hit.t.id)] || [];
         if (mine !== token) return;
         detail.innerHTML = menuPowerPanel(hit.t, hit.rank, ctx, games);
@@ -244,14 +271,17 @@ function menuPowerPanel(t, rank, ctx, games) {
   const d = ctx.d, live = ctx.list === "live";
   const lv = d.liveById[t.id];
   const power = ctx.pw(t), rating = ctx.val(t);
-  const ratingPart = live ? lv?.rating_part : t.rating_part;
-  const resultsPart = live ? lv?.results_rating : t.results_rating;
+  const blend = live && ctx.method === "blend";
+  const ratingPart = live ? (blend ? lv?.rating_part_blend : lv?.rating_part) : t.rating_part;
+  const resultsPart = live ? (blend ? lv?.results_blend : lv?.results_rating) : t.results_rating;
   const n = live ? lv?.results_games : t.results_games;
+  const expectedOf = g => (blend && g.expected_blend != null ? g.expected_blend : g.expected);
+  const overOf = g => (blend && g.over_blend != null ? g.over_blend : g.over);
   const st = d.standings[t.id];
   const gameRow = g => `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
       <td>${g.post ? "POST" : `W${g.week ?? "—"}`}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${g.opp_id != null && d.teams.some(x => x.id === g.opp_id) ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(g.opp_id)}">${_esc(g.opp || "—")}</button>` : _esc(g.opp || "—")}</td>
       <td>${g.margin > 0 ? "W" : g.margin < 0 ? "L" : "T"} ${g.score}–${g.opp_score}</td>
-      <td>${menuPowerText(g.value)}</td><td>${menuPowerText(g.expected)}</td><td><b>${menuPowerText(g.over)}</b></td></tr>`;
+      <td>${menuPowerText(g.value)}</td><td>${menuPowerText(expectedOf(g))}</td><td><b>${menuPowerText(overOf(g))}</b></td></tr>`;
   const rows = games.filter(g => !g.post).map(gameRow).join("");
   // Bowls and the playoff are listed apart: power does not count them yet, so they must not sit in the
   // table that adds up to the results part.
@@ -260,7 +290,7 @@ function menuPowerPanel(t, rank, ctx, games) {
     <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span>
       <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">Open team page →</button></div>
     <div class="m-pparts">
-      <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${live ? "not used while the season is played: power is the games alone" : rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
+      <div><span>RATING PART</span><b>${menuPowerText(ratingPart)}</b><small>${blend ? (lv?.play_rating == null ? "" : `play rating ${lv.play_rating.toFixed(1)} (roster and stats), against the league average`) : live ? "not used by this method: power is the games alone" : rating == null ? "" : `team rating ${rating.toFixed(1)}, against the league average`}</small></div>
       <i>+</i>
       <div><span>RESULTS PART</span><b>${menuPowerText(resultsPart)}</b><small>${n ? `from ${n} game${n === 1 ? "" : "s"}, below` : "no games yet"}</small></div>
       <i>=</i>
@@ -272,6 +302,24 @@ function menuPowerPanel(t, rank, ctx, games) {
     ${postRows ? `<h3 class="m-h3">Postseason: shown, not counted</h3>
       <table class="m-ptable"><tbody>${postRows}</tbody></table>
       <p class="m-note">Bowls and the playoff are not in the results part above. How much they should weigh is still being measured, so they are listed with the same value and expected columns and left out of the sum.</p>` : ""}`;
+}
+
+// The detail panel when the rankings are by the rating itself: the three readings it is made of, their shares and the numbers.
+function menuRatingPanel(t, rank, ctx) {
+  const d = ctx.d, live = ctx.list === "live";
+  const lv = d.liveById[t.id], sr = t.sub_ratings || {};
+  const w = CONFIG.HEADLINE_WEIGHTS || {};
+  const read = key => (live ? lv?.[`${key}_half`] : sr[`${key}_half`]);
+  const rows = [["roster", "Roster", "its players' ratings, by starters and depth in every position group"], ["stats", "Stats", "yards, third downs, sacks and tackles for loss, adjusted for the schedule"],
+                ["results", "Results", "points scored and allowed against the opponents played, adjusted for their strength"]]
+    .map(([k, label, what]) => `<tr><th scope="row">${label}</th><td>${read(k) == null ? "—" : read(k).toFixed(1)}</td><td>${w[k] == null ? "" : `${Math.round(w[k] * 100)}%`}</td><td>${_esc(what)}</td></tr>`).join("");
+  const st = d.standings[t.id];
+  return `<h2 class="m-detail-name">${_esc(t.school)} · #${rank}</h2>
+    <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span>
+      <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">Open team page →</button></div>
+    <div class="m-pparts"><div class="is-total"><span>RATING</span><b>${ctx.val(t) == null ? "—" : Math.round(ctx.val(t))}</b><small>${live ? "earned to date" : "team rating"}</small></div></div>
+    <table class="m-ptable m-cmp-table"><thead><tr><th>READING</th><th>VALUE</th><th>SHARE</th><th>WHAT IT IS</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="m-note">The rating is these three readings blended at the shares shown. The results reading looks at the scoreboard, so the rating is not blind to results; power is what adds margin and the win bonus on top. ${isProjectedSeason(MENU.season) && !live ? "A preseason list has no stats or results reading of its own." : ""}</p>`;
 }
 
 // ── Compare the readings ──────────────────────────────────────────────────

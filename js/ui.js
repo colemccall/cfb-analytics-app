@@ -284,13 +284,13 @@ function posBadge(pg) {
 }
 
 // ── Delta chip — movement always ships with its number ──────────────────────
-function deltaChip(delta, { title = "" } = {}) {
+function deltaChip(delta, { title = "", digits = 1 } = {}) {
   if (delta == null) return '<span class="delta-chip" title="Not measured">—</span>';
   const d = Number(delta);
   const cls = d > 0 ? "up" : d < 0 ? "down" : "";
   const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "→";
   const sign = d > 0 ? "+" : "";
-  return `<span class="delta-chip ${cls}" title="${_esc(title)}">${arrow} ${sign}${d.toFixed(1)}</span>`;
+  return `<span class="delta-chip ${cls}" title="${_esc(title)}">${arrow} ${sign}${d.toFixed(digits)}</span>`;
 }
 
 // ── Provenance badge ────────────────────────────────────────────────────────
@@ -362,8 +362,9 @@ function sparkline(values, { w = 90, h = 24, stroke = "var(--accent)" } = {}) {
 // graded). One y axis for both because both are 0-99 ratings. The lines are SVG that stretches (non-scaling strokes); the
 // axis labels and the dots are HTML, so no text is ever scaled below the 12px floor and every dot can carry a tooltip.
 // Colours come from the CSS classes (.m-tl-*), never from here, so a theme switch needs no hook. A table must accompany it
-// (the callers draw one): the chart is the shape, the table is the numbers.
-function trendChart(points, { label = "" } = {}) {
+// (the callers draw one): the chart is the shape, the table is the numbers. `labels` writes each rating above its dot, for a chart
+// of a handful of weeks where the reader wants the number on the line and not only in the table.
+function trendChart(points, { label = "", labels = false } = {}) {
   const pts = (points || []).filter(p => p.week != null);
   const vals = pts.flatMap(p => [p.value, p.grade]).filter(v => v != null);
   if (!pts.length || !vals.length) return "";
@@ -393,6 +394,7 @@ function trendChart(points, { label = "" } = {}) {
       </svg>
       ${pts.filter(p => p.grade != null).map(p => dot("m-tl-grade", p, p.grade)).join("")}
       ${pts.filter(p => p.value != null).map(p => dot("m-tl-dot", p, p.value)).join("")}
+      ${labels ? pts.filter(p => p.value != null).map(p => `<span class="m-tl-val" style="left:${x(p.week).toFixed(2)}%;top:${y(p.value).toFixed(2)}%">${Math.round(p.value)}</span>`).join("") : ""}
     </div>
     <div class="m-tl-x">${pts.map(p => `<span style="left:${x(p.week).toFixed(2)}%">W${p.week}</span>`).join("")}</div>
     <div class="m-tl-legend"><span><i class="m-tl-key m-tl-key--dot"></i>Rating after the week</span><span><i class="m-tl-key m-tl-key--grade"></i>That week's game</span></div>

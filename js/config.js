@@ -56,6 +56,10 @@ const CONFIG = {
   // each completed week). Guarded against the files on disk by tests/test_frontend_config.py.
   WEEKLY_SEASONS:     [2026],
 
+  // Seasons with a gamelog_{season}_{team_id}.json per team (script 12: every player's box score for every game; the player card's
+  // Games tab). Guarded against the files on disk by tests/test_frontend_config.py.
+  GAMELOG_SEASONS:    [2026],
+
   // Seasons with a transfers_{season}.json (the league-wide portal tab reads them).
   // Guarded against the files on disk by tests/test_frontend_config.py.
   TRANSFER_SEASONS:   [2021, 2022, 2023, 2024, 2025, 2026],

@@ -1347,11 +1347,11 @@ check("menu: the quick menu offers the team being looked at, and Back at home op
   return null;
 });
 
-check("menu: the player card has Overview, Stats and Career sections in the console frame, with team and position links", async ctx => {
+check("menu: the player card has Overview, Games, Stats and Career sections in the console frame, with team and position links", async ctx => {
   const page = await openMenu(ctx, "#/player/1129716/68");
   await page.waitForSelector(".m-rhead--card", { timeout: 30000 });
   const tabs = await page.locator(".m-tab").allInnerTexts();
-  assert(tabs.map(t => t.trim().toUpperCase()).join() === "OVERVIEW,STATS,CAREER", `tabs: ${tabs}`);
+  assert(tabs.map(t => t.trim().toUpperCase()).join() === "OVERVIEW,GAMES,STATS,CAREER", `tabs: ${tabs}`);
   assert(await page.locator(".m-rhead--card .m-chip[data-to^='#/team/']").count() === 1, "no link from the card to the team");
   await page.locator('.m-tab[data-tab="stats"]').click();
   await page.waitForFunction(() => /STATS/i.test(document.querySelector(".m-tab.is-active")?.innerText || ""), null, { timeout: 10000 });
@@ -1790,7 +1790,7 @@ check("menu: Rankings shows the top 25 and, on the All FBS view, every ranked te
   await page.waitForFunction(() => document.querySelectorAll("button.m-row--rank").length > 100, null, { timeout: 20000 });
   const all = await page.locator("button.m-row--rank").count();
   assert(all >= 130 && all <= 140, `the All FBS view lists ${all} teams`);
-  assert((await page.evaluate(() => location.hash)).endsWith("/all"), "the All FBS view is not in the address");
+  assert(/\/all(\/|$)/.test(await page.evaluate(() => location.hash)), "the All FBS view is not in the address");
   assert(/all fbs/i.test(await page.locator(".m-viewbar .m-chip[aria-current='true']").first().innerText()), "the All FBS chip is not marked as the view");
   const ranks = await page.locator("button.m-row--rank .m-rank").allInnerTexts();
   assert(ranks[0] === "1" && Number(ranks[ranks.length - 1]) === all, "the ranks do not run 1..n");
@@ -1887,6 +1887,79 @@ check("menu: the week-by-week panels do not scroll sideways at 1280px or on a ph
     for (const [width, height] of [[1280, 800], [375, 740]]) {
       const page = await openMenu(ctx, hash, { width, height });
       await page.waitForSelector("#m-weekly .m-tl", { timeout: 20000 });
+      assert(await noHorizontalScroll(page), `${hash} scrolls sideways at ${width}px`);
+      last = page;
+    }
+  }
+  return last;
+});
+
+// ── v4.23: rating on the chart, units by week, the Games tab, rankings by method and by week ────────────────────────
+check("menu: the weekly chart carries the rating on it, a change column and a units matrix", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  const page = await openMenu(ctx, "#/team/52");
+  await page.waitForSelector("#m-weekly .m-tl", { timeout: 20000 });
+  assert(await page.locator("#m-weekly .m-tl-val").count() >= WEEKLY.weeks - 1, "the chart does not write the rating above its dots");
+  assert(await page.locator("#m-weekly .m-weeksum").count() === 1, "no summary line above the chart");
+  assert(await page.locator("#m-weekly .m-ptable--weeks .delta-chip").count() >= WEEKLY.weeks - 1, "the weekly table has no change column");
+  const units = await page.locator("#m-weekly .m-ptable--units tbody tr").count();
+  assert(units >= 9, `the units matrix has ${units} rows`);
+  const text = await page.locator("#m-weekly .m-ptable--units").innerText();
+  assert(/QB/.test(text) && /Offense/.test(text) && /Roster/.test(text), "the units matrix lacks the position groups, halves or readings");
+  assert(!/undefined|NaN|null/.test(text), "the units matrix shows undefined, NaN or null");
+  return page;
+});
+
+check("menu: a player card has a Games tab with a row per game and the full box score", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  const page = await openMenu(ctx, `#/player/${WEEKLY.pid}/${WEEKLY.tid}`);
+  await page.waitForSelector('.m-tab[data-tab="games"]', { timeout: 20000 });
+  await page.locator('.m-tab[data-tab="games"]').click();
+  await page.waitForSelector("#m-games .m-ptable--glog", { timeout: 20000 });
+  const rows = await page.locator("#m-games .m-ptable--glog tbody tr").count();
+  assert(rows >= 3 && rows <= WEEKLY.weeks + 1, `the Games tab lists ${rows} games`);
+  assert(await page.locator("#m-games .m-ptable--games").count() >= 1, "no box-score group table under the game list");
+  const text = await page.locator("#m-games").innerText();
+  assert(!/undefined|NaN|null/.test(text), "the Games tab shows undefined, NaN or null");
+  assert(/a dash, not a zero/i.test(text), "the Games tab does not say a missing stat is a dash");
+  return page;
+});
+
+check("menu: Rankings flips the method and shows any completed week, with movement", async ctx => {
+  const page = await openMenu(ctx, "#/rankings/live/top");
+  await waitCount(page, "button.m-row--rank", 20);
+  assert(await page.locator('[aria-label="Rank by"] .m-chip').count() === 3, "the three ranking methods are not offered");
+  const weeks = await page.locator('[aria-label="Week"] .m-chip').count();
+  assert(weeks >= 8, `${weeks} week chips`);
+  const first = async () => (await page.locator("button.m-row--rank .m-pname").first().innerText()).trim();
+  const games = await first();
+  assert(await page.locator("button.m-row--rank .m-mv").count() > 0, "no movement markers on the current list");
+  await page.locator('[aria-label="Rank by"] .m-chip', { hasText: /rating \+ games/i }).click();
+  await page.waitForFunction(() => location.hash.includes("/blend"), null, { timeout: 15000 });
+  await waitCount(page, "button.m-row--rank", 20);
+  assert(/Rating \+ games/.test(await page.locator(".m-foot").last().innerText()), "the footer does not name the method");
+  await page.locator('[aria-label="Rank by"] .m-chip', { hasText: /^rating$/i }).click();
+  await page.waitForFunction(() => location.hash.includes("/rating"), null, { timeout: 15000 });
+  await waitCount(page, "button.m-row--rank", 20);
+  await page.locator('[aria-label="Week"] .m-chip', { hasText: /^W5$/ }).click();
+  await page.waitForFunction(() => location.hash.includes("/w5"), null, { timeout: 15000 });
+  await waitCount(page, "button.m-row--rank", 20);
+  assert(/after week 5/.test(await page.locator(".m-foot").last().innerText()), "the footer does not say which week it shows");
+  const listed = await page.locator("button.m-row--rank").count();
+  assert(listed === 25 || listed === 26, `an earlier week lists ${listed} teams (25, plus the followed team when it ranks lower)`);
+  await page.locator("button.m-row--rank").nth(2).hover();
+  await page.waitForFunction(() => /after week 5/.test(document.querySelector("#m-detail")?.innerText || ""), null, { timeout: 15000 });
+  assert(games && await first(), "no team in the first row");
+  return page;
+});
+
+check("menu: the Games tab and the flipped Rankings do not scroll sideways at 1280px or on a phone", async ctx => {
+  assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
+  let last = null;
+  for (const [hash, sel] of [[`#/player/${WEEKLY.pid}/${WEEKLY.tid}/games`, "#m-games .m-ptable--glog"], ["#/rankings/live/all/blend/w4", "button.m-row--rank"]]) {
+    for (const [width, height] of [[1280, 800], [375, 740]]) {
+      const page = await openMenu(ctx, hash, { width, height });
+      await page.waitForSelector(sel, { timeout: 20000 });
       assert(await noHorizontalScroll(page), `${hash} scrolls sideways at ${width}px`);
       last = page;
     }

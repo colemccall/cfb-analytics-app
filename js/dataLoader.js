@@ -223,6 +223,13 @@ async function fetchWeeklyPlayers(season = CONFIG.CURRENT_SEASON) {
   return _load(`weekly_players_${season}.json`);
 }
 
+// One team's per-game box scores for a season being played (script 12): { season, players: { player_id: [[game_id, { stat: value }], ...] } }.
+// null for a season with no game logs (CONFIG.GAMELOG_SEASONS) or no team, without a request.
+async function fetchGameLog(teamId, season = CONFIG.CURRENT_SEASON) {
+  if (teamId == null || !CONFIG.GAMELOG_SEASONS.includes(Number(season))) return null;
+  return _load(`gamelog_${season}_${teamId}.json`);
+}
+
 // Every team's schedule for one season, keyed by team id — the League
 // standings are computed from these results. {} when the season has no file.
 async function fetchSeasonSchedules(season = CONFIG.CURRENT_SEASON) {

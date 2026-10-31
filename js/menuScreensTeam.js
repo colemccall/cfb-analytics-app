@@ -231,16 +231,22 @@ function menuNoStatsWhy(p) {
 // The three sections of a player card, switched with the tab strip (LB / RB).
 const MENU_CARD_TABS = [{ id: "overview", label: "Overview" }, { id: "stats", label: "Stats" }, { id: "career", label: "Career" }];
 
+// The tabs for the season on screen: a season with game logs (CONFIG.GAMELOG_SEASONS) adds Games, between Overview and Stats.
+function menuCardTabs() {
+  return CONFIG.GAMELOG_SEASONS.includes(MENU.season)
+    ? [MENU_CARD_TABS[0], { id: "games", label: "Games" }, ...MENU_CARD_TABS.slice(1)] : MENU_CARD_TABS;
+}
+
 menuRouter.register("player", {
   title: ctx => ctx.player?.name || "Player",
   crumb: () => "PLAYER",
   prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Open" }, { action: "tabs", label: "Section" }, { action: "back", label: "Back" }],
-  tabs: ctx => ({ items: MENU_CARD_TABS, active: MENU_CARD_TABS.some(t => t.id === ctx.params[2]) ? ctx.params[2] : "overview",
+  tabs: ctx => ({ items: menuCardTabs(), active: menuCardTabs().some(t => t.id === ctx.params[2]) ? ctx.params[2] : "overview",
                   go: id => menuRouter.go(`#/player/${ctx.params[0]}/${ctx.params[1] || 0}/${id}`) }),
   async render(ctx) {
     const d = await menuTeams(MENU.season);
     const pid = parseInt(ctx.params[0]);
-    const tab = MENU_CARD_TABS.some(t => t.id === ctx.params[2]) ? ctx.params[2] : "overview";
+    const tab = menuCardTabs().some(t => t.id === ctx.params[2]) ? ctx.params[2] : "overview";
     // His whole career is one small shard (cards/NNNN.json). null means that file failed, which is
     // not the same as "he has no ratings row": the card says which.
     const career = await fetchPlayerCard(pid);
@@ -276,7 +282,10 @@ menuRouter.register("player", {
     const none = `<p class="m-empty">${_esc(menuNoStatsWhy(p))}</p>`;
     const failedNote = '<p class="m-empty">His career file did not load. Use Retry.</p>';
     let body;
-    if (tab === "stats") {
+    if (tab === "games") {
+      body = `<section class="m-panel"><h3 class="m-h3">${season} game by game</h3>${season === MENU.season
+        ? '<div id="m-games"><p class="m-empty">Loading…</p></div>' : `<p class="m-empty">Game-by-game stats are on file for ${MENU.season} only.</p>`}</section>`;
+    } else if (tab === "stats") {
       const tables = menuStatTable(p);
       body = `<section class="m-panel"><h3 class="m-h3">${season} stats${trio && p.live_through_week ? ` · through week ${p.live_through_week}` : ""}</h3>
           <div class="m-stats">${tables || none}</div></section>`;
@@ -309,6 +318,8 @@ menuRouter.register("player", {
     menuWirePhoto(stage);
     const weekly = stage.querySelector("#m-weekly");
     if (weekly) menuFillWeeklyPlayer(weekly, ctx.player, ctx.team, parseInt(ctx.params[0]));
+    const games = stage.querySelector("#m-games");
+    if (games) menuFillGames(games, ctx.player, ctx.team, parseInt(ctx.params[0]), ctx.player.position_group || "ATH");
   },
   prefer: () => ".m-chip",
 });

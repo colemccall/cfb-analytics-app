@@ -418,7 +418,7 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: rg
 /* ── Schedule, standings, rankings, portal, recruiting rows ──────────────── */
 .m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3.4rem minmax(0, 1fr) 6.4rem 4.6rem 4.6rem 6.4rem; }
 .m-rowhead.m-row--stand, .m-row--stand { grid-template-columns: 2.2rem minmax(0, 1fr) 4.4rem 4.4rem 3.6rem 3.6rem 4.6rem; }
-.m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 2.4rem minmax(0, 1fr) 9rem 4rem 4.6rem 5.6rem; }
+.m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 4.6rem minmax(0, 1fr) 9rem 4rem 4.6rem 5.6rem; }
 /* Compare: rank, team, then five readings (power, headline, results, roster, stats), each a value over its own rank. */
 .m-rowhead.m-row--cmp, .m-row--cmp { grid-template-columns: 2.4rem minmax(0, 1fr) repeat(5, 4.6rem); }
 .m-cmp { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; min-width: 0; }
@@ -568,6 +568,16 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-tl-key--dot { border-radius: 50%; background: var(--m-accent); }
 .m-tl-key--grade { transform: rotate(45deg); border: 2px solid var(--m-muted); }
 .m-twrap { overflow-x: auto; }
+.m-tl { padding-top: 1.3rem; }
+.m-tl-val { position: absolute; transform: translate(-50%, -165%); font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm); line-height: 1; color: var(--m-text); pointer-events: none; }
+.m-weeksum { margin: 0.4rem 0; font-size: var(--fs-md); }
+.m-viewlabel { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; font-size: var(--fs-label); color: var(--m-muted); align-self: center; }
+.m-mv { margin-left: 0.3rem; font-size: var(--fs-sm); font-weight: 600; color: var(--m-muted); }
+.m-ptable--units td, .m-ptable--units th[scope="col"] { text-align: center; }
+.m-ptable--units th[scope="row"] { text-align: left; font-weight: 600; white-space: nowrap; }
+.m-unit-group th { text-align: left; font-family: var(--font-display); letter-spacing: 0.1em; font-size: var(--fs-label); color: var(--m-muted); padding-top: 0.5rem; border-bottom: 1px solid var(--m-line); }
+.m-ptable--glog td, .m-ptable--games td { white-space: nowrap; }
+.m-ptable--glog .m-gl-line { white-space: normal; min-width: 11rem; }
 .m-ptable--weeks td:nth-child(2) { max-width: none; overflow: visible; text-overflow: clip; white-space: nowrap; }
 .m-ptable--weeks .m-wk-game { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Readers, players, history */
@@ -742,4 +752,6 @@ button.m-vs-side.is-selected { background: linear-gradient(#c8161f, var(--m-hot)
   .m-tl-y, .m-tl-plot { height: 7rem; }
   .m-ptable--weeks .m-wk-power { display: none; }
   .m-ptable--weeks .m-wk-game { max-width: 7.5rem; }
+  .m-ptable--glog .m-gl-line { min-width: 9rem; }
+  .m-tl-val { font-size: var(--fs-sm); }
 }
