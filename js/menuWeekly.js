@@ -246,7 +246,7 @@ const MENU_RANK_PLAYED = [
 ];
 
 // The methods for a list ("live" is the season being played), and a method id made valid: an unknown or missing one is the list's first.
-function menuRankMethods(list) { return list === "live" ? MENU_RANK_LIVE : MENU_RANK_PLAYED; }
+function menuRankMethods(list) { return list === "live" || list === "weeks" ? MENU_RANK_LIVE : MENU_RANK_PLAYED; }
 function menuRankMethod(list, id) { const ms = menuRankMethods(list); return (ms.find(m => m[0] === id) || ms[0])[0]; }
 
 // The week a route asks for ("w5"): a number among the weeks on file, or null for the current numbers (no week, the latest week, or one

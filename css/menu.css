@@ -448,6 +448,8 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: va
   grid-template-columns: 1.6rem minmax(0, 1fr) 4rem; background: transparent; border: 0; color: var(--m-text);
   border-bottom: 1px solid color-mix(in srgb, var(--m-line) 45%, transparent);
 }
+.m-ptag { margin-left: 0.3rem; font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.08em; color: var(--m-muted); }
+.m-drow.is-selected .m-ptag { color: var(--m-on-hot); }
 .m-drow.is-trio { grid-template-columns: 1.6rem minmax(0, 1fr) repeat(3, 3.7rem); }
 
 /* ── Player card ─────────────────────────────────────────────────────────── */

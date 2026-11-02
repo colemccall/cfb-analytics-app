@@ -716,7 +716,7 @@ same 11,342 player-season pairs for every variant`,
   {
     id: "live-season",
     group: "projections",
-    title: "Ratings for a season in progress: earned so far, rescaled to full-season pace",
+    title: "Ratings for a season in progress: the level he has played at, believed by the games he has played",
     summary: `Once games are played, 2026 stops being only a projection and is not yet a finished season.
       The "Earned to date" section of the '26 page rates every team and every player with enough games on
       what has happened so far. EDGE divides a season's weighted production by the square root of games
@@ -729,15 +729,16 @@ same 11,342 player-season pairs for every variant`,
       { name: "Advanced season stats, 2026", source: "script 09, team_advanced_season", coverage: "138 teams" },
       { name: "Preseason projection", source: "script 16's engine=\"projected\" rows", coverage: "4,340 of the 5,468 rated players have one to compare with" },
     ],
-    formula: `EDGE_live    = EDGE_raw x sqrt(r_team) x k(share)   r_team = regular-season games scheduled / completed
-                                                   share = his games / his team's completed games; k = 0.893 / 0.954 / 0.990 / 1.006 for share <=0.5 / <=0.75 / <=0.9 / above
-                                                   (a scale: nothing is pulled toward a mean)
-games damp (script 07) = confidence = max(0.25, g_eff/8) toward the position average, g_eff = share x 12 in a season in progress, g in a finished one
+    formula: `EDGE_level  = EDGE_raw x sqrt(12 / n)        n = the games HE has played (what a 12-game season at his level scores)
+rating      = a + b x edge_to_ovr(EDGE_level)   (a, b) = PART_SEASON_CURVE[position family, n]: b = 0.30 to 0.91, smaller the fewer games and the noisier the position; n of 8 or more uses the 8-9 line
+nothing in it reads how many games his TEAM has played: a game he sat out changes neither his EDGE nor his curve
+games damp (script 07): none in a season in progress (the curve is its sample-size rule); finished seasons keep confidence = max(0.25, games/8)
 stats_measured_live = stats_measured x r_team
 rating       = the ordinary chain (06 -> 07 -> 10) on those numbers, in a private data copy
 published    = players with a production or blended rating (>= 3 games with a countable stat)
                + every team, as of the last completed week`,
-    reality: `Nothing is written to ratings.json, team_ratings.json or player_edge.json. Script 17 copies
+    reality: `**v4.24 replaced the v4.20 rule.** Until then a part-season EDGE was multiplied by sqrt(team games scheduled / completed) and a calibration by the share of his team's games he played, so a player lost rating for every game he missed: Dante Moore went from 85.6 to 72.9 over four games he did not play. Measured on 2021 to 2025 (86,717 player-cuts), that availability term predicted nothing about how a player played afterwards (at 75% of team games or fewer it was no better than a placebo that dealt the share to other players). The rating is now the level he has played at, through a line fitted for each position family and each count of games he has played. A finished season is not changed: its EDGE is still sum / sqrt(games), so a player who finishes with four games is rated lower than the same player was in season (see limits).
+      Nothing is written to ratings.json, team_ratings.json or player_edge.json. Script 17 copies
       data/raw and data/computed to a temporary folder, points the store at it (CFB_DATA_DIR) and runs the
       chain there. Script 15 trains on engine="edge", so a part-season row written there would have been
       read as a finished season. The playing-time tier thresholds are full-season totals and are NOT
@@ -760,7 +761,8 @@ back-test does: provisional numbers must not be able to leak into anything that 
       { label: "Script 07 distribution check, 2026", value: "warns on RB p90 (77.7), TE mean (57.5) and TE p90 (73.9): the recruiting-basis share above, informational and non-blocking by design" },
       { label: "Top five teams to date", value: "LSU 92.4, Indiana 92.3, Notre Dame 91.7, Ohio State 91.6, Georgia 91.5; Miami, the preseason first at 93.5, is 7-0 and rated 90.6" },
     ],
-    limits: `**v4.20: the pace step is a scale, refit without the pull toward the position mean.** Measured on 2021-2025 (86,707 player-cuts): MAE 4.789 rating points against 4.866, but a 7-game player rated 85 or more finishes 1.60 points
+    limits: `**v4.24: the curve lowers the top of a short sample, and a finished season is not curved.** A player whose level rates 85 or more plays on average 3.6 points lower in his remaining games (1.8 lower than the final rating as defined before v4.24), so a high performer's in-season rating sits below the rating a finished season gives the same per-game level. A player who misses games is no longer lowered for it in season, but a finished season still rates by sum / sqrt(games), so his final rating can fall below his in-season one. The curve was fitted on part-season cuts at weeks 4 to 10, has no line for a player with ten or more games (the 8-9 line is used), and none for kickers, punters or linemen. The owner chose to show a backup or an injured player playing well on a small sample without a separate label.
+      **(superseded in v4.24) the v4.20 pace step, kept for the record:** it was a scale, refit without the pull toward the position mean. Measured on 2021-2025 (86,707 player-cuts): MAE 4.789 rating points against 4.866, but a 7-game player rated 85 or more finishes 1.60 points
       lower on average than the scale says (0.59 with the pull) and one under 60 finishes 4.65 higher (4.21). Position and cut week add under 0.02 of MAE and are not in it. scripts/validate_pace_scale.py reproduces the table.
       **The games damp reads the share of team games in a season in progress** (it used raw games out of 8, which damped a full-time starter at week 8 to 0.875 and cost a team with a bye); finished seasons keep the raw count.
       Deleting it was measured and rejected: for finished-season players with 3-7 games it helps below a rating of 55 and over-penalises 70 and above. The live opponent map was empty until v4.20 (see the opponent-strength entry).
@@ -786,7 +788,11 @@ back-test does: provisional numbers must not be able to leak into anything that 
       **Records can be a game short** for the 30 games with no opponent score, and independents and
       conference games are derived from the schedule rather than read from a flag.`,
     alternatives: [
-      { label: "Refit the scale without the shrink (a pure games scale)", basis: "scripts/validate_pace_scale.py, 2021-2025, four cuts", status: "shipped (v4.20)", note: "MAE 4.866 -> 4.789; top tier 1.0 point more generous. The owner asked for a scale, not a shrink." },
+      { label: "Rate the level he played at, through a curve by games played (PART_SEASON_CURVE)", basis: "scripts/validate_part_time_rating.py, 2021-2025, four cuts, leave-one-season-out, scored on how he plays afterwards", status: "shipped (v4.24)", note: "Mean absolute error against his later level, 50-75% of team games: 10.79 today, 10.03 level only, 9.09 shrunk by reliability, 8.80 the curve. Cost: the top of a short sample is lowered (85+ players play 3.6 lower afterwards)." },
+      { label: "Keep the availability term (sqrt of his share of the team's games, v4.20)", basis: "same", status: "rejected", note: "No better than a placebo that deals the share to other players at 75% of team games or fewer (10.79 against 10.58 at 50-75%); it measures how often a player plays, not how well." },
+      { label: "Rate the level with no sample-size adjustment", basis: "same", status: "rejected", note: "Better than the availability term but 1.2 points worse than the curve at 50-75% of team games, and unbiased only on average." },
+      { label: "Shrink the level toward the position mean by the position's reliability R(n)", basis: "same", status: "rejected", note: "Close to the curve on error (9.09 against 8.80 at 50-75%) but biased high for small samples (+3.9); the fitted curve is the same idea with the slope learned instead of assumed." },
+      { label: "Refit the scale without the shrink (a pure games scale)", basis: "scripts/validate_pace_scale.py, 2021-2025, four cuts", status: "superseded (v4.20 shipped it)", note: "MAE 4.866 -> 4.789; top tier 1.0 point more generous. The owner asked for a scale, not a shrink." },
       { label: "Per-position and per-cut-week calibration constants", basis: "same", status: "rejected", note: "MAE 4.827 / 4.786 / 4.775 against 4.789 for the share of games alone." },
       { label: "Delete the games damp in script 07", basis: "finished seasons 2016-2024, next-season rating", status: "rejected", note: "It helps below 55 and hurts at 70 and above; kept for finished seasons and made share-based in a season in progress." },
       { label: "Write the part-season ratings into the normal edge engine", basis: "simplest", status: "rejected", note: "Script 15 trains career curves on engine=edge. A 2026 row built from eight games would have been read as a finished season." },
@@ -798,6 +804,7 @@ back-test does: provisional numbers must not be able to leak into anything that 
       { label: "Fold the games played into the preseason projections", basis: "script 16", status: "experiment", note: "A different model from this one; not attempted." },
     ],
     changelog: [
+      { version: "v4.24", change: "The pace step and the share-based games damp are replaced by the level he has played at and PART_SEASON_CURVE; sacks and tackles for loss are read as decimals (half a sack was 0); the live file is labelled through the last complete week." },
       { version: "v4.8", change: "Script 17, the --in-progress and --through-week options on script 06, validate_pace.py, the CFB_DATA_DIR and CFB_REFRESH_YEARS switches, and the Earned to date section." },
       { version: "v4.22", change: "The live records read games through fill_shutouts (shutout wins were missing from them); weekly snapshots of the same chain are in weekly-progression." },
       { version: "v4.20", change: "The pace step is a scale refit without the pull toward the position mean; the games damp reads the share of team games in a season in progress; the live opponent map is no longer empty." },
@@ -1362,17 +1369,18 @@ power        = rating part + results part                              (points p
       rating (the headline for a team, the earned rating for a player) and the one game played that week, as a grade. The running number is the one the rest of the site shows, at an earlier date;
       the grade is a separate, noisier reading of a single game. Both are provisional in the same way live ratings are, and neither uses last season, the preseason, or any outside number.`,
     inputs: [
-      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026 only; weeks 1 to 9 on file" },
-      { name: "Per-game player stats up to week N", source: "data/raw/stats.json game_aggregate rows (script 06 --through-week)", coverage: "2026" },
+      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026, weeks 1 to 9 on file; 2024 and 2025 replayed, weeks 1 to 15" },
+      { name: "Per-game player stats up to week N", source: "data/raw/stats.json game_aggregate rows (script 06 --through-week)", coverage: "2024, 2025, 2026" },
       { name: "Per-game player box scores, every game", source: "data/raw/stats.json game_aggregate rows, exported by script 12 as gamelog_{season}_{team_id}.json", coverage: "2026: 138 team files, 8,079 players, 35,520 player-games" },
       { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 9, 138 FBS teams" },
     ],
     formula: `after week N:   run 06 (in progress, through N) -> 07 -> 10 (through N) on the games of weeks 1..N
 team rating   = 1/6 roster + 1/6 stats + 2/3 results                     (the live headline, built from weeks 1..N)
 team game grade   = results_to_ovr( clip(margin, +-28) - home edge (home) / + home edge (away) + opponent strength after week N )
-player rating = the live earned rating after week N                       (a scale for the games played, not a shrink)
+player rating = the live earned rating after week N                       (the level he has played at, through PART_SEASON_CURVE for three or more games; see live-season)
 player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position )     (one game read as a 12-game season)`,
-    reality: `The stats half for week N is the sum of the per-game box scores of weeks 1 to N, which equals /stats/season exactly (55 of 55 statistics shared by the two sources, all 138 FBS teams, 0 mismatches).
+    reality: `**v4.24: a week's snapshot now sees only its own weeks, and 2024 and 2025 are replayed.** Until then the builder removed the scores of later games and left the stats whole, so script 07 read full-season totals into every earlier week (at week 1, 595 players held a production-basis rating with no game through that week; now 10, all kickers and punters). A week now holds only games through it; season totals keep only usage, PPA and award fields; the season's finished ratings are cleared from the working copy; and only weeks at least 90% complete are built. A placebo that scrambles everything after week 3 moves 0 of 6,553 earned ratings (scripts/validate_snapshot_invariance.py). 2024 and 2025 are replayed with today's method, weeks 1 to 15, labelled so: week 16 holds only the service-academy game and has no cached team box score. A replayed week's power is games-only, as for any season in progress.
+      The stats half for week N is the sum of the per-game box scores of weeks 1 to N, which equals /stats/season exactly (55 of 55 statistics shared by the two sources, all 138 FBS teams, 0 mismatches).
       The offensive-line unit is NOT in the weekly team numbers: it comes from /stats/season/advanced, which has no weekly version, so the roster reading of every weekly team number leaves it out and renormalises.
       For the latest week this is the only difference from the live headline: mean 0.26 and largest 0.88 rating points over 138 teams. Players have no such difference: all 7,587 rated players match the live file exactly.
       A game's grade uses the opponent strengths as they stood after that week's games (the same ridge solve as the results reading) and is not revised later.
@@ -1387,6 +1395,8 @@ player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position 
       { label: "Winner of every later FBS game (home edge added), by the rating after week N, 2026 weeks 2 to 9, 1,645 picks pooled (a game is counted once for each earlier week)", value: "headline 62.2%, power 60.5%, home team always 58.7%, placebo with the ratings dealt to the wrong teams 54.3%. Real, small and thin: this season has too few later games to support more." },
       { label: "Does a single game's grade carry signal into the next game?", value: "player: correlation between a grade and the same player's next grade 0.366 over 24,405 consecutive pairs, placebo 0.001; team: 0.317 over 829 pairs, placebo 0.087" },
       { label: "How noisy is one game?", value: "the standard deviation of a player's game grade is 18.2 rating points; the week-to-week change in his running rating is 5.3" },
+      { label: "Replay: rating after week 5 against after week 15, Spearman, 2024 / 2025 (last season carried forward in brackets)", value: "QB 0.826 / 0.872 (0.479 / 0.627); RB 0.833 / 0.811 (0.526 / 0.382); WR/TE 0.783 / 0.774 (0.470 / 0.491); DL/EDGE 0.738 / 0.772 (0.492 / 0.435); LB 0.787 / 0.777 (0.492 / 0.486); DB 0.794 / 0.785 (0.474 / 0.486)" },
+      { label: "Replay: winner of every FBS-vs-FBS game in weeks 6 to 15 by the power after the week before, 2024 / 2025", value: "69.9% of 495 / 70.0% of 503; placebo with powers dealt to other teams 48.7% / 44.7%; always the home team 57.8% / 57.1%; better record so far 63.9% / 66.4%" },
       { label: "Rebuilding the weekly line unit from per-game advanced rates (2025 as a test)", value: "correlation with the season values 0.98 (line yards), 0.98 (stuff rate), 0.98 (second level) and 0.78 (power success): close, not equal, so it was not used" },
     ],
     limits: `**The weekly team numbers leave out the offensive-line unit** (up to 0.9 rating points at the latest week), so the last point of a team's line can differ slightly from the number shown elsewhere.

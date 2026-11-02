@@ -49,10 +49,11 @@ function menuSortPlayers(players, sort) {
   return rows.sort((a, b) => (sort.key(b) ?? -1) - (sort.key(a) ?? -1));
 }
 
-// The three rating cells for a row: [last season, projection, to date] on a season
-// that carries them, else the single rating. Same pills as every other table.
+// The rating cell for a row. A season being played shows ONE number, the one calculated from this season's games (to date):
+// every roster, depth chart and player list reads the same primary rating. Last season's rating and the projection are on the
+// player card. A season without it shows its single rating. Same pills as every other table.
 function menuRatingCells(p, season) {
-  if (hasTrio(p)) return ratingTrioCells(p, season).map(h => `<span class="m-rating">${h}</span>`);
+  if (hasTrio(p)) return [`<span class="m-rating">${livePill(p)}</span>`];
   return [`<span class="m-rating">${ovrPill(p.overall_rating, { label: `Overall rating, ${season}`, season, why: menuNoRatingWhy(p, season) })}</span>`];
 }
 
@@ -108,7 +109,7 @@ function menuRosterHead(p, season, opts = {}) {
       </dl>
       <div class="m-rhead-ovr" title="${_esc(lead == null ? "No rating yet" : "")}">
         <span class="m-rhead-cap">${leadCap}</span><b>${leadVal == null ? "—" : Math.round(leadVal)}</b>
-        ${hasTrio(p) ? `<span class="m-rhead-trio">${ratingTrioCells(p, season).join("")}</span>` : ""}
+        ${hasTrio(p) && opts.photo ? `<span class="m-rhead-trio">${ratingTrioCells(p, season).join("")}</span>` : ""}
       </div>
     </div>`;
 }
@@ -135,11 +136,9 @@ menuRouter.register("roster", {
     ctx.players = sorted;
     const trio = all.some(hasTrio);
     const head = (col, label, cls = "") => `<button class="m-th${cls}${sort.col === col ? " is-sorted" : ""}" type="button" tabindex="-1" data-col="${col}">${label}${sort.col === col ? " ▾" : ""}</button>`;
-    const ratingHeads = trio
-      ? [head("prev", MENU.season - 1, " m-th--c"), head("proj", "PROJ", " m-th--c"), head("live", "LIVE", " m-th--c")].join("")
-      : head("proj", "OVR", " m-th--c");
+    const ratingHeads = trio ? head("live", "RATING", " m-th--c") : head("proj", "OVR", " m-th--c");
     const rows = sorted.map((p, i) => `
-      <button class="m-row m-row--roster${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="roster" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
+      <button class="m-row m-row--roster" type="button" data-nav data-nav-group="roster" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${menuAvatar(p.player_id, p.name, ctx.hs)}${_esc(p.name || "—")}</span>
         <span class="m-pos">${posBadge(p.position_group)}</span>
@@ -152,11 +151,11 @@ menuRouter.register("roster", {
       </button>`).join("");
     return `<section class="m-panel m-list m-roster" aria-label="Roster">
         <div id="m-rhead">${menuRosterHead(sorted[0], MENU.season, { hs: ctx.hs })}</div>
-        <div class="m-rowhead m-row--roster${trio ? " is-trio" : ""}"><span>#</span>${head("name", "PLAYER")}${head("pos", "POS")}${head("class", "CL")}${head("ht", "HT")}${head("wt", "WT")}<span>ST</span>${head("stars", "★")}${ratingHeads}</div>
+        <div class="m-rowhead m-row--roster"><span>#</span>${head("name", "PLAYER")}${head("pos", "POS")}${head("class", "CL")}${head("ht", "HT")}${head("wt", "WT")}<span>ST</span>${head("stars", "★")}${ratingHeads}</div>
         <div class="m-rbody">${rows || `<p class="m-empty">${_esc(none)}</p>`}</div>
       </section>
     <p class="m-foot">${sorted.length} player${sorted.length === 1 ? "" : "s"} · sorted by ${sort.label.toLowerCase()} · ${trio
-      ? `${MENU.season - 1} is earned, PROJ is the preseason projection, LIVE is earned so far (provisional). Click a heading to sort.`
+      ? `RATING is what he has earned so far this season, scaled to a full season (provisional); last season's rating and the preseason projection are on his card. Click a heading to sort.`
       : "Ratings shown are for the season viewed. Click a heading to sort."}</p>`;
   },
   mount(stage, ctx) {
@@ -187,7 +186,7 @@ menuRouter.register("depth", {
   crumb: () => "TEAM › DEPTH CHART",
   prompts: [{ action: "move", label: "Move" }, { action: "select", label: "Player card" },
             { action: "tabs", label: "Unit" }, { action: "back", label: "Back" }],
-  tabs: ctx => ({ items: Object.keys(DEPTH_SLOTS).map(u => ({ id: u, label: u })),
+  tabs: ctx => ({ items: Object.keys(DEPTH_SLOTS_MENU).map(u => ({ id: u, label: u })),
                   active: ctx.params[0] || "Offense", go: id => menuRouter.go(menuTeamPath(ctx.route.teamId, "depth", id)) }),
   async render(ctx) {
     const d = await menuTeams(MENU.season);
@@ -198,16 +197,18 @@ menuRouter.register("depth", {
     const none = menuEmptyRosterWhy(players, team, "No players in this unit.");
     ctx.hs = await fetchHeadshots();
     const trio = players.some(hasTrio);
-    const groups = (DEPTH_SLOTS[unit] || []).filter(([g]) => players.some(p => (p.position_group || p.position) === g));
-    const cards = groups.map(([g, n]) => {
-      const rows = players.filter(p => (p.position_group || p.position) === g).sort(_depthOrder);
+    const groups = (DEPTH_SLOTS_MENU[unit] || []).filter(slot => depthGroupPlayers(players, slot).length);
+    const cards = groups.map(slot => {
+      const [g, n, members] = slot;
+      const rows = depthGroupPlayers(players, slot);
       const unrated = rows.length && rows.every(p => menuLeadRating(p) == null);
+      const mixed = members && members.length > 1;      // DL holds DE, DT and EDGE; DB holds CB, S and DB: each keeps his own tag
       const list = rows.slice(0, n).map((p, i) => `
-        <button class="m-drow${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="depth-${g}" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
-          <span class="m-slot">${i + 1}</span><span class="m-pname">${menuAvatar(p.player_id, p.name, ctx.hs)}${_esc(p.name || "—")}</span>
+        <button class="m-drow" type="button" data-nav data-nav-group="depth-${g}" data-pid="${p.player_id}" data-to="${menuPlayerPath(p.player_id, team && team.id)}">
+          <span class="m-slot">${i + 1}</span><span class="m-pname">${menuAvatar(p.player_id, p.name, ctx.hs)}${_esc(p.name || "—")}${mixed ? ` <small class="m-ptag" title="Listed position">${_esc(p.position || p.position_group || "")}</small>` : ""}</span>
           ${menuRatingCells(p, MENU.season).join("")}
         </button>`).join("");
-      return `<section class="m-panel m-group"><div class="m-group-head">${posBadge(g)}<span>${rows.length} on roster${unrated ? " · not rated" : ""}</span></div>${list}</section>`;
+      return `<section class="m-panel m-group"><div class="m-group-head">${posBadge(g)}<span>${rows.length} on roster${rows.length > n ? ` · top ${n}` : ""}${unrated ? " · not rated" : ""}</span></div>${list}</section>`;
     }).join("");
     return `<div class="m-groups">${cards || `<p class="m-empty">${_esc(none)}</p>`}</div>
       <p class="m-foot"><b>Not an official depth chart.</b> No source we hold has depth data, so each group is in the order of its

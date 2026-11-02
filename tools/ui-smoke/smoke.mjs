@@ -1143,11 +1143,11 @@ check("menu: keyboard walks hub → roster → card, and Escape walks back", asy
   return page;
 });
 
-check("menu: the roster and the card show 2025, projection and to-date, three tiles on the card", async ctx => {
+check("menu: the roster shows one calculated rating; the card shows 2025, projection and to-date as three tiles", async ctx => {
   const page = await openMenu(ctx, "#/roster");
   await waitCount(page, ".m-row", 10);
   const head = (await page.locator(".m-rowhead").first().innerText()).toUpperCase();
-  assert(head.includes(String(CURRENT - 1)) && head.includes("PROJ") && head.includes("LIVE"), `roster header: ${head}`);
+  assert(head.includes("RATING") && !head.includes("PROJ") && !head.includes("LIVE"), `roster header: ${head}`);
   await page.locator(".m-row").first().click();
   await page.waitForSelector(".trio-strip", { timeout: 30000 });
   assert(await page.locator(".trio-tile").count() === 3, "expected three rating tiles on the card");
@@ -1402,14 +1402,17 @@ check("menu: the depth chart lists a deep bench, not three or four players a pos
   return null;
 });
 
-check("menu: the defensive depth chart shows at least 5 of each kind of defensive back, up to 8", async ctx => {
+check("menu: the defensive depth chart groups CB and S inside DB and lists up to 10 a group", async ctx => {
   const page = await openMenu(ctx, "#/depth/Defense");
   await waitCount(page, ".m-drow", 20);
-  for (const g of ["CB", "S", "DB"]) {
-    const n = await page.locator(`.m-drow[data-nav-group="depth-${g}"]`).count();
-    if (n === 0) continue;   // a roster with nobody labelled this way shows no group
-    assert(n >= 5 && n <= 8, `${g} shows ${n} players, wanted 5 to 8`);
+  for (const g of ["CB", "S"]) {
+    assert(await page.locator(`.m-drow[data-nav-group="depth-${g}"]`).count() === 0, `${g} has a group of its own; it belongs inside DB`);
   }
+  for (const g of ["DL", "LB", "DB"]) {
+    const n = await page.locator(`.m-drow[data-nav-group="depth-${g}"]`).count();
+    assert(n >= 5 && n <= 10, `${g} shows ${n} players, wanted 5 to 10`);
+  }
+  assert(await page.locator(`.m-drow[data-nav-group="depth-DB"] .m-ptag`).count() > 0, "a DB row does not keep its own position tag");
   return null;
 });
 
@@ -1930,7 +1933,9 @@ check("menu: Rankings flips the method and shows any completed week, with moveme
   await waitCount(page, "button.m-row--rank", 20);
   assert(await page.locator('[aria-label="Rank by"] .m-chip').count() === 3, "the three ranking methods are not offered");
   const weeks = await page.locator('[aria-label="Week"] .m-chip').count();
-  assert(weeks >= 8, `${weeks} week chips`);
+  assert(weeks >= 5, `${weeks} week chips`);
+  assert(await page.locator('[aria-label="Week"] .m-chip', { hasText: /^CURRENT$/ }).count() === 1, "the newest week is not labelled CURRENT");
+  assert(await page.locator('[aria-label="Week"] .m-chip', { hasText: /^W[1-4]$/ }).count() === 0, "rankings offer a week before week 5");
   const first = async () => (await page.locator("button.m-row--rank .m-pname").first().innerText()).trim();
   const games = await first();
   assert(await page.locator("button.m-row--rank .m-mv").count() > 0, "no movement markers on the current list");
@@ -1956,7 +1961,7 @@ check("menu: Rankings flips the method and shows any completed week, with moveme
 check("menu: the Games tab and the flipped Rankings do not scroll sideways at 1280px or on a phone", async ctx => {
   assert(WEEKLY && WEEKLY.pid, "no weekly files on disk to check against");
   let last = null;
-  for (const [hash, sel] of [[`#/player/${WEEKLY.pid}/${WEEKLY.tid}/games`, "#m-games .m-ptable--glog"], ["#/rankings/live/all/blend/w4", "button.m-row--rank"]]) {
+  for (const [hash, sel] of [[`#/player/${WEEKLY.pid}/${WEEKLY.tid}/games`, "#m-games .m-ptable--glog"], ["#/rankings/live/all/blend/w5", "button.m-row--rank"]]) {
     for (const [width, height] of [[1280, 800], [375, 740]]) {
       const page = await openMenu(ctx, hash, { width, height });
       await page.waitForSelector(sel, { timeout: 20000 });

@@ -75,6 +75,21 @@ const DEPTH_SLOTS = {
   "Special teams": [["K", 2], ["P", 2]],
 };
 
+// The menu's depth chart, which goes deeper than the classic one above: three defensive groups, ten deep, each taking
+// every player whose position group is listed ([label, how many, position groups in it]). A tag beside each name keeps his
+// own position (DE, DT, CB, FS ...), so a defensive line is one list and a secondary is one list. Offense and special
+// teams are as in DEPTH_SLOTS (a group with no third entry holds just itself).
+const DEPTH_SLOTS_MENU = {
+  ...DEPTH_SLOTS,
+  Defense: [["DL", 10, ["DL", "EDGE"]], ["LB", 10, ["LB"]], ["DB", 10, ["CB", "S", "DB"]]],
+};
+
+// The players of a depth group in depth order: everyone whose position group is one of its members.
+function depthGroupPlayers(players, [label, , members]) {
+  const set = new Set(members || [label]);
+  return players.filter(p => set.has(p.position_group || p.position)).sort(_depthOrder);
+}
+
 // The order players are listed in within a group. Rated players go by rating;
 // a position we do not rate (OL) goes by recruiting grade, which is all there is,
 // and the group says so. Unrated players always come last.

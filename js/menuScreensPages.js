@@ -149,9 +149,9 @@ menuRouter.register("players", {
     const sorted = menuSortPlayers(list, sort).slice(0, 200);
     ctx.players = sorted;
     const trio = sorted.some(hasTrio);
-    const head = trio ? `<span>${MENU.season - 1}</span><span>PROJ</span><span>LIVE</span>` : "<span>OVR</span>";
+    const head = trio ? "<span>RATING</span>" : "<span>OVR</span>";
     const rows = sorted.map((p, i) => `
-      <button class="m-row m-row--player${trio ? " is-trio" : ""}" type="button" data-nav data-nav-group="players" data-pid="${p.id}" data-tid="${p.team_id}" data-to="${menuPlayerPath(p.id, p.team_id)}">
+      <button class="m-row m-row--player" type="button" data-nav data-nav-group="players" data-pid="${p.id}" data-tid="${p.team_id}" data-to="${menuPlayerPath(p.id, p.team_id)}">
         <span class="m-rank">${i + 1}</span>
         <span class="m-pname">${menuAvatar(p.id, p.name, hs)}${_esc(p.name || "—")}</span>
         <span class="m-pos">${posBadge(p.position_group)}</span>
@@ -160,7 +160,7 @@ menuRouter.register("players", {
         ${menuRatingCells(p, MENU.season).join("")}
       </button>`).join("");
     return `<section class="m-panel m-list" aria-label="Players">
-        <div class="m-rowhead m-row--player${trio ? " is-trio" : ""}"><span>#</span><span>PLAYER</span><span>POS</span><span>TEAM</span><span>CL</span>${head}</div>
+        <div class="m-rowhead m-row--player"><span>#</span><span>PLAYER</span><span>POS</span><span>TEAM</span><span>CL</span>${head}</div>
         ${rows || '<p class="m-empty">No players match.</p>'}
       </section>
       <p class="m-foot">The top ${sorted.length} of ${list.length.toLocaleString()} rated players, sorted by ${sort.label.toLowerCase()}. Use the Sort button in the bar below${menuInput.device === "pad" ? " (X)" : ""} to change the sort. Offensive linemen are not rated and are not listed.</p>`;

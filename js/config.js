@@ -57,7 +57,12 @@ const CONFIG = {
 
   // Seasons with weekly_teams_{season}.json and weekly_players_{season}.json (script 17b: the ratings as they stood after
   // each completed week). Guarded against the files on disk by tests/test_frontend_config.py.
-  WEEKLY_SEASONS:     [2026],
+  WEEKLY_SEASONS:     [2024, 2025, 2026],
+
+  // The first week the Rankings week selector offers (every season with a weekly file). Earlier weeks are mostly
+  // non-conference games against opponents whose strength is not known yet, so a ranking after them says little;
+  // the weekly files still hold them (the team and player panels show every week).
+  RANKINGS_FIRST_WEEK: 5,
 
   // Seasons with a gamelog_{season}_{team_id}.json per team (script 12: every player's box score for every game; the player card's
   // Games tab). Guarded against the files on disk by tests/test_frontend_config.py.

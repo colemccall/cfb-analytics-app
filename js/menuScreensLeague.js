@@ -165,6 +165,7 @@ menuRouter.register("rankings", {
     const items = [];
     if (d.live) items.push({ id: "live", label: `To date · wk ${d.live.through_week}` });
     items.push({ id: "pre", label: isProjectedSeason(MENU.season) ? "Preseason" : "Final" });
+    if (ctx.weekly && !d.live) items.push({ id: "weeks", label: "By week" });     // a finished season replayed week by week (script 17b)
     items.push({ id: "polls", label: "Polls" });
     return { items, active: ctx.list, go: id => menuRouter.go(`#/rankings/${id}/${ctx.view || "top"}`) };
   },
@@ -173,7 +174,9 @@ menuRouter.register("rankings", {
   async render(ctx) {
     const d = await menuTeams(MENU.season);
     ctx.d = d; ctx.team = menuMyTeam(d);
+    ctx.weekly = await fetchWeeklyTeams(MENU.season);     // null for a season with no weekly file
     ctx.list = ctx.params[0] || (d.live ? "live" : "pre");
+    if (ctx.list === "weeks" && (!ctx.weekly || d.live)) ctx.list = d.live ? "live" : "pre";
     ctx.view = ctx.params[1] === "all" ? "all" : "top";
     if (ctx.list === "polls") {
       return `<section class="m-panel"><p class="m-empty">Polls (AP, Coaches, CFP) are not shown: no poll data is on disk, and fetching it
@@ -182,32 +185,37 @@ menuRouter.register("rankings", {
     // The list, by one of the methods the chips offer (menuRankMethods): power from the games alone, power with a rating part added, or the rating.
     // A season being played can also be read as it stood after any completed week. The rating is shown beside the ranking either way, and the
     // detail panel explains the number.
+    // "live" is the season being played (the current numbers are the live file's); "weeks" is a finished season replayed week by week,
+    // where every week, the last included, comes from the weekly file. Both rank by the three methods and share the rest of the screen.
     const live = ctx.list === "live";
-    const wk = live ? await fetchWeeklyTeams(MENU.season) : null;
+    const weekly = live || ctx.list === "weeks";
+    const wk = weekly ? ctx.weekly : null;
+    const lastWeek = wk ? wk.weeks[wk.weeks.length - 1] : null;
     ctx.method = menuRankMethod(ctx.list, ctx.params[2]);
-    ctx.week = live ? menuRankWeek(ctx.params[3], wk, d.live.through_week) : null;
-    const snap = live ? menuRankSnapshot(d, wk, ctx.week) : null;
-    const prev = live ? menuRankPrev(d, wk, ctx.week, ctx.method) : null;
+    ctx.week = live ? menuRankWeek(ctx.params[3], wk, d.live.through_week)
+      : weekly ? (/^w(\d+)$/.test(ctx.params[3] || "") && wk.weeks.includes(parseInt(ctx.params[3].slice(1))) ? parseInt(ctx.params[3].slice(1)) : lastWeek) : null;
+    const snap = weekly ? menuRankSnapshot(d, wk, ctx.week) : null;
+    const prev = weekly ? menuRankPrev(d, wk, ctx.week, ctx.method) : null;
     ctx.snap = snap;
-    const val = t => live ? snap.get(t.id)?.head : t.overall_rating;
-    const sortKey = t => live ? menuRankKey(ctx.method, snap.get(t.id)) : ctx.method === "rating" ? t.overall_rating : t.power_rating;
-    const pw = t => live ? (ctx.method === "blend" ? snap.get(t.id)?.blend : snap.get(t.id)?.games) : t.power_rating;
+    const val = t => weekly ? snap.get(t.id)?.head : t.overall_rating;
+    const sortKey = t => weekly ? menuRankKey(ctx.method, snap.get(t.id)) : ctx.method === "rating" ? t.overall_rating : t.power_rating;
+    const pw = t => weekly ? (ctx.method === "blend" ? snap.get(t.id)?.blend : snap.get(t.id)?.games) : t.power_rating;
     const ranked = d.teams.filter(t => sortKey(t) != null).sort((a, b) => sortKey(b) - sortKey(a));
     ctx.ranked = ranked; ctx.pw = pw; ctx.val = val;
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
     const recordOf = t => {
-      const e = live && ctx.week != null ? snap.get(t.id) : null;
+      const e = weekly && ctx.week != null ? snap.get(t.id) : null;
       return e && e.w != null ? `${e.w}-${e.l}` : d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—";
     };
-    const lastHead = live && ctx.method === "blend" ? "BLEND" : "POWER";
-    const lastTitle = ctx.method === "blend" && live ? "Points per game above an average team: the rating part plus the results part" : "Points per game above an average team";
+    const lastHead = weekly && ctx.method === "blend" ? "BLEND" : "POWER";
+    const lastTitle = ctx.method === "blend" && weekly ? "Points per game above an average team: the rating part plus the results part" : "Points per game above an average team";
     const row = (t, i) => `
       <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}" data-to="${menuTeamPath(t.id)}">
-        <span class="m-rank">${i + 1}${live ? menuRankMove(i + 1, prev ? prev.get(t.id) ?? null : null) : ""}</span>
+        <span class="m-rank">${i + 1}${weekly ? menuRankMove(i + 1, prev ? prev.get(t.id) ?? null : null) : ""}</span>
         <span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
         <span class="m-pmeta">${_esc(t.conference || "")}</span>
         <span class="m-num">${recordOf(t)}</span>
-        <span class="m-rating">${live ? livePill({ live_rating: val(t), live_through_week: ctx.week ?? d.live.through_week }) : ovrPill(val(t), { season: MENU.season, label: "Team rating" })}</span>
+        <span class="m-rating">${weekly ? livePill({ live_rating: val(t), live_through_week: ctx.week ?? d.live.through_week }) : ovrPill(val(t), { season: MENU.season, label: "Team rating" })}</span>
         <span class="m-num" title="${lastTitle}">${menuPowerText(pw(t))}</span>
       </button>`;
     // Two views of the same list: the top 25 (with your team's row below it when it is lower) or every ranked team.
@@ -218,14 +226,18 @@ menuRouter.register("rankings", {
     const chip = (to, text, on, title = "") => `<button class="m-chip${on ? " is-view" : ""}" type="button" data-nav data-nav-group="links" data-to="${to}"${on ? ' aria-current="true"' : ""}${title ? ` title="${_esc(title)}"` : ""}>${text}</button>`;
     const methods = menuRankMethods(ctx.list);
     const latest = live ? d.live.through_week : null;
-    const weekChips = live && wk ? wk.weeks.map(w => chip(href(ctx.view, ctx.method, w === latest ? null : w), `W${w}`, (ctx.week ?? latest) === w, w === latest ? "The current numbers, through the latest completed week" : `As it stood after week ${w}`)).join("") : "";
+    // The current week of a season in play is "no week" in the address (its numbers are the live file's); a replayed week always names itself.
+    const weekChips = weekly && wk ? wk.weeks.filter(w => w >= CONFIG.RANKINGS_FIRST_WEEK).map(w => chip(href(ctx.view, ctx.method, live && w === latest ? null : w), live && w === latest ? "CURRENT" : w === lastWeek ? "FINAL" : `W${w}`,
+      (ctx.week ?? latest) === w, live && w === latest ? "The current numbers, through the latest completed week" : `As it stood after week ${w}`)).join("") : "";
     const how = methods.find(m => m[0] === ctx.method);
-    const status = live
+    const status = ctx.list === "weeks"
+      ? `This is ${MENU.season} as it stood after week ${ctx.week}, replayed from the games through it with the current method (v4.24); the arrows are movement since week ${ctx.week - 1}. The Final list is the season's own numbers, which also count the line and the postseason.`
+      : live
       ? (ctx.week != null ? `This is the ranking as it stood after week ${ctx.week}, from the games through it; the arrows are movement since week ${ctx.week - 1}.`
         : "To date is built from this season's games so far; provisional. The arrows are movement since the week before.")
       : isProjectedSeason(MENU.season) ? "Preseason has no results yet, so power is the projection alone." : "Final for a played season.";
     return `<div class="m-facts m-viewbar">${chip(href("top", ctx.method, ctx.week), "Top 25", ctx.view === "top")}${chip(href("all", ctx.method, ctx.week), `All FBS · ${ranked.length}`, ctx.view === "all")}
-        <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/compare/power/${ctx.list}">Compare the readings →</button></div>
+        <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/compare/power/${ctx.list === "weeks" ? "pre" : ctx.list}">Compare the readings →</button></div>
       <div class="m-facts m-viewbar" role="group" aria-label="Rank by"><span class="m-viewlabel">RANK BY</span>${methods.map(([id, label, what]) => chip(href(ctx.view, id, ctx.week), label, ctx.method === id, what)).join("")}</div>
       ${weekChips ? `<div class="m-facts m-viewbar" role="group" aria-label="Week"><span class="m-viewlabel">WEEK</span>${weekChips}</div>` : ""}
     <div class="m-split m-split--roster">
