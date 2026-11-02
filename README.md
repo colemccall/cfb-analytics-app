@@ -10,11 +10,16 @@ Vanilla HTML/JS/CSS frontend for the CFB Analytics Platform. Served via GitHub P
 
 A college football analytics platform that answers a core question: **which players are genuinely elite vs. which are hyped?**
 
-The app surfaces EDGE ratings — opponent-adjusted per-game production scores — for FBS players from 2008–2025. A 3-star receiver who dominates against Power 4 defenses will rate higher than a 5-star recruit who hasn't produced. The gap between recruiting hype and real production is what this platform is built to find.
+The app surfaces EDGE ratings — opponent-adjusted per-game production scores — for FBS players from 2008 to 2025, with 2026 rated as it is played (week by week since v4.22). A 3-star receiver who dominates against Power 4 defenses will rate higher than a 5-star recruit who hasn't produced. The gap between recruiting hype and real production is what this platform is built to find.
 
 ---
 
 ## Pages
+
+`menu.html` is the app (next section). The pages in this table are the classic site: each now redirects to the
+menu screen that replaced it unless the URL ends in `?classic`, which the UI smoke tests use. How the files fit
+together is in [`js/README.md`](js/README.md), [`css/README.md`](css/README.md), [`data/README.md`](data/README.md)
+and [`tools/README.md`](tools/README.md); where the data comes from is in the pipeline's `docs/DATA_FLOW.md`.
 
 | Page | URL | What it does |
 |------|-----|-------------|
@@ -272,7 +277,10 @@ Precomputed cosine similarity across EDGE feature vectors (OVR ≥ 55 players on
 
 ## Version
 
-`v3.3.0` — branch: `main`.
+The current release is the newest entry on the Build Log (`changes.html`). `CONFIG.VERSION` in `js/config.js`
+mirrors it, and `cfb-analytics-pipeline/tests/test_frontend_config.py` fails if the two differ. Branch: `main`.
+
+Older notes:
 
 See the Build Log (`changes.html`, entry `v3.3-ratings`) for the rating and projection
 pass (position-family projections, OL no longer projected, the opportunity model, secondary

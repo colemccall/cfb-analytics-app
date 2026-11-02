@@ -1824,6 +1824,38 @@ place, and removing the data fixed a contradiction as well as a dependency.`,
   },
 
   {
+    id: "data-flow",
+    group: "data",
+    title: "From the API to a page: where every number comes from, and what checks each step",
+    summary: `Every number on the site travels the same path: the CollegeFootballData API, a response cache, the raw tables, the rating scripts, the app's JSON files, and a page. This entry draws that path and names, at each step, what can go wrong and which check catches it. The longer version, with the commands, is the pipeline's docs/DATA_FLOW.md.`,
+    inputs: [
+      { name: "The API", source: "api.collegefootballdata.com; the key is the CFB_API_KEY environment variable (a gitignored .env), never in a repository", coverage: "2008 to 2026" },
+      { name: "A response cache", source: "utils/api_client.py, .cache/ (no expiry; CFB_REFRESH_YEARS bypasses it for a season)", coverage: "8,500+ responses" },
+      { name: "Raw tables", source: "data/raw/*.json written by scripts 01 to 05, 09 and 01b through utils/store.py, the only persistence layer", coverage: "games, players, per-game and per-season stats, recruiting, transfers, team tables" },
+      { name: "Computed tables", source: "data/computed/*.json written by scripts 06, 07, 10, 11, 13 to 16; live and weekly files by scripts 17 and 17b", coverage: "ratings (one row per player-season per engine), team ratings, projections" },
+      { name: "The app's JSON", source: "cfb-analytics-app/data/*.json written by script 12 (and 18), the only seam between the two repositories", coverage: "about 1,320 files, 600 MB" },
+    ],
+    formula: `API -> .cache -> data/raw -> 06 EDGE -> 07 player ratings -> 10 team ratings -> (11, 15, 16, 13, 14) -> data/computed -> 12 export -> cfb-analytics-app/data -> js/dataLoader.js -> menu.html
+a season being played:  01b (newest week + season totals) -> 17 (live_{season}) and 17b (weekly_*_{season}), both in a private copy of the data`,
+    reality: `Two rules hold the path together. Only utils/store.py reads and writes data/raw and data/computed, and only js/dataLoader.js fetches in the app. A season being played is rated in a private copy (CFB_DATA_DIR), so a part-season row can never reach the files the projection model trains on.
+      The week-by-week files were, until v4.24, not strictly "as of week N": the season totals the rating script reads came from the whole season (see the Build Log, v4.24).`,
+    why: `The site asserts numbers; a reader should be able to ask where one came from and get an answer that names a file. The path is also the list of places a number can be wrong, and each has one check: a staged refresh is validated before it is merged (validate_week_ingest.py), a week-N snapshot is checked to see nothing after week N (validate_snapshot_invariance.py), the export is checked at the seam (tests/test_export_contract.py), and a missing number is drawn as a dash, never a zero.`,
+    evidence: [
+      { label: "Requests to add the newest week (v4.24)", value: "12, against about 400 for a season re-harvest; merged twice with identical file hashes" },
+      { label: "Where the path leaked (v4.24)", value: "a week-N snapshot read full-season totals: 4,283 of 8,170 week-3 ratings moved when later data was scrambled; the games-played counts themselves were right in every week checked (weeks 3, 6, 9)" },
+    ],
+    limits: `**This is the intended path, not a proof of it.** The checks above cover the seams measured so far; the persistence layer is bypassed by several scripts that write their own files, and no merge in the pipeline asserts its keys are unique.
+      **Raw data and the cache are not in version control** (only the app's JSON is), so a bad refresh cannot be undone by git; copy data/raw and data/computed aside first.`,
+    alternatives: [
+      { label: "A database", basis: "the project ran on Supabase until August 2026", status: "rejected", note: "Local JSON is enough for one author and removes the only credential other than the API key." },
+      { label: "Generate this entry from the code", basis: "keep docs from drifting", status: "experiment", note: "Not attempted; the entry and docs/DATA_FLOW.md are two copies to keep in step." },
+    ],
+    changelog: [
+      { version: "v4.24", change: "Added: this entry and docs/DATA_FLOW.md; the staged in-season refresh (script 01b) and its two validators." },
+    ],
+    source: "cfb-analytics-pipeline/docs/DATA_FLOW.md · utils/store.py · utils/api_client.py · scripts/01b_refresh_in_season.py · scripts/12_export_frontend_json.py · js/dataLoader.js",
+  },
+  {
     id: "supplemental-data",
     group: "data",
     title: "Seventeen datasets were harvested. Three are read by anything.",
