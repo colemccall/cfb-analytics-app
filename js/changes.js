@@ -33,6 +33,59 @@
 
 const CHANGES = [
   {
+    id: "v4.24-week-nine-audit-and-weekly-integrity",
+    version: "v4.24",
+    date: "2026-11-02",
+    title: "Week 9 added with 12 requests, an audit of both repositories, weekly snapshots that could see the future, and why Sire Gaines is an 80",
+    summary: `After a large interface overhaul and several rating changes, the owner asked for three things: an audit of every page and of the code in both repositories, the newest week of games added without re-fetching the season, and an explanation of one rating (Sire Gaines, Boise State running back, 80.1) that looked low against his game grades. Later in the session the owner added a fourth: week-by-week ratings for 2024 and 2025.
+      The refresh itself was routine. What it exposed was not: the week-by-week snapshots, sold as "nothing later can reach back", were reading full-season stat totals into early weeks; the stored "week 9" had been built from 7 of its 314 games; and 57 transferred players, Baylor's starting quarterback among them, have had every 2026 game dropped because a roster de-duplication keeps the older team.`,
+    motivation: `The owner's request for a verification pass after v4.10 to v4.23, a new week of games, and a question about one player. The serious findings came from measuring the refresh, not from the request.`,
+    did: [
+      { what: "Week 9 fetched with 12 requests instead of a season re-harvest (scripts/01b_refresh_in_season.py, utils/api_client.py)",
+        why: `Script 01 re-harvests a whole season, about 400 requests. The new script asks only for what changed: the season's results in one call (/games), the week's player and team box scores in one call each (no per-team loop), and the season totals the API cannot slice by week (player season stats, PPA, usage, team season and advanced stats, records, SP+). It stages the responses in data/staging/ first; nothing reaches the cache or data/raw until scripts/validate_week_ingest.py has checked them, and the merge reuses script 01's own save functions (games upserted by API id, stat rows replaced by key).
+          Week 1 was refetched too (2 requests) because the coverage audit found one FBS game with no player box score at all (Minnesota against Eastern Illinois); the fresh payload has it.
+          Merged twice: games.json and stats.json byte-identical after the second merge (sha256 cf0c2eff… and 9a1a9e34…). Rows added: 48 for week 1, 3,356 for week 9, 158 new season-total rows.`,
+        cost: "Rosters are read from the cache (the 10-27 harvest), not refetched: a player the roster does not know is reported by the validation, not added. /teams is deliberately never refetched (a fresh team harvest once changed 95 colours). /awards has no 2026 response and was not requested." },
+      { what: "Script 17 --offline (scripts/17_live_season.py)",
+        why: `Every run of script 17 forced CFB_REFRESH_YEARS on its children, which re-pulled about 25 season-wide keys (every week of team box scores, team stats, SP+). After a staged refresh those keys are current, so --offline reads the cache only, behind a dead proxy, and fails the run if a child attempts any request: a cache miss would otherwise come back as an empty list and silently drop data. The default is unchanged.`,
+        cost: "None for the default path. An offline run trusts the cache for weeks 1 to 8, so a late box-score correction to an earlier week is not picked up unless that week is refreshed." },
+    ],
+    tried: [
+      { what: "Merging the refresh with a failed consistency check",
+        result: `The new validation compares the week-9 player rows already stored (the 7 Tuesday-to-Friday games) with the fresh payload: 19 of 338 differ, 5.6% against a 5% limit. All 19 were read: 13 are quarterback QBR values the API fills in a day after a game (QBR is not an input to any rating), 6 are official stat corrections (one James Madison reception moved from one receiver to another, one tackle, one pass defended, one longest run, one kicking percentage rounded). No stored row is missing from the fresh payload.`,
+        verdict: "merged; the limit was not changed (it judged this data, so moving it now would be moving a goalpost)" },
+    ],
+    measured: [
+      { label: "2026 regular-season games complete", before: "2,532 of 3,681, labelled through week 9 (week 9: 7 of 314 games)", after: "2,843 of 3,681, through week 9 (week 9: every FBS-involved game, 57 of 57)" },
+      { label: "Live rated players", before: "7,587", after: "7,708 (121 new: players reaching a rated basis)" },
+      { label: "Week-9 validation (scripts/validate_week_ingest.py)", before: "-", after: "21 checks: 19 pass, 1 warn (Idaho's conference), 1 fail (the stat corrections above); schema unchanged, 0 duplicate keys, median 65 player rows per game against 65 in weeks 2 to 8" },
+      { label: "Live players who moved (0.05+), 7,587 rated both times", before: "-", after: "5,605: 2,859 who played in the new games, 2,746 who did not. Median move 0.50, 90th percentile 2.90 for everyone except the 177 who crossed from 2 to 3 games" },
+      { label: "The 177 players who crossed from 2 to 3 games", before: "low-game rule (a recruiting prior plus a small game term, capped at 72)", after: "a production rating: mean move +9.3, median +3.9, largest +35.4 (UConn TE Alex Godavitarne, 35.7 to 71.1). A change of basis, not one game's play; an unrecruited player's low-game prior is 40 (see what was not fixed)" },
+      { label: "Largest moves among the players who played", before: "-", after: "up: the threshold crossings above; down: Liberty QB Ethan Vasko 63.9 to 40.9 (5 to 6 games), Colorado DB Makari Vickers 65.2 to 48.0. One game each; nothing here is a trend" },
+      { label: "Largest moves among players who did not play", before: "-", after: "Louisville CB DJ Waller Jr. 75.3 to 50.2, TCU S Julius Simms 75.2 to 56.2, Iowa DB Anthony Hawkins 45.4 to 65.9: their team played, their share of its games changed, and the in-season scale reads that share (the same mechanism as the Gaines question below)" },
+      { label: "Teams", before: "-", after: "132 of 138 headline ratings moved; largest Baylor +2.2 (rank 30 to 20, 5-3), Wake Forest +1.9, UCF -2.6 (rank 36 to 44, 4-4), Boston College -2.4" },
+      { label: "Sire Gaines (Boise State RB), who did not play in week 9", before: "80.1 on 5 of Boise's 7 games", after: "78.5 on 5 of 8: a 1.6-point fall with no game played" },
+      { label: "Weekly snapshots of weeks 1 to 8, which only week-9 data was added to", before: "should not move", after: "they moved: week 1, 2,873 of 5,550 players (largest 43.4) and 125 of 138 teams (largest 1.7); week 8, 3,805 of 7,583 players (largest 29.0) and 99 teams (largest 0.6)" },
+      { label: "A week-N snapshot uses games played through week N (scripts/validate_snapshot_invariance.py, check a)", before: "-", after: "PASS: weeks 3, 6 and 9, 6,448 / 7,133 / 7,426 EDGE rows, 0 with a wrong week, 0 with a team game count other than that team's completed games through the week" },
+      { label: "A week-N snapshot sees nothing after week N (same script, check b: everything after week 3 scrambled)", before: "-", after: "FAIL: 4,283 of 8,170 week-3 ratings moved, largest 57.6 (kickers and punters, rated from season totals: a punter 87.6 to 30.0)" },
+    ],
+    gates: [
+      { check: "Baseline before any change: pytest tests -q / node --check js/*.js / contrast, doc, prose and theme checks", result: "564 passed, 1 failed (the recruiting-basis contract test, 4.7% against 5%, unchanged on purpose since v4.19) / 34 of 34 / all green, 211 of 211 documented" },
+      { check: "Merge idempotency", result: "two merges, identical hashes of games.json and stats.json" },
+      { check: "Script 17 offline", result: "0 requests; 2,843 games, 7,708 rated players, 138 teams" },
+      { check: "pytest tests -q after the refresh and the export", result: "563 passed, 2 failed: the recruiting-basis test above, and test_the_last_week_matches_the_live_file — the weekly file leaves out the line unit, and the largest headline gap to the live file is now 1.01 (Old Dominion; next 0.80) against the test's 1.0. Neither test was edited in this change." },
+      { check: "validate_ratings.py --season 2025", result: "exit 0" },
+    ],
+    unfixed: `**This entry is written step by step during the session; later steps extend it.**
+      **The weekly snapshots of 2026 read the future** (above) and are published as they stand until the approved fix lands later in this session.
+      **57 transferred players have had their 2026 games dropped** — among them Baylor's quarterback DJ Lagway (243 attempts and carries through week 8), San Diego State's Javion Kinnard and Washington State's Tank Hawkins Jr. Script 01's roster de-duplication breaks a tie toward the OLDER team row: no 2026 row carries a timestamp, so a corrected roster never replaces the August one. 80 stored 2026 roster rows disagree with the 10-27 rosters; 54 of those players have box scores for the team they actually play for. A behaviour-changing fix; it waits on the owner.
+      **Idaho is listed in the Sun Belt in teams.json and in the Big Sky by the API's 2026 records**, and has no 2026 roster, so its games carry its opponents' player rows only.
+      **The weekly-against-live tolerance test fails at 1.01** and was not edited (see gates).`,
+    methods: ["live-season", "weekly-progression"],
+    files: ["scripts/01b_refresh_in_season.py", "scripts/validate_week_ingest.py", "scripts/validate_snapshot_invariance.py", "scripts/report_rating_moves.py",
+            "scripts/01_harvest_games_players_stats.py", "scripts/17_live_season.py", "utils/api_client.py", "js/changes.js"],
+  },
+  {
     id: "v4.23-game-logs-units-and-rankings-by-method-and-week",
     version: "v4.23",
     date: "2026-10-30",
