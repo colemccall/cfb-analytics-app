@@ -28,13 +28,6 @@
 .animate-fade     { animation: fade-in      0.25s ease forwards; }
 
 /* Users who ask for less motion get content instantly, fully opaque. */
-@media (prefers-reduced-motion: reduce) {
-  .animate-pop, .animate-up, .animate-left, .animate-fade {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* Staggered children — add to a container; children must also have an animate-* class */
 .stagger-children > *:nth-child(1)  { animation-delay: 0.00s; }
@@ -195,14 +188,6 @@
 }
 .coverage-strip a { color: var(--accent); font-weight: 700; }
 
-@media (max-width: 720px) {
-  .masthead { padding: 1.25rem 1rem 1.1rem; }
-  .home-section { padding: 1rem 1rem 0; }
-  .marquee-teams { font-size: var(--fs-lg); }
-  .slate-date { width: 100%; }
-  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
-  .coverage-strip { margin: 1rem 1rem 0; }
-}
 
 /* ── Home panels (top teams/players) ── */
 .home-panels {
@@ -425,14 +410,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .status-planned { color: var(--text-muted); white-space: nowrap; }
 
 /* ── Responsive components ── */
-@media (max-width: 900px) {
-  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
-  .home-stats-row { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 640px) {
-  .home-panels { padding: 0.75rem; }
-  .modal-inner { border-radius: 0; }
-}
 
 /* ── Entity links ─────────────────────────────────────────────────────────
    Team and player references anywhere in the app. Deliberately subtle: these
@@ -690,7 +667,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .attr-bar-val { font-size: var(--fs-sm); font-weight: 700; text-align: right; color: var(--text); }
 .arch-weight {
   display: inline-block; margin-left: 0.3rem; padding: 0 0.3rem;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.5px;
   color: var(--text-muted); background: var(--surface-deep);
   border-radius: var(--radius-sm);
 }
@@ -770,9 +747,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .skeleton-line { height: 12px; margin: 8px 0; }
 .skeleton-row  { height: 34px; margin: 6px 0; }
 .skeleton-card { height: 120px; }
-@media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; opacity: 0.6; }
-}
 
 /* ── Error state (inline, honest, retryable; .empty-state already exists) ── */
 .error-state {
@@ -1007,3 +981,32 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .trio-sub { color: var(--text-muted); font-size: var(--fs-sm); }
 .trio-arrow { align-self: center; color: var(--text-muted); font-size: var(--fs-xl); }
 .d-hero-ovr-box.is-live { box-shadow: inset 0 -3px 0 var(--accent); }
+
+/* ── Media rules — kept at the end of the file: a media rule placed before a desktop rule of equal
+   specificity silently loses to it (see css/README.md). Moved here in v4.24. ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop, .animate-up, .animate-left, .animate-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 720px) {
+  .masthead { padding: 1.25rem 1rem 1.1rem; }
+  .home-section { padding: 1rem 1rem 0; }
+  .marquee-teams { font-size: var(--fs-lg); }
+  .slate-date { width: 100%; }
+  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
+  .coverage-strip { margin: 1rem 1rem 0; }
+}
+@media (max-width: 900px) {
+  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
+  .home-stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .home-panels { padding: 0.75rem; }
+  .modal-inner { border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; opacity: 0.6; }
+}

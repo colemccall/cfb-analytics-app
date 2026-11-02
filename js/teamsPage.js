@@ -641,7 +641,7 @@ function renderRosterCards(players) {
         <div class="draft-stars">${starsStr}</div>
         <div class="draft-ht">${ht}</div>
         <div class="draft-wt">${wt}</div>
-        <div class="draft-team" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(hometown)}</div>
+        <div class="draft-team" style="font-size:var(--fs-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(hometown)}</div>
         ${trio ? `<div class="draft-ovr">${tc[0]}</div><div class="draft-traj">${tc[1]}</div><div class="draft-edge">${tc[2]}</div>` : `
         <div class="draft-ovr">${p.overall_rating == null && proj
           ? unprojectedNote(p.position_group || p.position) || '<span class="text-muted">—</span>'

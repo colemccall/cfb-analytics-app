@@ -148,10 +148,17 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
     }
   }
 
+  // A team colour is used as a CSS value (--m-team, banners, monograms). The harvest wrote "#null" for a team the
+  // API gave no colour (Idaho), which is invalid CSS; anything that is not a hex colour is no colour (null), and
+  // every screen already falls back to its neutral token for that.
+  const hexOrNull = c => (/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(c || "") ? c : null);
+
   return teams.map(t => {
     const teamRating = teamRatingsMap[t.id] || {};
     return {
       ...t,
+      color:          hexOrNull(t.color),
+      alt_color:      hexOrNull(t.alt_color),
       conference:     confBySeason[String(t.id)] || t.conference,
       overall_rating: teamRating.ovr || null,
       live_overall_rating: teamRating.live ?? null,   // earned so far, in a season being played

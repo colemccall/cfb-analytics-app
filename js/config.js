@@ -2,6 +2,9 @@
 
 const CONFIG = {
   DATA_BASE:      "./data/",
+  // The release shown in the classic sidebar: always the newest Build Log entry's version
+  // (js/changes.js). cfb-analytics-pipeline/tests/test_frontend_config.py fails if they differ.
+  VERSION:        "v4.24",
 
   // ── Seasons ───────────────────────────────────────────────────────────────
   // Three constants, because "the current season" means two different things:

@@ -190,15 +190,15 @@ function renderScatterPlot(players) {
     <line x1="${PAD.left - 4}" y1="${yScale(r).toFixed(1)}" x2="${PAD.left + PW}" y2="${yScale(r).toFixed(1)}"
       stroke="var(--border)" stroke-width="1"/>
     <text x="${PAD.left - 10}" y="${(yScale(r) + 4).toFixed(1)}" text-anchor="end"
-      font-size="11" fill="var(--text-muted)">${r}</text>`).join("");
+      font-size="12" fill="var(--text-muted)">${r}</text>`).join("");
 
   // Quadrant labels
   const annotations = `
-    <text x="${xScale(1.2).toFixed(1)}" y="${yScale(90).toFixed(1)}" font-size="10"
+    <text x="${xScale(1.2).toFixed(1)}" y="${yScale(90).toFixed(1)}" font-size="12"
       fill="var(--positive)" opacity="0.65" font-style="italic">Hidden Gems</text>
-    <text x="${xScale(4.1).toFixed(1)}" y="${yScale(93).toFixed(1)}" font-size="10"
+    <text x="${xScale(4.1).toFixed(1)}" y="${yScale(93).toFixed(1)}" font-size="12"
       fill="var(--text-muted)" opacity="0.6" font-style="italic">Stars Deliver</text>
-    <text x="${xScale(3.6).toFixed(1)}" y="${yScale(36).toFixed(1)}" font-size="10"
+    <text x="${xScale(3.6).toFixed(1)}" y="${yScale(36).toFixed(1)}" font-size="12"
       fill="var(--negative)" opacity="0.5" font-style="italic">Underperforming</text>`;
 
   container.innerHTML = `

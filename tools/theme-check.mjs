@@ -68,7 +68,22 @@ for (const t of themes) {
   else if (ramp.length !== refBands) problems.push(`${t.id}: RATING_RAMP has ${ramp.length} bands, ${base} has ${refBands}`);
 }
 
-console.log(`themes: ${themes.map(t => t.id).join(", ")} · :root defines ${rootTokens.size} tokens`);
+// Colour literals live in token blocks only (root CLAUDE.md §3): a #hex / rgb() / hsl() may be the value of a
+// custom property (`--m-black: #000`), never of an ordinary property (`color: #000`). A literal anywhere else
+// bypasses both modes and the contrast floors, so it is a failure here. (v4.24; css/menu.css had 183.)
+const COLOUR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
+let literals = 0;
+for (const file of ["styles.css", "components.css", "menu.css"]) {
+  const text = readFileSync(join(root, "css", file), "utf8").replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " "));
+  for (const m of text.matchAll(/([\w-]+)\s*:\s*([^;{}]*)/g)) {
+    if (m[1].startsWith("--") || !COLOUR.test(m[2])) continue;
+    literals += 1;
+    if (literals <= 20) problems.push(`css/${file}:${text.slice(0, m.index).split("\n").length}: colour literal in "${m[1]}: ${m[2].trim().slice(0, 60)}" (use a token)`);
+  }
+}
+if (literals > 20) problems.push(`… and ${literals - 20} more colour literals`);
+
+console.log(`themes: ${themes.map(t => t.id).join(", ")} · :root defines ${rootTokens.size} tokens · colour literals outside token blocks: ${literals}`);
 if (problems.length) {
   console.log("\nFAIL");
   for (const p of problems) console.log("  · " + p);

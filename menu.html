@@ -9,16 +9,19 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/menu.css">
+  <!-- The saved light/dark mode, applied before the first paint so a light-mode visitor does not see a dark flash
+       while the scripts load (menuChrome.js applies and stores it from then on). -->
+  <script>try { if (localStorage.getItem("cfb-menu-mode") === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) { /* default: dark */ }</script>
 </head>
 <body class="menu-body">
 <script src="js/config.js"></script>
 <!-- ==================== THE MENU ====================
-     A separate front end from the rest of the site: its own frame, screens and
-     navigation, driven by mouse, keyboard or a game controller. shell.js is NOT
-     loaded (no sidebar). The page is pinned to the retro palette, whose rating
-     colours are tuned for navy panels. Everything is drawn by menuChrome.js and the
+     The app: its own frame, screens and navigation, driven by mouse, keyboard or a
+     game controller. shell.js is NOT loaded (no sidebar). Two modes, dark and light,
+     one token block each in css/menu.css. Everything is drawn by menuChrome.js and the
      menuScreens*.js files into #menu-root; this file is only the shell. -->
 <div id="menu-root" class="menu-app"></div>
+<script>try { if (localStorage.getItem("cfb-menu-mode") === "light") document.getElementById("menu-root").dataset.mode = "light"; } catch (e) { /* default: dark */ }</script>
 
 <script src="js/dataLoader.js"></script>
 <script src="js/ui.js"></script>

@@ -704,11 +704,14 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   const shapHtml = renderRatingBreakdown(player, pg);
 
   // ── Year-over-year ratings chart (inline SVG sparkline) ──
+  // A season with no rating (an offensive lineman, a withheld number) is left out of the line,
+  // not drawn at 0: missing is unknown, never zero.
   let yoyHtml = "";
-  if (ratingHistory.length >= 2) {
+  const ratedHistory = ratingHistory.filter(r => r.overall_rating != null);
+  if (ratedHistory.length >= 2) {
     const W = 340, H = 80, PAD = { l: 28, r: 10, t: 10, b: 22 };
-    const vals = ratingHistory.map(r => r.overall_rating || 0);
-    const seasons = ratingHistory.map(r => r.season);
+    const vals = ratedHistory.map(r => r.overall_rating);
+    const seasons = ratedHistory.map(r => r.season);
     const minV = Math.max(0, Math.min(...vals) - 5);
     const maxV = Math.min(100, Math.max(...vals) + 5);
     const xS = i => PAD.l + (i / (vals.length - 1)) * (W - PAD.l - PAD.r);
@@ -720,10 +723,10 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
         <title>${seasons[i]}: ${Math.round(v)} OVR</title></circle>`;
     }).join("");
     const labels = seasons.map((s, i) =>
-      `<text x="${xS(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${s}</text>`
+      `<text x="${xS(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="12" fill="var(--text-muted)">${s}</text>`
     ).join("");
     const ratingsLabels = vals.map((v, i) =>
-      `<text x="${(xS(i) + 4).toFixed(1)}" y="${(yS(v) - 5).toFixed(1)}" font-size="10" fill="var(--text-muted)">${Math.round(v)}</text>`
+      `<text x="${(xS(i) + 4).toFixed(1)}" y="${(yS(v) - 5).toFixed(1)}" font-size="12" fill="var(--text-muted)">${Math.round(v)}</text>`
     ).join("");
     yoyHtml = `
       <div class="modal-section">
@@ -859,7 +862,9 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
   if (similarPlayers && similarPlayers.length) {
     const rows = similarPlayers.map(s => {
       const pct = Math.round(s.similarity * 100);
-      const ovrColor = ratingColor(Math.round(s.ovr || 50));
+      const ovrCell = s.ovr == null
+        ? `<span class="similar-ovr muted">—</span>`
+        : `<span class="similar-ovr" style="color:${ratingColor(Math.round(s.ovr))}">${Math.round(s.ovr)}</span>`;
       return `
         <div class="similar-row" data-player-id="${s.id}" data-season="${s.season ?? ""}" style="cursor:pointer">
           <div class="similar-info">
@@ -870,7 +875,7 @@ function modalContentHtml(player, statsData, ratingHistory = [], careerStats = [
             <div class="similar-match-fill" style="width:${pct}%"></div>
           </div>
           <span class="similar-pct">${pct}%</span>
-          <span class="similar-ovr" style="color:${ovrColor}">${Math.round(s.ovr || 0)}</span>
+          ${ovrCell}
         </div>`;
     }).join("");
     similarHtml = `

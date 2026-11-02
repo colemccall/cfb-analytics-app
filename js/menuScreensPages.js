@@ -15,8 +15,10 @@
 // ── Links that stay inside the menu ──────────────────────────────────────
 
 // Rewrites the links in `host` that point at a classic page to the menu screen that replaced it:
-// methods, the build log, the guide, a finding, or a player card. Other links are left alone.
-function menuRewriteLinks(host) {
+// methods, the build log, the guide, a finding, a player card or a team page. Other links are left
+// alone. A team link names the school (teams.html?team=Boise%20State) while the menu route takes
+// the id, so `teamIds` maps one to the other; a school it does not know keeps its link.
+function menuRewriteLinks(host, teamIds = {}) {
   const findingByPage = {};
   for (const f of Object.values(FINDINGS)) if (f.page) findingByPage[f.page] = f.id;
   host.querySelectorAll("a[href]").forEach(a => {
@@ -27,6 +29,10 @@ function menuRewriteLinks(host) {
     else if ((m = href.match(/^info\.html(?:#(.+))?$/))) a.setAttribute("href", `#/guide${m[1] ? "/" + m[1] : ""}`);
     else if (findingByPage[href.replace(/#.*$/, "")]) a.setAttribute("href", `#/research/${findingByPage[href.replace(/#.*$/, "")]}`);
     else if ((m = href.match(/^players\.html\?(?:.*&)?player=(\d+)/))) a.setAttribute("href", `#/player/${m[1]}`);
+    else if (href.startsWith("teams.html?")) {
+      const id = teamIds[new URLSearchParams(href.slice("teams.html?".length).replace(/#.*$/, "")).get("team")];
+      if (id != null) a.setAttribute("href", menuTeamPath(id));
+    }
     else if (href === "season2026.html") a.setAttribute("href", "#/season");
     else if (href === "index.html" || href === "index.html?classic") a.setAttribute("href", "#/home");
   });
@@ -57,6 +63,13 @@ function menuRegisterReader(id, def) {
     },
     async mount(stage, ctx) {
       const host = stage.querySelector("#m-reader");
+      const teamIds = Object.fromEntries((await menuTeams(MENU.season)).teams.map(t => [t.school, t.id]));
+      // A finding's table redraws its rows when it is sorted or filtered, and the redrawn rows carry
+      // the classic links again, so the links are rewritten whenever the entry's content changes.
+      // (Rewriting changes attributes only, which this observer does not watch, so it cannot loop.)
+      const relink = new MutationObserver(() => menuRewriteLinks(host, teamIds));
+      relink.observe(host, { childList: true, subtree: true });
+      ctx.cleanups.push(() => relink.disconnect());
       let token = 0;
       const show = async eid => {
         const mine = ++token;
@@ -64,7 +77,7 @@ function menuRegisterReader(id, def) {
         stage.querySelectorAll(".m-row--read").forEach(b => b.classList.toggle("is-open", b.dataset.eid === eid));
         await def.show(eid, host);
         if (mine !== token) return;
-        menuRewriteLinks(host);
+        menuRewriteLinks(host, teamIds);
       };
       stage.addEventListener("menu:select", e => {
         const eid = e.target.closest?.("[data-eid]")?.dataset.eid;

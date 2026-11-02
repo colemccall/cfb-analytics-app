@@ -42,6 +42,7 @@
   --bar-text:     #f6f8fa;
   --hot:          #a80f17;
   --on-hot:       #ffffff;
+  --black:        #000000;     /* the dark end of a fixed gradient; the same in every theme */
 
   /* Ink */
   --text:         #f6f8fa;
@@ -937,7 +938,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 }
 
 
-/* ── Retro skin: layout (desktop only) ────────────────────────────────────────
+/* ── Console skin: layout (desktop only) ────────────────────────────────────────
    The markup is the same nav list as the other themes; this turns the side rail
    into a top tab strip. Below 901px nothing here applies, so phones get the normal
    bottom tab bar. Everything is expressed in tokens. */
@@ -961,7 +962,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
     letter-spacing: 0.04em; text-transform: uppercase; transform: none;
   }
   [data-skin="console"] .snav-item:hover { transform: none; background: color-mix(in srgb, var(--bar-text) 14%, transparent); color: var(--bar-text); }
-  [data-skin="console"] .snav-item.active { background: linear-gradient(var(--hot), color-mix(in srgb, var(--hot) 70%, #000)); color: var(--on-hot); }
+  [data-skin="console"] .snav-item.active { background: linear-gradient(var(--hot), color-mix(in srgb, var(--hot) 70%, var(--black))); color: var(--on-hot); }
   [data-skin="console"] .snav-icon { display: none; }
   /* Swatches on the left, version above the data credit on the right */
   [data-skin="console"] .sidebar-bottom {
