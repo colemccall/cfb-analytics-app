@@ -194,11 +194,6 @@ function menuPlayerPath(playerId, teamId = null) {
   return `#/player/${playerId}${teamId ? "/" + teamId : ""}`;
 }
 
-// A team named inside a panel, as a small button: its mark and name, opening its page.
-function menuTeamChip(t) {
-  return `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</button>`;
-}
-
 // ── Team page: any team ─────────────────────────────────────────────────────
 
 // The right-hand panel of a team page: rating, offense and defense bars, record, national rank,

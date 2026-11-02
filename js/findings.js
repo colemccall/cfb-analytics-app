@@ -691,18 +691,6 @@ function _callCell(v) {
   return `<span style="color:${colors[v] || "var(--text)"};font-weight:600;text-transform:capitalize">${_esc(v || "—")}</span>`;
 }
 
-const _FINDING_SOURCE_CODES = {
-  engine_d:   ["CV", "Career curve — projected from his own production history"],
-  carry:      ["CF", "Carried forward — last season's rating along his cohort's development curve"],
-  recruiting: ["RC", "Recruiting grade — no college production yet"],
-};
-
-function _sourceCell(v) {
-  const s = _FINDING_SOURCE_CODES[v];
-  return s ? `<span class="proj-source-code" title="${_esc(s[1])}">${s[0]}</span>`
-           : '<span class="text-muted">—</span>';
-}
-
 // Findings of one kind, in registry order.
 function findingsOfKind(kind) {
   return Object.values(FINDINGS).filter(f => f.kind === kind);
