@@ -83,7 +83,7 @@ menuChrome.setHeader = function ({ title, crumb, team, season, route }) {
 // that section's pages (v4.24). A row of the tree is [label, route, test(route)]: the test says which routes the page is.
 //   Home Â· My Team Â· Season Â· Teams Â· Players Â· Recruiting Â· About
 // My Team is the team you follow; Teams is any other team's pages and the picker. A team's pages are the same list in both.
-const MENU_TEAM_PAGES = [["Overview", "", ["team"]], ["Roster", "roster", ["roster"]], ["Depth Chart", "depth", ["depth"]],
+const MENU_TEAM_PAGES = [["Overview", "", ["team"]], ["Roster", "roster", ["roster"]], ["Depth Chart", "depth", ["depth"]], ["Ratings", "ratings", ["team-ratings"]],
   ["Schedule", "schedule", ["schedule", "game"]], ["Recruiting", "recruiting", ["team-recruiting"]], ["Transfers", "transfers", ["team-portal"]],
   ["History", "history", ["team-history"]]];
 const MENU_TEAM_ROUTES = new Set(MENU_TEAM_PAGES.flatMap(p => p[2]));
@@ -94,7 +94,8 @@ const MENU_SECTIONS = [
     pages: [["Rankings", "#/rankings", ["rankings"]], ["Standings", "#/standings", ["standings"]], ["The Season", "#/season", ["season"]],
             ["Playoff", "#/playoff", ["playoff"]], ["Compare", "#/compare", ["compare"]]] },
   { id: "teams", label: "Teams", to: "#/team-select", screens: ["team-select"] },
-  { id: "players", label: "Players", to: "#/players", screens: ["players", "player"] },
+  { id: "players", label: "Players", to: "#/players", screens: ["players", "player", "scatter"],
+    pages: [["Leaders", "#/players", ["players"]], ["Talent vs Production", "#/scatter", ["scatter"]]] },
   { id: "recruiting", label: "Recruiting", to: "#/recruiting", screens: ["recruiting", "portal"],
     pages: [["Classes", "#/recruiting", ["recruiting"], r => r.params[0] !== "prospects"], ["Prospects", "#/recruiting/prospects", ["recruiting"], r => r.params[0] === "prospects"],
             ["Transfer Portal", "#/portal", ["portal"]]] },
@@ -259,7 +260,7 @@ menuChrome.openMenu = function () {
   const teamId = here != null ? here : MENU.teamId;
   const item = (route, label) => `<button class="m-item" type="button" data-nav data-nav-group="ovl" data-go="${route}"><span class="m-item-label">${_esc(label)}</span></button>`;
   const teamCol = teamId
-    ? `<h3 class="m-ovl-h">${here != null && here !== MENU.teamId ? "THIS TEAM" : "MY TEAM"}</h3>${item(menuTeamPath(teamId), "Team Page")}${item(menuTeamPath(teamId, "roster"), "Roster")}${item(menuTeamPath(teamId, "depth"), "Depth Chart")}${item(menuTeamPath(teamId, "schedule"), "Schedule")}${item(menuTeamPath(teamId, "recruiting"), "Recruiting Class")}${item(menuTeamPath(teamId, "transfers"), "Transfers")}${item(menuTeamPath(teamId, "history"), "Team History")}`
+    ? `<h3 class="m-ovl-h">${here != null && here !== MENU.teamId ? "THIS TEAM" : "MY TEAM"}</h3>${item(menuTeamPath(teamId), "Team Page")}${item(menuTeamPath(teamId, "roster"), "Roster")}${item(menuTeamPath(teamId, "depth"), "Depth Chart")}${item(menuTeamPath(teamId, "ratings"), "Ratings")}${item(menuTeamPath(teamId, "schedule"), "Schedule")}${item(menuTeamPath(teamId, "recruiting"), "Recruiting Class")}${item(menuTeamPath(teamId, "transfers"), "Transfers")}${item(menuTeamPath(teamId, "history"), "Team History")}`
     : `<h3 class="m-ovl-h">TEAM</h3>${item("#/team-select", "Pick a Team")}`;
   const el = document.createElement("div");
   el.className = "m-overlay";
@@ -268,14 +269,15 @@ menuChrome.openMenu = function () {
       <div class="m-ovl-cols">
         <div>${teamCol}</div>
         <div><h3 class="m-ovl-h">SEASON</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/standings", "Standings")}${item("#/season", "The Season")}${item("#/playoff", "Playoff Picture")}${item("#/compare", "Compare ratings")}${item("#/team-select", "All Teams")}</div>
-        <div><h3 class="m-ovl-h">PLAYERS · RECRUITING</h3>${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting Classes")}${item("#/recruiting/prospects", "Prospect Board")}${item("#/portal", "Transfer Portal")}</div>
+        <div><h3 class="m-ovl-h">PLAYERS · RECRUITING</h3>${item("#/players", "Players & Leaders")}${item("#/scatter", "Talent vs Production")}${item("#/recruiting", "Recruiting Classes")}${item("#/recruiting/prospects", "Prospect Board")}${item("#/portal", "Transfer Portal")}</div>
         <div><h3 class="m-ovl-h">ABOUT</h3>${item("#/guide", "How It Works")}${item("#/methods", "Methods")}${item("#/research", "Research")}${item("#/changes", "Build Log")}</div>
       </div>
       <div class="m-ovl-opts">
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="mode"><span class="m-item-label">${this.mode === "light" ? "Dark Mode" : "Light Mode"}</span></button>
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="close"><span class="m-item-label">Close</span></button>
-      </div></div>`;
+      </div>
+      <p class="m-ovl-credit">CFB Analytics ${CONFIG.VERSION} · Data: <a href="https://collegefootballdata.com" target="_blank" rel="noopener">CollegeFootballData.com</a></p></div>`;
   this.root.appendChild(el);
   this.overlay = el;
   const prev = menuFocus.current;

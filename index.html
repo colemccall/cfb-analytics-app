@@ -4,108 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CFB Analytics</title>
-  <!-- The menu is the front door. The classic home page stays at index.html?classic. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + location.hash);</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html" + location.search + location.hash);</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html"></noscript>
 </head>
-<body data-page="menu">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ==================== -->
-<div class="main-content">
-
-<!-- Masthead: the date, the moment, the game to circle -->
-<header class="masthead">
-  <div class="masthead-date" id="masthead-date"></div>
-  <h1 id="masthead-headline">College football, measured.</h1>
-  <p class="standfirst">
-    Eighteen seasons of opponent-adjusted ratings — every performance weighted by who it
-    came against, every claim backed by the rows that produced it.
-  </p>
-  <div id="masthead-marquee"></div>
-</header>
-
-<!-- Storylines: what the data says is interesting right now -->
-<section class="home-section">
-  <div class="section-rule">
-    <span class="eyebrow">STORYLINES</span>
-    <span class="section-rule-sub">What the numbers are saying</span>
-  </div>
-  <div class="story-grid stagger-children" id="storylines">
-    <div class="skeleton skeleton-card"></div>
-    <div class="skeleton skeleton-card"></div>
-    <div class="skeleton skeleton-card"></div>
-  </div>
-</section>
-
-<!-- The opening slate -->
-<section class="home-section" id="slate-section">
-  <div class="section-rule">
-    <span class="eyebrow">THE OPENING SLATE</span>
-    <span class="section-rule-sub">Week 1 games worth circling</span>
-  </div>
-  <div id="slate"></div>
-</section>
-
-<!-- Reference panels: last season's standard + the research desk -->
-<div class="home-panels">
-  <div class="home-panel-card">
-    <div class="home-panel-hdr">
-      <span class="home-panel-title">Last Season's Standard</span>
-      <a href="teams.html" class="home-panel-link">All Teams →</a>
-    </div>
-    <div id="home-top-teams">
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-    </div>
-  </div>
-
-  <div class="home-panel-card">
-    <div class="home-panel-hdr">
-      <span class="home-panel-title">From the Research Desk</span>
-      <a href="research.html" class="home-panel-link">All Findings →</a>
-    </div>
-    <div id="home-research">
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Every storyline above leads with one row; each of these opens the full list.
-     Rendered from the same findings registry the research pages use. -->
-<section class="home-section">
-  <div class="section-rule">
-    <span class="eyebrow">OPEN THE FULL LISTS</span>
-    <span class="section-rule-sub">Every storyline above, in full</span>
-  </div>
-  <div id="storyline-index"></div>
-</section>
-
-<!-- Coverage strip: counted from the data, links to methodology -->
-<footer class="coverage-strip" id="coverage-strip"></footer>
-
-<!-- Player modal (storyline player links open here) -->
-<div id="player-modal" class="modal">
-  <div class="modal-inner"></div>
-</div>
-
-<!-- ==================== SCRIPTS ==================== -->
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/playerSearch.js"></script>
-<script src="js/findings.js"></script>
-<script src="js/findingPage.js"></script>
-<script src="js/home.js"></script>
-<script>
-  renderFindingIndex("storyline-index", "storyline");
-</script>
-</div><!-- /.main-content -->
+<body>
+  <p>This page has moved. <a href="menu.html">Open it in the menu →</a></p>
 </body>
 </html>

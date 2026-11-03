@@ -4,34 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>How It Works — CFB Analytics</title>
-  <!-- The menu replaced this page; ?classic keeps the old one for tests. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + "#/guide" + location.hash.replace("#", "/").replace(/^\/$/, ""));</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html#/guide" + (location.hash ? "/" + location.hash.slice(1) : ""));</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html#/guide"></noscript>
 </head>
-<body data-page="info">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ====================
-     A shell. Everything is rendered by guidePage.js from the GUIDE registry in
-     guide.js. It replaced hand-written prose that restated the formulas and had
-     drifted from the code; the guide links to METHODS for every formula instead.
-     Adding guide content means adding a registry entry, never page code.
-     Anchors other pages link to (#projections, #ol) are GUIDE entry ids. -->
-<div class="main-content">
-  <div id="guide-root"></div>
-</div>
-
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/methods.js"></script>
-<script src="js/changes.js"></script>
-<script src="js/guide.js"></script>
-<script src="js/guidePage.js"></script>
-<script>
-  initGuide();
-</script>
+<body>
+  <p>This page has moved. <a href="menu.html#/guide">Open it in the menu →</a></p>
 </body>
 </html>

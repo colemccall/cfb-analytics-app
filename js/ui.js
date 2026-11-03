@@ -34,8 +34,8 @@ function onThemeChange(render) {
 //
 // The PROJ badge on top of that is reserved for MIXED contexts. On a wholly
 // projected season all 12,000 numbers are projections, and a badge on each is
-// noise rather than provenance; the page says it once via
-// projectedSeasonNotice(). Pass `projected: true` where a projected number sits
+// noise rather than provenance; the season header says it once
+// ("2026 · PROJECTED"). Pass `projected: true` where a projected number sits
 // beside an earned one — an evidence line comparing last season to next, or a
 // table spanning played and unplayed seasons — and where a value is projected
 // with no season in scope.
@@ -60,8 +60,8 @@ function ovrPill(rating, { label = "", projected = false, season = null, source 
   const pill = `<span class="${cls}" style="background:${c};color:${ratingTextColor(c)}"
     title="${_esc(title)}">${v}</span>`;
   // On a wholly projected season every rating is a projection, so a badge on
-  // each one is noise — projectedSeasonNotice() states it once at the top of the
-  // page and the hatch plus tooltip keep provenance on the number itself. The
+  // each one is noise — the season header states it once ("2026 · PROJECTED")
+  // and the hatch plus tooltip keep provenance on the number itself. The
   // badge is still rendered for an explicit `projected: true`, which is how a
   // mixed context (a history chart spanning played and unplayed seasons) marks
   // the odd row out.
@@ -74,18 +74,6 @@ const PROJECTION_SOURCE_LABELS = {
   carry:       "last season's rating, moved along his cohort's development curve",
   recruiting:  "recruiting grade (no college production yet)",
 };
-
-// Positions we deliberately do not project, and why. An unexplained blank reads
-// as a bug; a stated refusal reads as a judgement.
-const UNPROJECTED_POSITIONS = {
-  OL: "No individual blocking data exists in any public source, so an OL rating is " +
-      "mostly a recruiting ranking. We don't project what we can't measure.",
-};
-
-function unprojectedNote(pg) {
-  const why = UNPROJECTED_POSITIONS[pg];
-  return why ? `<span class="unprojected" title="${_esc(why)}">not projected</span>` : "";
-}
 
 // Positions with no EARNED rating either — a stronger statement than "not
 // projected", and new in rating v4.3. The offensive line used to carry a number
@@ -214,26 +202,6 @@ function projRange(low, high) {
   return `<span class="proj-range" title="80% of outcomes land in this range">${Math.round(low)}–${Math.round(high)}</span>`;
 }
 
-// Page-level banner for a projected season. Stated once, at the top, so no
-// individual number has to carry the whole explanation.
-function projectedSeasonNotice(season) {
-  if (!isProjectedSeason(season)) return "";
-  return `<div class="projected-notice">
-      <span class="badge-proj">PROJ</span>
-      <span>Every rating shown for ${_esc(season)} is a preseason projection — it does not include any game played this season.
-      Ratings earned so far are on the <a href="season2026.html">'26 Season</a> page.
-      <a href="info.html#projections">How projections are built →</a></span>
-    </div>`;
-}
-
-// Keeps the page-level banner in step with a season picker. Pages call this on
-// load and whenever their season changes, so switching from 2026 back to 2025
-// removes the notice instead of leaving a stale one behind.
-function renderSeasonProvenance(season, id = "season-provenance") {
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = projectedSeasonNotice(season);
-}
-
 // ── Registry prose ──────────────────────────────────────────────────────────
 // The long-form fields in the METHODS and CHANGES registries (`why`, `limits`,
 // `summary`, `motivation`) are paragraphs, not labels, and are unreadable as one
@@ -314,12 +282,6 @@ function contextStrip(pct, label, { color = "var(--accent)" } = {}) {
     </span>`;
 }
 
-// ── Comparison pair: prev → new (transfers, projections, week-over-week) ────
-function comparePair(prevHtml, nextHtml, { title = "" } = {}) {
-  return `<span class="compare-pair" title="${_esc(title)}">${prevHtml}
-    <span class="compare-pair-arrow">→</span>${nextHtml}</span>`;
-}
-
 // ── Big stat with mandatory context (the only sanctioned large numeral) ─────
 function statBig(value, context, { color = "var(--text)" } = {}) {
   return `
@@ -327,33 +289,6 @@ function statBig(value, context, { color = "var(--text)" } = {}) {
       <div class="stat-big" style="color:${color}">${_esc(String(value))}</div>
       <div class="stat-context">${_esc(context)}</div>
     </div>`;
-}
-
-// ── Storyline card: claim headline → evidence → destination ─────────────────
-// headline/evidence/links accept pre-built HTML (entity links, pills, chips);
-// eyebrow is plain text.
-function storyCard({ eyebrow, headline, evidence, links }) {
-  return `
-    <article class="story-card animate-up">
-      <div class="eyebrow">${_esc(eyebrow)}</div>
-      <h3 class="story-headline">${headline}</h3>
-      <div class="story-evidence">${evidence}</div>
-      <div class="story-links">${links}</div>
-    </article>`;
-}
-
-// ── Sparkline — inline SVG mini-trend (values in chronological order) ───────
-function sparkline(values, { w = 90, h = 24, stroke = "var(--accent)" } = {}) {
-  const vals = (values || []).filter(v => v != null);
-  if (vals.length < 2) return "";
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const span = max - min || 1;
-  const pts = vals.map((v, i) =>
-    `${(i / (vals.length - 1) * (w - 2) + 1).toFixed(1)},${((1 - (v - min) / span) * (h - 4) + 2).toFixed(1)}`
-  ).join(" ");
-  return `<svg width="${w}" height="${h}" aria-hidden="true" style="vertical-align:middle">
-    <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/>
-  </svg>`;
 }
 
 // ── Trend chart — one season's number by week ───────────────────────────────
@@ -480,36 +415,6 @@ document.addEventListener("error", e => {
     img.className);
   img.replaceWith(holder.firstElementChild);
 }, true);
-
-// ── Keyboard access for click-only elements ──────────────────────────────────
-// Player rows, roster rows and similar-player rows are <div>s with click
-// handlers, which a keyboard user cannot reach or operate: on the Players board
-// no player could be opened without a mouse. This makes each element a focusable
-// button that Enter and Space activate. Only a key pressed ON the element counts
-// — Enter on a link inside the row (the team cell) must still follow the link.
-function makeActivatable(els) {
-  els.forEach(el => {
-    el.tabIndex = 0;
-    el.setAttribute("role", "button");
-    el.addEventListener("keydown", e => {
-      if (e.target !== el || (e.key !== "Enter" && e.key !== " ")) return;
-      e.preventDefault();
-      el.click();
-    });
-  });
-}
-
-// ── Projection interval cell ────────────────────────────────────────────────
-// On a projected season the "Proj" column (projected change) has nothing to say:
-// the OVR already IS the projection. That slot carries the model's own interval
-// instead — the range its calibration says the rating lands in about four times
-// out of five (measured 78.7% offence, 79.4% defence on held-out seasons).
-// Shared by the Players board and the team roster so the two read identically.
-// Rows with no interval (a position we decline to project) show a dash.
-function projectionRangeCell(p) {
-  if (p.projection_low == null || p.projection_high == null) return '<span class="text-muted">—</span>';
-  return `<span title="The model's 80% interval around this projection">${Math.round(p.projection_low)}–${Math.round(p.projection_high)}</span>`;
-}
 
 // ── The three ratings of a season being played ──────────────────────────────
 // A player in a season that is under way has three numbers, and they answer three

@@ -14,30 +14,38 @@ The app surfaces EDGE ratings — opponent-adjusted per-game production scores �
 
 ---
 
-## Pages
+## The site is one menu
 
-`menu.html` is the app (next section). The pages in this table are the classic site: each now redirects to the
-menu screen that replaced it unless the URL ends in `?classic`, which the UI smoke tests use. How the files fit
-together is in [`js/README.md`](js/README.md), [`css/README.md`](css/README.md), [`data/README.md`](data/README.md)
-and [`tools/README.md`](tools/README.md); where the data comes from is in the pipeline's `docs/DATA_FLOW.md`.
+`menu.html` is the whole app. Seven sections run along the top, a second bar lists the pages of the one you are in, and a
+quick menu (Start / H) lists every screen. How the files fit together is in [`js/README.md`](js/README.md),
+[`css/README.md`](css/README.md), [`data/README.md`](data/README.md) and [`tools/README.md`](tools/README.md); where the
+data comes from is in the pipeline's `docs/DATA_FLOW.md`.
 
-| Page | URL | What it does |
-|------|-----|-------------|
-| Home | `index.html` | Editorial front door — computed storylines (risers, breakouts, hidden gems), the opening slate, research headlines. Every number is computed from `data/` at load time |
-| Players | `players.html` | Draft board — filter by season, position, conference, min OVR; click any row for the full modal (stats, EDGE percentile, rating breakdown, comps) |
-| Teams | `teams.html` | Team ratings with sub-scores (pass offense, run defense, etc.); ranked roster (no depth chart: there is no depth data); schedule |
-| '26 Season | `season2026.html` | The 2026 schedule: 25 games to circle ranked by matchup quality, per-team slates, and a plain statement of what is live vs. still coming |
-| Ratings | `ratings.html` | Talent-vs-production scatter (green = 8+ OVR above trend) plus top-50 leaderboards per position group |
-| Research | `research.html` | Three live analyses — team performance residual, recruiting-class ROI, Engine D breakout calls — each a sortable, filterable table |
-| Methods | `methods.html` | How every number is computed — formula as the code runs it, evidence, limits, alternatives considered (`METHODS` registry) |
-| Build Log | `changes.html` | What each working pass changed, tried, measured and left unfixed (`CHANGES` registry) |
-| How It Works | `info.html` | The user guide: what each page answers, every panel and control, and a glossary of every mark on a number, drawn by the real render helpers (`GUIDE` registry). Restates no formula — links to Methods |
+| Section | Pages (route) | What it does |
+|---------|---------------|-------------|
+| Home | `#/home` | The league at a glance: computed storylines, top ten, best players, week results, playoff picture, movers, recruiting classes, transfers. Every row is a link |
+| My Team | `#/team/ID` | The team you follow: the same eight pages as any team |
+| Season | Rankings `#/rankings`, Standings `#/standings`, The Season `#/season`, Playoff `#/playoff`, Compare `#/compare` | Our rankings (to date, preseason, final, any completed week), conference standings, risers and fallers, the games still to play ranked by matchup quality, the playoff field, five readings side by side |
+| Teams | All Teams `#/team-select`; a team: Overview, Roster, Depth Chart, Ratings, Schedule, Recruiting, Transfers, History | Every program in any season since 2008. Ratings is the breakdown, the offensive line as a unit, and the per-game team stats |
+| Players | Leaders `#/players`, Talent vs Production `#/scatter`; a card `#/player/ID` | Search and filter every rated player; the scatter of rating against recruiting stars; a card with ratings, stats, career, the model's projection with its reasoning, similar players from any era |
+| Recruiting | Classes `#/recruiting`, Prospects `#/recruiting/prospects`, Transfer Portal `#/portal` | Class rankings with a state map, the prospect board, every portal move with the rating before and after |
+| About | How It Works `#/guide`, Methods `#/methods`, Research `#/research`, Build Log `#/changes` | The four registries (`GUIDE`, `METHODS`, `FINDINGS`, `CHANGES`) drawn one entry at a time |
 
----
+Mouse first, with keyboard and Gamepad API support. It has its own files (`css/menu.css`, `js/menu*.js`, token block
+`.menu-app`) and reads the data through `dataLoader.js`; standings, the portal and the depth order share `js/leagueData.js`.
+A destination is written as `data-to="#/team/52"` and the router opens it, so any element can link. Following a team is
+optional (a button on its page). The layout follows the early-2010s console franchise menus from memory; art and copy are
+original. 2026 roster rows and cards show three ratings (last season, projection, earned to date), never merged. See the Guide
+(How It Works) and Methods (`three-ratings`).
 
-## The menu
+### Old addresses
 
-`menu.html` is the app: a home page (the top ten, best players, week results, playoff picture, movers, recruiting classes, transfers, every row a link), a page for every team (`#/team/52`, with its roster, depth chart, schedule, recruiting, transfers and history), rankings, standings, players, the playoff bracket, recruiting, the transfer portal and the reference screens, one screen at a time. A player card has Overview, Stats and Career sections. Mouse first, with keyboard and Gamepad API support. It has its own files (`css/menu.css`, `js/menu*.js`, token block `.menu-app`) and reads the same data through `dataLoader.js`; standings, the portal and the depth order share `js/leagueData.js` with the site. A destination is written as `data-to="#/team/52"` and the router opens it, so any element can link. Following a team is optional (a button on its page). The layout follows the early-2010s console franchise menus from memory; art and copy are original. 2026 roster rows and cards show three ratings (last season, projection, earned to date), never merged. See the Guide ("The menu: home, teams and players") and Methods (`three-ratings`).
+The classic site (a sidebar and a page per topic) was retired in v4.25. Each of its pages is now a ten-line stub that forwards
+to the menu so old links and bookmarks keep working: `players.html?player=ID&season=2024` opens that card in that season,
+`teams.html?team=Boise%20State&season=2013` (or `teams.html#boise-state`) opens that team, `methods.html#ol` opens that Methods
+entry, `research-breakout.html` opens that finding. `menu.html` itself accepts `?season=`, `?player=` and `?team=` and turns
+them into a route (`menuResolveLegacyLink` in `js/menuRouter.js`). `tools/ui-smoke` proves every old address lands where it
+should.
 
 ## Tech Stack
 
@@ -60,7 +68,7 @@ node tools/doc-check.mjs          # every function over 5 lines documented
 node tools/prose-check.mjs        # registry prose renders without stray markup
 node tools/contrast-check.mjs     # after palette edits
 node tools/theme-check.mjs        # after adding or editing a theme
-cd tools/ui-smoke && npm install && npm run smoke   # headless run of every page, panel, control
+cd tools/ui-smoke && npm install && npm run smoke   # headless run of every screen, panel, control and old address
 ```
 
 `tools/ui-smoke/` is dev-only (playwright-core driving the installed Chrome); nothing the
@@ -80,33 +88,19 @@ python -m http.server 8000
 
 ## Script Load Order
 
-Every page loads scripts in this order:
-
-Two blocks. At the very top of `<body>`, so the theme applies and the chrome exists
-before first paint:
+`menu.html` loads, in this order (the full table with what each file provides is in [`js/README.md`](js/README.md)):
 
 ```text
-1. js/config.js  — CONFIG, theme-keyed palettes, ratingColor()/ratingTextColor(),
-                   seasonList(), fillSeasonSelect(), entity links
-2. js/shell.js   — applies the theme, injects the sidebar + mobile tab bar
+1. js/config.js      — CONFIG, theme-keyed palettes, ratingColor()/ratingTextColor(), entity links
+2. js/dataLoader.js  — the single fetch layer (_load cache, fetchTeams, fetchSeasonPlayers, …)
+3. js/ui.js          — render primitives (ovrPill, posBadge, deltaChip, teamMark, …)
+4. js/leagueData.js, js/dataTable.js
+5. the registries and their renderers — methods, changes, guide, findings (+ *Page.js)
+6. js/menuInput.js, menuFocus.js, menuChrome.js, menuBackdrop.js, menuRouter.js   — the frame
+7. js/menuScreens*.js, menuCard.js, menuWeekly.js, menuGame.js, menuStorylines.js, menuHome.js — the screens
 ```
 
-Then at the end of `.main-content`:
-
-```text
-3. js/dataLoader.js — the single fetch layer (_load cache, fetchAllPlayers,
-                      fetchTeams, fetchSeasonGames, …)
-4. js/ui.js         — render primitives (ovrPill, posBadge, deltaChip, onThemeChange, …)
-5. js/dataTable.js  — createDataTable() / createFilterBar()  [pages with tables]
-6. page module      — home.js | playerSearch.js | teamsPage.js | ratingsDisplay.js
-                      | season2026.js | findings.js + findingPage.js
-                      | methods.js + methodsPage.js | changes.js + changesPage.js
-                      | guide.js + guidePage.js (info.html; also loads methods.js
-                        and changes.js for link titles and the latest version)
-```
-
-`config.js` must load first — everything else depends on `CONFIG`. No page carries its
-own nav markup or theme script; `shell.js` owns both, keyed off `<body data-page="…">`.
+`config.js` must load first — everything else depends on `CONFIG`. A file may use anything defined above it.
 
 ---
 
@@ -171,22 +165,20 @@ After exporting a new season, update both.
 
 ## Theme System
 
-Two first-class themes, set as `data-theme` on `<html>` by `js/shell.js` before
-first paint:
+Two first-class themes, set as `data-theme` on `<html>` by the menu (`menuChrome.setMode`, with an inline
+script in `menu.html` applying the saved one before first paint):
 
 | Value | Token block |
 |-------|-------------|
 | `dark` | `:root` |
 | `light` | `[data-theme="light"]` overrides |
 
-Resolution order: `?theme=dark\|light` URL override (used for deterministic
-screenshots) → the saved `localStorage["cfb-theme"]` choice (legacy
-`dynasty-dark` / `mid` values migrate to `dark`) → the OS `prefers-color-scheme`.
-The sidebar swatches persist the choice and dispatch a `cfb:themechange` event.
+Resolution order: the saved `localStorage["cfb-menu-mode"]` choice, else dark. Light and Dark mode is a
+button in the bar below and in the quick menu (M or Select on a controller).
 
-**Any JS that computes a color must repaint on that event** — rating pills,
-position badges and chart marks are theme-derived, so page scripts register
-`onThemeChange(render)` (`js/ui.js`) to re-render from the in-memory cache.
+**Any JS that computes a color must repaint when the mode changes** — rating pills, position badges and chart
+marks are theme-derived. The menu does this by drawing the current screen again from the in-memory cache
+(`menuChrome.setMode` → `menuRouter.render`), so a screen needs no hook of its own.
 
 **Contrast is enforced by a tool, not by eye.** After changing any token or
 palette value, run:
@@ -205,14 +197,15 @@ both themes. It exits non-zero with a table of failures.
 
 | File | Contents |
 |------|----------|
-| `css/styles.css` | Design tokens (CSS vars), layout (sidebar + main), typography, theme definitions |
-| `css/components.css` | All component classes — cards, modals, tabs, scatter plot, research/info page sections, and the design-system primitives block at the end |
+| `css/styles.css` | Design tokens (CSS vars), typography, theme definitions |
+| `css/components.css` | The shared component classes the menu and the registry readers use — rating pills, badges, data tables, the finding and method sections, team marks, and the design-system primitives block at the end |
+| `css/menu.css` | The menu: its frame, screens and its own two-mode token block |
 
 ---
 
 ## Design System Primitives ("Press Box")
 
-Full change record for the v3.1 rebuild: the Build Log (`changes.html`, entry `v3.1-redesign`). The original markdown changelog is preserved in the portfolio `archive/` folder.
+Full change record for the v3.1 rebuild: the Build Log (`#/changes/v3.1-redesign`). The original markdown changelog is preserved in the portfolio `archive/` folder.
 
 Reusable building blocks live in two places; all pages are migrated onto them:
 
@@ -277,21 +270,21 @@ Precomputed cosine similarity across EDGE feature vectors (OVR ≥ 55 players on
 
 ## Version
 
-The current release is the newest entry on the Build Log (`changes.html`). `CONFIG.VERSION` in `js/config.js`
+The current release is the newest entry on the Build Log (About › Build Log). `CONFIG.VERSION` in `js/config.js`
 mirrors it, and `cfb-analytics-pipeline/tests/test_frontend_config.py` fails if the two differ. Branch: `main`.
 
 Older notes:
 
-See the Build Log (`changes.html`, entry `v3.3-ratings`) for the rating and projection
+See the Build Log (`#/changes/v3.3-ratings`) for the rating and projection
 pass (position-family projections, OL no longer projected, the opportunity model, secondary
 archetypes, the v4.2 position calibration, and the players the ratings had been dropping).
 
-See the Build Log (`changes.html`, entries `v3.2-projections` and `v3.1-redesign`) for 2026
+See the Build Log (`#/changes/v3.2-projections` and `#/changes/v3.1-redesign`) for 2026
 as a real projected season and the visual rebuild (two-theme token system, contrast gate,
 component consolidation). The original markdown changelogs are preserved in the portfolio
 `archive/` folder, which also holds a full cross-repo history (`archive/CHANGELOG.html`).
 
-Rating version history is on the [Build Log](changes.html); how each number is computed is on [Methods](methods.html).
+Rating version history is on the Build Log (`menu.html#/changes`); how each number is computed is on Methods (`menu.html#/methods`).
 
 ---
 

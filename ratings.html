@@ -4,81 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ratings — CFB Analytics</title>
-  <!-- The menu replaced this page; ?classic keeps the old one for tests. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + "#/players");</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html" + location.search + "#/scatter");</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html#/scatter"></noscript>
 </head>
-<body data-page="ratings">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ==================== -->
-<div class="main-content">
-
-<header class="masthead masthead--page animate-pop">
-  <div class="eyebrow">RATINGS</div>
-  <h1>Player Ratings</h1>
-  <p class="masthead-sub">Opponent-adjusted 30–99 ratings (EDGE). 🔥 = breakout candidate.</p>
-</header>
-
-<div class="page-content">
-  <div id="season-provenance"></div>
-  <div class="filter-bar" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
-    <select id="ratings-season-select" title="Season"></select>  <!-- options filled by fillSeasonSelect() -->
-    <select id="team-filter-select" title="Team" style="min-width:160px">
-      <option value="ALL">All Teams</option>
-    </select>
-    <span id="scatter-count" style="color:var(--text-muted);font-size:0.85rem;margin-left:auto"></span>
-  </div>
-
-  <div id="pos-filter-bar" class="pos-chips" style="margin-bottom:1rem"></div>
-
-  <div class="scatter-section">
-    <h2>Where production breaks from recruiting hype</h2>
-    <p class="section-sub">
-      Players above the dashed trend line outperform their recruiting ranking — the "hidden gems" the model identifies.
-      Green dots = 8+ OVR above trend. Click any dot to open the player profile.
-    </p>
-    <div id="scatter-chart"></div>
-  </div>
-
-  <section class="ratings-board-section" style="margin-top:2rem">
-    <div class="section-rule">
-      <span class="eyebrow">POSITION LEADERBOARDS</span>
-      <span class="section-rule-sub">Top 50 per position group — click any player for the full breakdown</span>
-    </div>
-    <div id="board-pos-tabs" class="tabs" style="margin-bottom:0.75rem"></div>
-    <div id="position-board"></div>
-  </section>
-</div>
-
-<div id="player-modal" class="modal">
-  <div class="modal-inner"></div>
-</div>
-
-</div><!-- /.main-content -->
-
-<!-- ==================== SCRIPTS ==================== -->
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/dataTable.js"></script>
-<script src="js/playerSearch.js"></script>
-<script src="js/ratingsDisplay.js"></script>
-<script>
-  fillSeasonSelect(document.getElementById("ratings-season-select"), CONFIG.CURRENT_SEASON);
-
-  document.getElementById("ratings-season-select").addEventListener("change", async e => {
-    _filterPos  = "ALL";
-    _filterTeam = "ALL";
-    const season = parseInt(e.target.value);
-    await initRatings(season);
-    await initPositionBoard(season);
-  });
-
-  initRatings();
-  initPositionBoard();
-</script>
+<body>
+  <p>This page has moved. <a href="menu.html#/scatter">Open it in the menu →</a></p>
 </body>
 </html>

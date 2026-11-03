@@ -1,4 +1,4 @@
-// guidePage.js — renders info.html ("How It Works") from the GUIDE registry.
+// guidePage.js — renders one GUIDE entry ("How It Works"; the reader in menuScreensPages.js draws them one at a time).
 //
 // Same split as methods.js / methodsPage.js and changes.js / changesPage.js: the
 // registry holds content, this holds presentation, and it composes only existing
@@ -9,7 +9,7 @@
 // sentence (read from data/) and nothing else. Everything else renders at once,
 // so the page reads correctly with the data files missing.
 //
-// Load order: config.js, shell.js → dataLoader.js, ui.js, methods.js,
+// Load order: config.js → dataLoader.js, ui.js, methods.js,
 // changes.js, guide.js → this file. METHODS supplies link titles and CHANGES
 // the latest-version line; both are optional and degrade to plain text.
 
@@ -19,7 +19,7 @@
 function _guideMethodLink(id) {
   const m = (typeof METHODS !== "undefined") ? METHODS.find(x => x.id === id) : null;
   return m
-    ? `<a href="methods.html#${_esc(id)}">${_esc(m.title)}</a>`
+    ? `<a href="#/methods/${_esc(id)}">${_esc(m.title)}</a>`
     : `<span class="text-muted">${_esc(id)}</span>`;
 }
 
@@ -92,58 +92,4 @@ function _guideEntry(e) {
           <p class="method-source">${e.methods.map(_guideMethodLink).join(" · ")}</p>
         </div>` : ""}
     </article>`;
-}
-
-// Fill each entry's `live` sentence. Each one fails independently and leaves
-// its slot empty — a missing data file costs one sentence, not the page.
-async function _guideFillLive() {
-  await Promise.all(GUIDE.filter(e => e.live).map(async e => {
-    const el = document.querySelector(`[data-live="${CSS.escape(e.id)}"]`);
-    if (!el) return;
-    try { el.innerHTML = await e.live(); } catch (_) { el.innerHTML = ""; }
-  }));
-}
-
-// Entry point for info.html. Renders the masthead, a TOC of GUIDE_GROUPS and
-// every entry, fills the live lines, and repaints on a theme change (the
-// glossary samples and tier legend are theme-coloured). Re-scrolls to a #hash
-// after rendering, because the anchor did not exist when the browser first
-// looked for it — that is what makes info.html#projections land correctly.
-function initGuide() {
-  const root = document.getElementById("guide-root");
-  if (!root) return;
-
-  const render = () => {
-    root.innerHTML = `
-      <header class="masthead masthead--page animate-pop">
-        <div class="eyebrow">HOW IT WORKS</div>
-        <h1>How to read this site</h1>
-        <p class="masthead-sub">
-          What every page answers, what each panel and control does, and what every mark on a
-          number means. For how the numbers themselves are computed — formulas, evidence, and
-          what was tried and rejected — see <a href="methods.html">Methods</a>.
-        </p>
-        <nav class="method-toc">
-          ${GUIDE_GROUPS.map(g => `<a href="#guide-${_esc(g.id)}">${_esc(g.label)}</a>`).join("")}
-        </nav>
-      </header>
-      ${GUIDE_GROUPS.map(g => {
-        const entries = GUIDE.filter(e => e.group === g.id);
-        if (!entries.length) return "";
-        return `
-          <section class="method-group" id="guide-${_esc(g.id)}">
-            <h2 class="section-heading">${_esc(g.label)}</h2>
-            <div class="stagger-children">${entries.map(_guideEntry).join("")}</div>
-          </section>`;
-      }).join("")}`;
-    return _guideFillLive();
-  };
-
-  // Instant, not the site's smooth scroll: a deep link should land, not travel
-  // 4,000px. Repeated once the live lines above the target have filled in.
-  const land = () => location.hash &&
-    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "instant" });
-  render().then(land);
-  land();
-  onThemeChange(render);
 }

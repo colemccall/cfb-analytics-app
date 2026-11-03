@@ -1,4 +1,4 @@
-// methodsPage.js — renders methods.html from the METHODS registry.
+// methodsPage.js — renders one METHODS entry (the Methods reader in menuScreensPages.js draws them one at a time).
 //
 // Same split as findings.js / findingPage.js: the registry holds content, this
 // holds presentation. Adding a method entry needs no page code.
@@ -128,14 +128,14 @@ function _entry(m) {
     </article>`;
 }
 
-// The generated data-availability section at the bottom of Methods, from
+// The generated data-availability section of the Methods reader, from
 // data/api_availability.json (written by the pipeline's explore_api.py): how
 // many endpoints answer and are used, what is verified absent and how we
 // know, and every endpoint's record count. An empty state names the command
 // to run when the survey is missing.
 async function _availability() {
   let d = null;
-  try { d = await _load("api_availability.json"); } catch (_) { d = null; }
+  d = await fetchApiAvailability();
   if (!d || !d.endpoints) {
     return `<p class="empty-state">No API survey on file — run
       <code>python scripts/explore_api.py</code> in the pipeline.</p>`;
@@ -174,45 +174,3 @@ async function _availability() {
     </div>`;
 }
 
-// Entry point for methods.html: renders the masthead, a TOC of METHOD_GROUPS
-// and each group's entries into #methods-root, then fills the availability
-// table asynchronously. A group with no entries is skipped, except "data",
-// which always carries the generated table.
-async function initMethods() {
-  const root = document.getElementById("methods-root");
-  if (!root) return;
-
-  const groups = METHOD_GROUPS.map(g => {
-    const entries = METHODS.filter(m => m.group === g.id);
-    if (!entries.length && g.id !== "data") return "";
-    // The data group renders its entries AND the generated availability table.
-    // It used to render only the table, which silently dropped any entry filed
-    // under it — a registry that discards content is worse than no registry.
-    return `
-      <section class="method-group" id="group-${_esc(g.id)}">
-        <h2 class="section-heading">${_esc(g.label)}</h2>
-        ${entries.length ? `<div class="stagger-children">${entries.map(_entry).join("")}</div>` : ""}
-        ${g.id === "data" ? '<div id="method-availability"></div>' : ""}
-      </section>`;
-  }).join("");
-
-  root.innerHTML = `
-    <header class="masthead masthead--page animate-pop">
-      <div class="eyebrow">METHODS</div>
-      <h1>How every number here is made</h1>
-      <p class="masthead-sub">
-        Each rating, projection and finding on this platform, with the formula as the code
-        actually computes it, what has been measured about it, and the alternatives considered —
-        including the ones rejected and why. Where a number is built on inputs that do not
-        exist, it says so.
-      </p>
-      <nav class="method-toc">
-        ${METHOD_GROUPS.map(g =>
-          `<a href="#group-${_esc(g.id)}">${_esc(g.label)}</a>`).join("")}
-      </nav>
-    </header>
-    ${groups}`;
-
-  const avail = document.getElementById("method-availability");
-  if (avail) avail.innerHTML = await _availability();
-}

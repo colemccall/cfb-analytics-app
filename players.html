@@ -4,70 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Players — CFB Analytics</title>
-  <!-- The menu replaced this page; ?classic keeps the old one for tests. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + (location.search.match(/[?&]player=(\d+)/) ? "#/player/" + RegExp.$1 : "#/players"));</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html" + location.search + (/[?&]player=/.test(location.search) ? "" : "#/players"));</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html#/players"></noscript>
 </head>
-<body data-page="players">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ==================== -->
-<div class="main-content">
-
-<header class="masthead masthead--page animate-pop">
-  <div class="eyebrow">PLAYERS</div>
-  <h1>Player Search</h1>
-  <p class="masthead-sub">Draft board — ranked by overall rating. Click any row for the full breakdown of why.</p>
-</header>
-
-<div class="page-content entity-scope">
-  <div id="season-provenance"></div>
-  <!-- Top filter bar: search + selects + rating slider -->
-  <div class="filter-bar">
-    <div class="filter-group">
-      <input type="text" id="search-input" placeholder="Search player or team…">
-    </div>
-    <div class="filter-group">
-      <select id="filter-conference">
-        <option value="">All Conferences</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <select id="filter-season"></select>  <!-- options filled by fillSeasonSelect() -->
-    </div>
-    <div class="filter-group filter-group-range">
-      <span class="filter-label">Min OVR: <strong id="min-rating-label">0</strong></span>
-      <input type="range" id="filter-min-rating" min="0" max="99" value="0" step="1">
-    </div>
-    <span class="result-count" id="result-count"></span>
-  </div>
-
-  <!-- Position chip filters (two rows: offense / defense+special) -->
-  <div class="pos-filter-rows">
-    <div class="pos-filter-row" id="pos-chips-offense"></div>
-    <div class="pos-filter-row" id="pos-chips-defense"></div>
-  </div>
-
-  <div class="player-grid" id="player-grid">
-    <p class="empty-state">Loading players…</p>
-  </div>
-</div>
-
-<!-- Player detail modal -->
-<div class="modal" id="player-modal">
-  <div class="modal-inner"></div>
-</div>
-
-<!-- ==================== SCRIPTS ==================== -->
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/playerSearch.js"></script>
-<script>
-  initPlayerSearch();
-</script>
-</div><!-- /.main-content -->
+<body>
+  <p>This page has moved. <a href="menu.html#/players">Open it in the menu →</a></p>
 </body>
 </html>

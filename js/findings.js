@@ -438,7 +438,7 @@ const FINDINGS = {
     question: "Which lightly-recruited players turned into real contributors?",
 
     async load() {
-      const all = await fetchAllPlayers(PLAYED_SEASON) || [];
+      const all = await fetchSeasonPlayers(PLAYED_SEASON);
       // The base rate, which this finding shipped without. Selecting on the
       // outcome and never saying how many players were in the pool means a
       // reader cannot tell whether the list is remarkable or arithmetic: if 5%

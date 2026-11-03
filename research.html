@@ -4,100 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Research — CFB Analytics</title>
-  <!-- The menu replaced this page; ?classic keeps the old one for tests. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + "#/research");</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html" + location.search + "#/research");</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html#/research"></noscript>
 </head>
-<body data-page="research">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ====================
-     An index, not a dashboard. Every card below is generated from the findings
-     registry (js/findings.js) and links to that finding's own page. The three
-     stacked tables that used to live here now each have a page of their own. -->
-<div class="main-content">
-
-<header class="masthead masthead--page animate-pop">
-  <div class="eyebrow">RESEARCH</div>
-  <h1>Research Findings</h1>
-  <p class="masthead-sub">
-    Each finding is a claim with evidence you can open, filter, and argue with — plus an
-    honest statement of what it cannot see.
-  </p>
-</header>
-
-<div class="page-content">
-
-  <h2 class="section-heading">Findings</h2>
-  <p class="section-lede">
-    Live analyses, recomputed on every pipeline refresh. Each opens into its full table.
-  </p>
-  <div id="research-index"></div>
-
-  <h2 class="section-heading">Storylines</h2>
-  <p class="section-lede">
-    The claims the home page leads with, each opening into the complete ordered list behind it.
-  </p>
-  <div id="storyline-index"></div>
-
-  <h2 class="section-heading">Questions we haven't answered</h2>
-  <p class="section-lede">
-    Open questions with no analysis behind them yet. Listed because a research page that only
-    shows finished work hides how much is unfinished.
-  </p>
-  <div class="research-grid">
-    <div class="research-card coming-soon">
-      <span class="research-tag">Transfer Portal</span>
-      <h3>G5 → P4 transfer success</h3>
-      <p>Which production profiles survive a jump in competition? Does EDGE trajectory predict it better than raw totals?</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Transfer Portal</span>
-      <h3>Year 1 vs Year 2 transfers</h3>
-      <p>Do transfers dip in year one and peak in year two if retained? How does that vary by position and conference jump?</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">NIL</span>
-      <h3>NIL efficiency</h3>
-      <p>Which positions and program types return the most production per NIL dollar? Blocked: no working data source.</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Scheme</span>
-      <h3>Portable coordinators</h3>
-      <p>Do some coordinators produce elite players everywhere they go, or are they talent-dependent?</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Conference</span>
-      <h3>Realignment impact</h3>
-      <p>How did the 2024–25 realignment change recruiting footprints and talent composites for the programs that moved?</p>
-    </div>
-    <div class="research-card coming-soon">
-      <span class="research-tag">Historical</span>
-      <h3>Cross-era leaderboards</h3>
-      <p>Era-adjusted anchors are live in the ratings engine; the leaderboard view that would use them is not built.</p>
-    </div>
-  </div>
-
-</div>
-
-<!-- ==================== SCRIPTS ==================== -->
-<div class="modal" id="player-modal">
-  <div class="modal-inner"></div>
-</div>
-
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/dataTable.js"></script>
-<script src="js/playerSearch.js"></script>
-<script src="js/findings.js"></script>
-<script src="js/findingPage.js"></script>
-<script>
-  renderFindingIndex("research-index", "research");
-  renderFindingIndex("storyline-index", "storyline");
-</script>
-</div><!-- /.main-content -->
+<body>
+  <p>This page has moved. <a href="menu.html#/research">Open it in the menu →</a></p>
 </body>
 </html>

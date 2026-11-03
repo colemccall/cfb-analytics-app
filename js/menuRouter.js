@@ -48,8 +48,8 @@ menuRouter.register = function (id, def) {
 // The screens about one team, and how a team route names them: #/team/52 is the team's page,
 // #/team/52/roster/QB its roster, and so on. Any team has a page; "My Team" is only the one the
 // old short routes (#/roster) and the home page default to.
-const MENU_TEAM_SUBS = { roster: "roster", depth: "depth", schedule: "schedule", recruiting: "team-recruiting", transfers: "team-portal", history: "team-history" };
-const MENU_TEAM_SCREENS = new Set(["team", "roster", "depth", "schedule", "team-recruiting", "team-portal", "team-history"]);
+const MENU_TEAM_SUBS = { ratings: "team-ratings", roster: "roster", depth: "depth", schedule: "schedule", recruiting: "team-recruiting", transfers: "team-portal", history: "team-history" };
+const MENU_TEAM_SCREENS = new Set(["team", "team-ratings", "roster", "depth", "schedule", "team-recruiting", "team-portal", "team-history"]);
 
 // Splits "#/team/52/roster/QB" into { id: "roster", params: ["QB"], teamId: 52 }, and a short route
 // like "#/roster/QB" into the same with teamId taken from My Team. An empty or unknown route is the
@@ -176,9 +176,34 @@ menuRouter.render = async function () {
   document.title = `${title} — CFB Analytics`;
 };
 
+// Old addresses (v4.25). The classic pages are retired; each is a stub that forwards its query string to this page, and this turns
+// what it carries into a route: ?season=2023 sets the season being viewed, ?player=ID opens his card, ?team=Boise%20State (or the
+// old team page's #boise-state) opens the team's page. A team name the season does not have goes to the team picker. The query is
+// then dropped from the address so it cannot fight the season stepper.
+async function menuResolveLegacyLink() {
+  const q = new URLSearchParams(location.search);
+  const slug = /^#[a-z0-9-]+$/.test(location.hash) ? location.hash.slice(1) : "";
+  if (![...q.keys()].length && !slug) return;
+  // The link's season applies to this visit only; it is saved when you step the season yourself, so a shared link is not sticky.
+  const season = parseInt(q.get("season"));
+  if (season >= CONFIG.FIRST_SEASON && season <= CONFIG.CURRENT_SEASON) MENU.season = season;
+  let route = null;
+  const player = parseInt(q.get("player"));
+  if (player > 0) route = menuPlayerPath(player);
+  else if (q.get("team") || slug) {
+    const teams = await fetchTeams(MENU.season);
+    const name = (q.get("team") || "").toLowerCase();
+    const team = name ? teams.find(t => t.school.toLowerCase() === name)
+                      : teams.find(t => t.school.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug);
+    route = team ? menuTeamPath(team.id) : "#/team-select";
+  }
+  // Replaced, not pushed: Back from the page it opens must not return to an address that forwards again.
+  try { history.replaceState(null, "", location.pathname + (route || (slug ? "" : location.hash))); } catch (e) { /* the address stays as it was */ }
+}
+
 // Starts the router: load what the menu remembers, wire back/home/season/tab actions
 // and the hash, and render the first route.
-menuRouter.start = function () {
+menuRouter.start = async function () {
   menuLoadState();
   menuInput.on("back", () => { this.back(); return true; });
   menuInput.on("home", () => { menuChrome.openMenu(); return true; });
@@ -200,5 +225,8 @@ menuRouter.start = function () {
     if (el && el.dataset.to) { e.preventDefault(); this.go(el.dataset.to); }
   });
   window.addEventListener("hashchange", () => this.render());
+  // An old address is resolved after the keys and the hash are wired, so a slow file cannot leave the menu deaf, and a failure
+  // leaves the address as it was and renders it.
+  try { await menuResolveLegacyLink(); } catch (e) { /* render what the address says */ }
   this.render();
 };

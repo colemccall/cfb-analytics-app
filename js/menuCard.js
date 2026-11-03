@@ -200,12 +200,11 @@ function menuWhyBlock(p, rows = []) {
   if (edge != null) {
     lines.push(`<li>Production score <b>${edge.toFixed(1)}</b>${_menuNum(p.games_played) ? ` over ${p.games_played} games` : ""}: his counted game scores, each adjusted for the opponent, added up and divided by the square root of games played. Fixed position anchors turn that score into the rating, the same for every season.</li>`);
   }
-  if (p.archetypes && p.position_group && ["CB", "S", "DB"].includes(p.position_group)) {
-    const a = p.archetypes;
-    lines.push(`<li>A defensive back's overall is made of three jobs on one 0–10 scale: ball hawk <b>${_menuNum(a.ball_hawk)?.toFixed(1) ?? "—"}</b>, coverage <b>${_menuNum(a.coverage)?.toFixed(1) ?? "—"}</b>, run support <b>${_menuNum(a.run_support)?.toFixed(1) ?? "—"}</b>.</li>`);
-  }
   if (p.rating_basis === "recruiting") lines.push("<li>No game production was on file, so this rating comes from his recruiting grade alone.</li>");
   else if (p.rating_basis === "blended") lines.push(menuLowGameLine(p.games_played) || "<li>Blended: part production, part recruiting grade, because he has few counted games.</li>");
+  if (p.stars) lines.push(`<li>Recruited as a <b>${p.stars}-star</b> prospect${_menuNum(p.composite_score) != null ? ` (composite ${p.composite_score.toFixed(4)})` : ""}.</li>`);
+  else if (p.rating_status !== "not_rated") lines.push("<li>No recruiting grade on record.</li>");
+  if (_menuNum(p.breakout_prob) >= 0.35) lines.push(`<li><b>Breakout candidate:</b> a young player with a high recruiting grade who is producing below the median for it (${Math.round(p.breakout_prob * 100)}% probability from the model).</li>`);
   if (!lines.length) lines.push(`<li>${_esc(menuNoRatingWhy(p, p.season ?? MENU.season) || "No production detail is on file for this season.")}</li>`);
   return `<ul class="m-why">${lines.join("")}</ul>`;
 }
@@ -222,6 +221,99 @@ function menuSchoolLink(name, teams) {
   if (!name) return "—";
   const t = teams.find(x => x.school === name);
   return t ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">${_esc(name)}</button>` : _esc(name);
+}
+
+// ── Brought in from the classic player modal (v4.25) ───────────────────────────────────────────────
+
+// The three jobs behind a defensive back's overall, and the weight each carries (script 06 SECONDARY_ARCHETYPE_WEIGHTS).
+const MENU_ARCHETYPES = {
+  ball_hawk:   ["Ball hawk",   "Interceptions, pass breakups and returns: what he does when the ball arrives."],
+  coverage:    ["Lockdown",    "Playing time on a defense that gave up little through the air. It carries no box-score input: a covered receiver produces no statistic."],
+  run_support: ["Run support", "Tackles, tackles for loss and sacks: the part of the job that happens in front of him."],
+};
+const MENU_ARCHETYPE_WEIGHTS = {
+  CB: { coverage: 0.40, ball_hawk: 0.40, run_support: 0.20 },
+  S:  { run_support: 0.50, ball_hawk: 0.30, coverage: 0.20 },
+  DB: { run_support: 1 / 3, ball_hawk: 1 / 3, coverage: 1 / 3 },
+};
+
+// "What kind of defensive back": the three archetype scores (0-10) his overall is built from, each as a bar with its weight, the
+// largest first, led by a sentence naming the top one. "" for anyone else.
+function menuArchetypeBars(p) {
+  const a = p && p.archetypes, w = p && MENU_ARCHETYPE_WEIGHTS[p.position_group];
+  if (!a || typeof a !== "object" || !w) return "";
+  const order = Object.keys(w).sort((x, y) => (_menuNum(a[y]) ?? 0) - (_menuNum(a[x]) ?? 0));
+  const bars = order.map(k => {
+    const v = _menuNum(a[k]) ?? 0, meta = MENU_ARCHETYPES[k];
+    return `<div class="m-bar m-bar--wide" title="${_esc(`${meta[0]}, ${Math.round(w[k] * 100)}% of a ${p.position_group}'s overall. ${meta[1]}`)}">
+      <span class="m-bar-label">${_esc(meta[0])}</span>
+      <span class="m-bar-track"><i style="width:${Math.max(0, Math.min(100, v * 10))}%;background:${ratingColor(Math.round(30 + v * 6.5))}"></i></span>
+      <b class="m-bar-val">${v.toFixed(1)}</b></div>`;
+  }).join("");
+  return `<h3 class="m-h3">What kind of defensive back</h3>
+    <p class="m-note">${_esc((p.name || "He").split(" ")[0])} grades out as a <b>${_esc(MENU_ARCHETYPES[order[0]][0].toLowerCase())}</b>. His overall is these three jobs scored 0 to 10 and weighted by what a ${_esc(p.position_group)} is paid to do (${order.map(k => `${MENU_ARCHETYPES[k][0].toLowerCase()} ${Math.round(w[k] * 100)}%`).join(", ")}).</p>
+    ${bars}
+    <p class="m-note">Lockdown has no box-score input at all: quarterbacks avoid the players who earn it, so it is built from playing time and what his defense allowed per pass thrown.</p>`;
+}
+
+// Where his production score sits among the players of his position that season, as a strip with the words beside it. A raw score
+// is not comparable across positions (a quarterback's runs to 1,600, a linebacker's to 65); the percentile is. "" without one.
+function menuEdgeStrip(pct, p, season) {
+  if (pct == null) return "";
+  return `<div class="m-edge">${contextStrip(pct, `${pct}th percentile among ${p.position_group}s in ${season}`)}</div>`;
+}
+
+// The Engine D projection for the season it is FOR: the number, its 80% range, the label, how far above or below his cohort it is and
+// how confident the model is. The reasoning (prose, drivers, comparable careers) is a 5.5 MB file fetched after the card is on screen
+// and drawn into #m-proj-why by menuProjectionWhy. `t` is his row of trajectory.json, `meta` its _meta.
+function menuProjectionPanel(t, meta) {
+  const label = String(t.trajectory_label || "");
+  const tone = label === "breakout" || label === "bounceback" ? " is-pos" : label === "decline" ? " is-neg" : "";
+  const vs = _menuNum(t.vs_cohort);
+  const forSeason = meta.predicts_season || CONFIG.CURRENT_SEASON;
+  const how = t.family === "offense"
+    ? `Projected from his career production curve, his cohort's development curve, and the opportunity in front of him: depth-chart position on the ${forSeason} roster and how much production is departing ahead of him.`
+    : "Projected from his career production curve against what players at the same position and class year historically did next. Defensive ratings rest on less complete production data than offensive ones, so read this as indicative.";
+  return `<section class="m-panel" id="m-proj"><h3 class="m-h3">${forSeason} projection ${projBadge()}</h3>
+      <div class="m-projhead">
+        <div><span class="m-projnum">${Math.round(t.predicted_ovr)}</span> ${projRange(t.proj_low, t.proj_high)}<div class="m-note">projected rating</div></div>
+        <div><b class="m-projlabel${tone}">${_esc(label)}</b>
+          <div class="m-note">${vs == null ? "" : `${vs > 0 ? "+" : ""}${vs.toFixed(1)} against a cohort expectation of ${_esc(String(t.cohort_expected))}`}</div>${confidenceChip(t.confidence)}</div>
+      </div>
+      <div id="m-proj-why"><p class="m-empty">Loading the reasoning…</p></div>
+      <p class="m-foot">${how}${_menuNum(meta.model_mae) != null ? ` Typical error ±${meta.model_mae} rating points.` : ""} Players who leave for the NFL are absent from the history these curves are built on, so decline at the very top is somewhat overstated.</p></section>`;
+}
+
+// The reasoning behind one projection from trajectory_detail.json: a sentence, the signed drivers as centred bars (scaled to the
+// largest), and the historical players whose careers looked like his at the same stage with what each did the next year. "" with none.
+function menuProjectionWhy(d) {
+  if (!d) return "";
+  const drivers = d.drivers || [];
+  const max = Math.max(...drivers.map(x => Math.abs(x.effect)), 0.1);
+  const bars = drivers.map(x => {
+    const pos = x.effect >= 0, w = Math.min(100, Math.abs(x.effect) / max * 100) / 2;
+    return `<div class="m-driver"><span class="m-driver-label">${_esc(x.label)}</span>
+      <span class="m-driver-track"><i class="${pos ? "is-pos" : "is-neg"}" style="width:${w.toFixed(1)}%"></i></span>
+      <b class="m-driver-val ${pos ? "is-pos" : "is-neg"}">${pos ? "+" : ""}${x.effect.toFixed(1)}</b></div>`;
+  }).join("");
+  const comps = (d.comparables || []).map(c => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="comps" data-to="${menuPlayerPath(c.player_id)}">
+      <span class="m-rank"></span><span class="m-pname">${_esc(c.name)} <small>${_esc(String(c.season))} · rated ${_esc(String(c.ovr))}</small></span>
+      <span class="m-num ${c.actual_delta >= 0 ? "is-pos" : "is-neg"}">${c.actual_delta >= 0 ? "+" : ""}${c.actual_delta} next year</span></button>`).join("");
+  return `${d.explanation ? `<p class="m-note m-explain">${_esc(d.explanation)}</p>` : ""}
+    ${bars ? `<h4 class="m-h4">What moved the number</h4>${bars}` : ""}
+    ${comps ? `<h4 class="m-h4">Careers that looked like his</h4>${comps}` : ""}`;
+}
+
+// Players from any season with the most similar production profile at his position, each with how alike (%), his team and season,
+// and his rating then. Each row opens that player's card. "" with none.
+function menuSimilarPanel(list) {
+  if (!list || !list.length) return "";
+  return `<section class="m-panel"><h3 class="m-h3">Similar players, across eras</h3>
+      <p class="m-note">Players from any season with the most similar production profile at this position.</p>
+      ${list.map(s => `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="similar" data-to="${menuPlayerPath(s.id)}">
+        <span class="m-rank">${Math.round(s.similarity * 100)}%</span><span class="m-pname">${_esc(s.name)} <small>${_esc(s.team || "—")} · ${_esc(String(s.season))}</small></span>
+        <span class="m-rating">${s.ovr == null ? "—" : ovrPill(s.ovr, { season: s.season, label: `Rating, ${s.season}` })}</span></button>`).join("")}
+    </section>`;
 }
 
 // The photo slot at the head of the card: a fixed-size frame so nothing moves when a photo arrives. It always

@@ -4,60 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teams — CFB Analytics</title>
-  <!-- The menu replaced this page; ?classic keeps the old one for tests. -->
-  <script>if (!/[?&]classic(&|$)/.test(location.search)) location.replace("menu.html" + "#/hub");</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Retired in v4.25: the menu (menu.html) is the whole site. This stub only keeps old links and bookmarks working. -->
+  <script>location.replace("menu.html" + location.search + (/[?&]team=/.test(location.search) || /^#[a-z0-9-]+$/.test(location.hash) ? location.hash : "#/hub"));</script>
+  <noscript><meta http-equiv="refresh" content="0; url=menu.html#/hub"></noscript>
 </head>
-<body data-page="teams">
-<script src="js/config.js"></script>
-<script src="js/shell.js"></script>
-<!-- ==================== MAIN CONTENT ==================== -->
-<div class="main-content">
-<div class="teams-layout">
-  <!-- Sidebar: team list -->
-  <aside class="teams-sidebar">
-    <div class="sidebar-search">
-      <input type="text" id="team-search" placeholder="Search teams…">
-      <select id="year-select" title="Season year"></select>
-    </div>
-    <div id="conf-filter" class="conf-filter"></div>
-    <div class="team-list" id="team-list">
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-      <div class="skeleton skeleton-row"></div>
-    </div>
-  </aside>
-
-  <!-- Main: team detail. On phone/tablet this IS the page and the picker above
-       is summoned by this button — see .picker-toggle in styles.css. -->
-  <main class="teams-main" id="teams-main">
-    <button class="picker-toggle" type="button">
-      <span>Choose a team</span><span aria-hidden="true">▾</span>
-    </button>
-    <div class="team-placeholder">
-      <p class="empty-state">Select a team from the list.</p>
-    </div>
-  </main>
-</div>
-
-<div id="player-modal" class="modal">
-  <div class="modal-inner"></div>
-</div>
-
-<!-- ==================== SCRIPTS ==================== -->
-<script src="js/dataLoader.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/playerSearch.js"></script>
-<script src="js/leagueData.js"></script>
-<script src="js/teamsPage.js"></script>
-<script>
-  initTeamsPage();
-</script>
-</div><!-- /.main-content -->
+<body>
+  <p>This page has moved. <a href="menu.html#/hub">Open it in the menu →</a></p>
 </body>
 </html>

@@ -30,7 +30,14 @@ menuFocus.attach = function (root) {
   this.root = root;
   root.addEventListener("pointermove", e => {
     const el = e.target.closest?.("[data-nav]");
+    // While someone is typing in a text box the pointer drifting over a row must not pull the focus out of it.
+    if (document.activeElement instanceof HTMLInputElement && el !== document.activeElement) return;
     if (el && el !== this.current && this._usable(el)) this.set(el, { scroll: false });
+  });
+  // A text box keeps the keyboard until you click elsewhere; without this the hover guard above would hold the focus in it.
+  root.addEventListener("pointerdown", e => {
+    const a = document.activeElement;
+    if (a instanceof HTMLInputElement && !(e.target.closest && e.target.closest("input"))) a.blur();
   });
   menuInput.on("select", () => this.activate());
   for (const dir of ["up", "down", "left", "right"]) menuInput.on(dir, () => this.move(dir));

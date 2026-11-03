@@ -787,6 +787,51 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 .m-ticker-track a { color: inherit; text-decoration: none; }
 .m-ticker-track a:hover { text-decoration: underline; }
 
+/* ── Brought over from the classic site (v4.25): filters, the projection's reasoning, a team's Ratings, the scatter, storylines ── */
+.m-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; padding: 0.6rem 1rem; background: var(--m-bg-0); border-bottom: 1px solid var(--m-line); }
+.m-input {
+  flex: 1 1 15rem; min-width: 10rem; min-height: 2.2rem; padding: 0.3rem 0.7rem; font: inherit; font-size: var(--fs-md);
+  color: var(--m-text); background: var(--m-bg-1); border: 1px solid var(--m-line); border-radius: 3px;
+}
+.m-input::placeholder { color: var(--m-muted); }
+.m-input:focus-visible, .m-input.is-selected { outline: 2px solid var(--m-accent); outline-offset: 1px; }
+.m-count { margin-left: auto; color: var(--m-muted); font-size: var(--fs-sm); }
+.m-bar--wide, .m-bars-wide .m-bar { grid-template-columns: 10.5rem minmax(0, 1fr) 3rem; }
+.m-h4 { margin: 1rem 0 0.4rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--m-muted); font-size: var(--fs-sm); }
+.m-num.is-pos, .m-driver-val.is-pos, .m-projlabel.is-pos { color: var(--positive); }
+.m-num.is-neg, .m-driver-val.is-neg, .m-projlabel.is-neg { color: var(--negative); }
+.m-edge { margin-top: 0.6rem; }
+.m-projhead { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 2.2rem; margin-bottom: 0.4rem; }
+.m-projnum { font-family: var(--font-display); font-weight: 900; font-size: var(--fs-3xl); line-height: 1; }
+.m-projlabel { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-xl); text-transform: capitalize; }
+.m-explain { margin: 0.6rem 0; font-size: var(--fs-md); color: var(--m-text); }
+.m-driver { display: grid; grid-template-columns: minmax(8rem, 15rem) minmax(0, 1fr) 3.4rem; align-items: center; gap: 0.75rem; padding: 0.15rem 0; }
+.m-driver-label { font-size: var(--fs-sm); color: var(--m-muted); }
+.m-driver-track { position: relative; height: 12px; background: var(--m-bg-0); border: 1px solid var(--m-line); }
+.m-driver-track::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--m-muted); }
+.m-driver-track i { position: absolute; top: 0; bottom: 0; }
+.m-driver-track i.is-pos { left: 50%; background: var(--positive); }
+.m-driver-track i.is-neg { right: 50%; background: var(--negative); }
+.m-driver-val { font-family: var(--font-display); text-align: right; }
+.m-rowhead.m-row--moves, .m-row--moves { grid-template-columns: 1rem minmax(0, 1fr) 4.4rem 5.4rem 5rem; }
+.m-rowhead.m-row--circle, .m-row--circle { grid-template-columns: 3rem 3.8rem minmax(0, 1fr) 4.4rem 4.4rem 3.4rem; }
+.m-row--circle .m-pname small { color: var(--m-muted); font-weight: 500; }
+.m-story { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; border-bottom: 1px solid color-mix(in srgb, var(--m-line) 50%, transparent); }
+.m-row--story { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; padding: 0.5rem 0.6rem; border-bottom: 0; }
+.m-story-tag { font-family: var(--font-display); font-weight: 800; letter-spacing: 0.14em; font-size: var(--fs-label); color: var(--m-accent); }
+.m-story-head { font-size: var(--fs-md); font-weight: 600; white-space: normal; }
+.m-story-evidence { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); }
+.m-row.is-selected .m-story-tag, .m-row.is-selected .m-story-evidence .m-note { color: var(--m-on-hot); }
+.m-hp--wide { grid-column: 1 / -1; }
+.m-ovl-credit { margin: 0.9rem 0 0; text-align: center; color: var(--m-muted); font-size: var(--fs-sm); }
+.m-ovl-credit a, .m-foot a { color: var(--m-accent); }
+.m-scatter { position: relative; min-height: 6rem; overflow: hidden; }
+.m-scatter circle { cursor: pointer; }
+.m-tip {
+  position: fixed; z-index: 30; pointer-events: none; padding: 0.4rem 0.7rem; font-size: var(--fs-sm); line-height: 1.35;
+  color: var(--m-bar-ink); background: linear-gradient(var(--m-bar-hi), var(--m-black)); border: 1px solid var(--m-rim); border-radius: 3px; box-shadow: 0 6px 18px var(--m-shadow);
+}
+
 /* ── Narrow screens (kept at the end of the file) ────────────────────────── */
 @media (max-width: 900px) {
   .m-header { padding: 0.5rem 1rem 0.2rem; grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem 0.7rem; }
@@ -837,6 +882,19 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
   .m-ptable--weeks .m-wk-game { max-width: 7.5rem; }
   .m-ptable--glog .m-gl-line { min-width: 9rem; }
   .m-tl-val { font-size: var(--fs-sm); }
+  .m-bar--wide, .m-bars-wide .m-bar { grid-template-columns: 6.8rem minmax(0, 1fr) 2.6rem; }
+  .m-driver { grid-template-columns: minmax(0, 1fr) 3.4rem; }
+  .m-driver-track { grid-column: 1 / -1; grid-row: 2; }
+  .m-rowhead.m-row--moves, .m-row--moves { grid-template-columns: 0 minmax(0, 1fr) 3.4rem 3.4rem 4.4rem; padding-left: 0.6rem; padding-right: 0.6rem; }
+  .m-rowhead.m-row--circle, .m-row--circle { grid-template-columns: 2.6rem minmax(0, 1fr) 3.4rem 3.4rem; }
+  .m-row--circle > :nth-child(2), .m-rowhead.m-row--circle > :nth-child(2), .m-row--circle > :nth-child(6), .m-rowhead.m-row--circle > :nth-child(6) { display: none; }
+  .m-story { grid-template-columns: 1fr; }
+  .m-filterbar { padding: 0.5rem 0.7rem; }
+  .m-rowhead.m-row--player, .m-row--player { grid-template-columns: 1.8rem minmax(0, 1fr) 3.6rem 3.4rem; }
+  .m-row--player > .m-num, .m-rowhead.m-row--player > :nth-child(5) { display: none; }
+  .m-rowhead.m-row--portal, .m-row--portal { grid-template-columns: 1.6rem minmax(0, 1fr) 3.2rem 2.8rem 3.8rem; }
+  .m-row--portal > :nth-child(5), .m-rowhead.m-row--portal > :nth-child(5) { display: none; }
+  .m-sband-name { flex: 1 1 14rem; min-width: 0; }
 }
 
 /* ── Media rules — kept at the end of the file: a media rule placed before a desktop rule of equal

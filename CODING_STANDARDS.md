@@ -16,13 +16,13 @@ file is `../cfb-analytics-pipeline/docs/CODING_STANDARDS.md`.
 share one global scope, loaded in a fixed order (README → *Script load order*). A
 dependency under `tools/` is fine because nothing the site serves loads it.
 
-**One job per file.** Each page has one module (`home.js`, `teamsPage.js`, …). Shared
+**One job per file.** Each screen family has one module (`menuScreensTeam.js`, `menuScreensLeague.js`, …). Shared
 logic lives in:
 
 | File | Owns | Never contains |
 |---|---|---|
 | `config.js` | constants, palettes, colour helpers, entity links, `_esc` | fetches, page logic |
-| `shell.js` | theme, sidebar, mobile tab bar | anything page-specific |
+| `menuChrome.js` | the frame: header, section and page bars, prompts, the quick menu | screen content, fetches |
 | `dataLoader.js` | **every** `fetch()` in the app, via `_load()` | markup |
 | `ui.js` | render primitives (`ovrPill`, `deltaChip`, `prose`, …) | fetches, page state |
 | `dataTable.js` | the one sortable/filterable table | page-specific columns |

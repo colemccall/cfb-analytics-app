@@ -2,9 +2,9 @@
 
 const CONFIG = {
   DATA_BASE:      "./data/",
-  // The release shown in the classic sidebar: always the newest Build Log entry's version
+  // The release shown in the quick menu and at the foot of the home page: always the newest Build Log entry's version
   // (js/changes.js). cfb-analytics-pipeline/tests/test_frontend_config.py fails if they differ.
-  VERSION:        "v4.24",
+  VERSION:        "v4.25",
 
   // ── Seasons ───────────────────────────────────────────────────────────────
   // Three constants, because "the current season" means two different things:
@@ -152,27 +152,6 @@ const CONFIG = {
     BRONZE: { min: 55, label: "BRONZE" },
     NORMAL: { min: 0,  label: "" },
   },
-
-  // Skill attribute display names per position group (mirrors SHAP feature names)
-  SKILL_ATTRS: {
-    QB:   [["comp_pct","Completion %"],["yards_per_att","Yards/Att"],["td_int_ratio","TD:INT"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    RB:   [["yards_per_carry","YPC"],["yards_total","Total Yds"],["rec_versatility","Receiving"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    WR:   [["td_score","TD Impact"],["yards_per_rec","Yds/Rec"],["yards_total","Total Yards"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    TE:   [["td_score","TD Impact"],["yards_per_rec","Yds/Rec"],["yards_total","Total Yards"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    // OL carries no earned player rating from v4.3 — see NOT_RATED_POSITIONS in
-    // ui.js. These are the LINE-UNIT inputs, shown on the team page. The old
-    // entries here ("Team Rush YPA", "Pass Pro", "Experience") named features
-    // that either never had a value or never changed.
-    OL:   [["line_yards","Line Yards"],["sack_rate_allowed_inv","Pass Pro"],["stuff_rate_inv","Stuff Rate"],["power_success","Short Yardage"],["second_level_yards","2nd Level"]],
-    EDGE: [["pass_rush_score","Pass Rush"],["disruption_rate","Disruption"],["run_stop_score","Run Stop"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    DL:   [["pass_rush_score","Pass Rush"],["run_stop_score","Run Stop"],["disruption_rate","Disruption"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    LB:   [["tackling_score","Tackling"],["coverage_score","Coverage"],["pass_rush_score","Pass Rush"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    CB:   [["coverage_score","Coverage"],["instinct_score","Instincts"],["tackling_score","Tackling"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    S:    [["coverage_score","Coverage"],["tackling_score","Tackling"],["instinct_score","Instincts"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    DB:   [["coverage_score","Coverage"],["tackling_score","Tackling"],["instinct_score","Instincts"],["edge_score","EDGE"],["recruit_composite","Recruiting"]],
-    K:    [["fg_pct","FG %"],["fg_long","FG Long"],["xp_pct","XP %"]],
-    P:    [["avg_yards","Avg Yds"],["inside_20_pct","Inside 20 %"]],
-  },
 };
 
 // Does a row's position group satisfy a position filter?
@@ -198,16 +177,6 @@ function isProjectedSeason(season) {
 function _activeTheme() {
   const t = document.documentElement.getAttribute("data-theme");
   return CONFIG.THEMES.some(x => x.id === t) ? t : CONFIG.THEMES[0].id;
-}
-
-// Rating tier — returns {label, color, cls}
-function getRatingTier(rating) {
-  const c = ratingColor(rating);
-  if (rating >= 90) return { label: "ELITE",  color: c, cls: "tier-elite"  };
-  if (rating >= 80) return { label: "GOLD",   color: c, cls: "tier-gold"   };
-  if (rating >= 70) return { label: "SILVER", color: c, cls: "tier-silver" };
-  if (rating >= 55) return { label: "BRONZE", color: c, cls: "tier-bronze" };
-  return                    { label: "", color: null, cls: "tier-normal" };
 }
 
 // Rating fill color — walks the active theme's ramp.
@@ -244,85 +213,6 @@ function starsHtml(n) {
   return `<span class="stars">${filled}${empty}</span>`;
 }
 
-// ── Sortable helpers (shared by teams.html and playerSearch.js) ───────────
-
-// The sort key for one rendered cell's text: null for blank or "—" (sorts
-// last), height strings like 6'2" as inches, star strings by star count,
-// otherwise the first number in the text, else the lowercased text.
-function _sortVal(text) {
-  const t = (text || "").trim();
-  if (!t || t === "—") return null;
-  const htMatch = t.match(/^(\d+)'(\d+)"?$/);
-  if (htMatch) return parseInt(htMatch[1]) * 12 + parseInt(htMatch[2]);
-  const stars = (t.match(/★/g) || []).length;
-  if (stars > 0) return stars;
-  const num = parseFloat(t.replace(/[^0-9.\-]/g, ""));
-  return isNaN(num) ? t.toLowerCase() : num;
-}
-
-// Sort `items` in place by getValFn(item). Nulls always sort to the bottom,
-// whichever direction is requested.
-function _sortRows(items, getValFn, asc) {
-  items.sort((a, b) => {
-    const av = getValFn(a), bv = getValFn(b);
-    if (av === null && bv === null) return 0;
-    if (av === null) return 1;
-    if (bv === null) return -1;
-    if (av < bv) return asc ? -1 : 1;
-    if (av > bv) return asc ?  1 : -1;
-    return 0;
-  });
-}
-
-// Sortable <table class="data-table">: sets aria-sort attributes; the arrows
-// are rendered by the .data-table th[aria-sort] CSS, never as header text.
-function makeSortable(table) {
-  if (!table) return;
-  const ths = table.querySelectorAll("thead th");
-  ths.forEach((th, colIdx) => {
-    th.setAttribute("aria-sort", "none");
-    th.style.userSelect = "none";
-    th.addEventListener("click", () => {
-      const asc = th.getAttribute("aria-sort") !== "ascending";
-      ths.forEach(h => h.setAttribute("aria-sort", "none"));
-      th.setAttribute("aria-sort", asc ? "ascending" : "descending");
-      const tbody = table.querySelector("tbody");
-      const rows  = Array.from(tbody.querySelectorAll("tr"));
-      _sortRows(rows, r => _sortVal(r.cells[colIdx]?.innerText), asc);
-      rows.forEach(r => tbody.appendChild(r));
-    });
-  });
-}
-
-// Make a div-based board (.draft-board-header + .draft-row) sortable by
-// clicking header spans. Sorts on each row's rendered text via _sortVal and
-// shows ▲/▼ on the active header. Used by the Players board and team rosters,
-// which are grids rather than <table>s for their responsive collapse.
-function makeGridSortable(headerEl, containerEl) {
-  if (!headerEl || !containerEl) return;
-  const spans = Array.from(headerEl.querySelectorAll("span"));
-  spans.forEach((sp, colIdx) => {
-    sp.style.cursor = "pointer";
-    // A clickable <span> is invisible to the keyboard: make it a focusable
-    // button that Enter and Space activate, like a real <th> sort control.
-    sp.tabIndex = 0;
-    sp.setAttribute("role", "button");
-    sp.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sp.click(); }
-    });
-    let asc = null;
-    sp.addEventListener("click", () => {
-      asc = asc === true ? false : true;
-      spans.forEach(s => { s.textContent = s.textContent.replace(/ [▲▼]$/, ""); });
-      sp.textContent = sp.textContent + (asc ? " ▲" : " ▼");
-      const rows = Array.from(containerEl.querySelectorAll(".draft-row"));
-      _sortRows(rows, r => _sortVal(r.children[colIdx]?.innerText), asc);
-      rows.forEach(r => containerEl.appendChild(r));
-    });
-  });
-}
-
-
 // ---------------------------------------------------------------------------
 // Season pickers
 // ---------------------------------------------------------------------------
@@ -332,17 +222,6 @@ function seasonList() {
   const out = [];
   for (let y = CONFIG.CURRENT_SEASON; y >= CONFIG.FIRST_SEASON; y--) out.push(y);
   return out;
-}
-
-// Fill a <select> with the full season range and select `selected`.
-// Keeps every picker in sync with the data actually on disk. Projected seasons
-// say so in the option text — picking 2026 should never feel like picking a
-// season that has been played.
-function fillSeasonSelect(el, selected = CONFIG.CURRENT_SEASON) {
-  if (!el) return;
-  el.innerHTML = seasonList().map(y =>
-    `<option value="${y}"${y === Number(selected) ? " selected" : ""}>${y}${isProjectedSeason(y) ? " (projected)" : ""}</option>`
-  ).join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -377,39 +256,12 @@ function playerHref(playerId, season) {
   return `players.html?${q}`;
 }
 
-// Renders a player as a link. On pages that host the modal the delegated
-// handler below opens it in place; elsewhere the href navigates, so the link
-// works either way.
+// Renders a player as a link to his card (the menu turns players.html?player=ID into #/player/ID).
 function playerLink(playerId, name, { season, cls = "" } = {}) {
   if (!playerId) return _esc(name || "—");
   return `<a class="entity-link entity-link--player ${cls}" href="${playerHref(playerId, season)}"
              data-player-id="${_esc(playerId)}" data-player-season="${_esc(season ?? "")}"
              >${_esc(name || "Player")}</a>`;
-}
-
-// One delegated listener per page, installed automatically below. Intercepts
-// player links only when this page can actually show the modal; otherwise the
-// plain href navigation stands.
-function initEntityLinks() {
-  if (window._entityLinksBound) return;
-  window._entityLinksBound = true;
-  document.addEventListener("click", ev => {
-    const a = ev.target.closest("a.entity-link--player[data-player-id]");
-    if (!a) return;
-    if (typeof openPlayerModal !== "function" || !document.getElementById("player-modal")) return;
-    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;  // let new-tab through
-    ev.preventDefault();
-    const season = a.dataset.playerSeason ? Number(a.dataset.playerSeason) : undefined;
-    openPlayerModal(Number(a.dataset.playerId), season);
-  });
-}
-
-// Delegated entity-link handling is page-agnostic, so install it once here
-// rather than requiring every page to remember the call.
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initEntityLinks);
-} else {
-  initEntityLinks();
 }
 
 // One skin for every page: the console-menu look. Themes are only its two palettes (dusk and

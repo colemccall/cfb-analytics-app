@@ -274,6 +274,7 @@ menuRouter.register("team", {
       <nav class="m-panel m-menu" aria-label="${_esc(team.school)}">
         ${to("Roster", menuTeamPath(team.id, "roster"), "Every player, with last season, projection and to-date ratings.")}
         ${to("Depth Chart", menuTeamPath(team.id, "depth"), "Position groups ordered by the to-date rating. Not an official chart.")}
+        ${to("Ratings", menuTeamPath(team.id, "ratings"), "The rating broken into pass and run, offense and defense, the offensive line as a unit, and the team's per-game numbers.")}
         ${to("Schedule", menuTeamPath(team.id, "schedule"), "Every game, byes, bowls, the result so far and what is next.")}
         ${to("Recruiting", menuTeamPath(team.id, "recruiting"), "The recruiting class, with a map of where the players come from.")}
         ${to("Transfers", menuTeamPath(team.id, "transfers"), "Players coming in and going out, with the rating before and after.")}

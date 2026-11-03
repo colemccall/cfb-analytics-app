@@ -1,11 +1,10 @@
 # css/
 
-Three stylesheets, loaded in this order by every page: `styles.css`, `components.css`, and on `menu.html` also
-`menu.css`.
+Three stylesheets, loaded in this order by `menu.html` (the only page that loads any): `styles.css`, `components.css`, `menu.css`.
 
 | File | What it holds |
 |---|---|
-| `styles.css` | **The token blocks** (`:root` for dark, `[data-theme="light"]` for light): every colour, size and font the classic components use, then the base layout. Its responsive `@media` blocks are at the end of the file. |
+| `styles.css` | **The token blocks** (`:root` for dark, `[data-theme="light"]` for light): every colour, size and font the shared components use, then the base layout. Its responsive `@media` blocks are at the end of the file. The classic site's own rules (sidebar, mobile tab bar, draft-board rows, player modal, team page, scatter) were removed in v4.25: 255 selectors from this file and 194 from `components.css`, each one proven to name a class no script or page uses any more, and 84 menu screenshots (42 routes in both modes) were byte-for-byte or sub-0.03% identical before and after. |
 | `components.css` | The shared components: rating pills and badges, tables, method / finding / guide entries, empty and error states, skeletons. Loaded after `styles.css`, so at equal specificity it wins. |
 | `menu.css` | The menu app's skin: its own token block (`.menu-app` for dusk, `.menu-app[data-mode="light"]` for daylight) and every `.m-*` component. |
 

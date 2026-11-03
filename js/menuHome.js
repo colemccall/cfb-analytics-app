@@ -10,7 +10,7 @@
 //
 // Must never contain: fetch calls or routing logic (links are data-to routes).
 //
-// Load order: after menuScreensClass.js (it uses the playoff field) and before menu start-up.
+// Load order: after menuScreensClass.js (it uses the playoff field) and menuStorylines.js, before menu start-up.
 
 // The quick links along the top: the league screens, then the news and reference screens.
 const MENU_HOME_LINKS = [
@@ -149,9 +149,14 @@ menuRouter.register("home", {
         <span class="m-pmeta">${_esc(m.from_school || "—")} → ${_esc(m.to_school || "—")}</span></button>`).join(""), ["Transfer portal", "#/portal"]);
     return `<div class="m-home">
       ${menuHomeMyTeam(d)}
-      <div class="m-home-grid">${topTeams}${topPlayers}${menuHomeGamePanels(d).join("")}${playoff}${moversPanel}${recruitPanel}${portalPanel}</div>
+      <div class="m-home-grid"><section class="m-panel m-hp m-hp--wide" id="m-stories" aria-label="Storylines"><h3 class="m-h3">Storylines</h3><p class="m-empty">Loading…</p></section>${topTeams}${topPlayers}${menuHomeGamePanels(d).join("")}${playoff}${moversPanel}${recruitPanel}${portalPanel}</div>
+      <p class="m-foot">CFB Analytics ${CONFIG.VERSION} · Data: <a href="https://collegefootballdata.com" target="_blank" rel="noopener">CollegeFootballData.com</a></p>
     </div>`;
   },
-  mount(stage) { menuWirePhoto(stage); },
+  mount(stage, ctx) {
+    menuWirePhoto(stage);
+    const stories = stage.querySelector("#m-stories");
+    if (stories) menuFillStorylines(stories, ctx.d, MENU.season);       // not awaited: its largest file is slow
+  },
   prefer: () => ".m-hp .m-row",
 });

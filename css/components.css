@@ -24,8 +24,6 @@
 
 .animate-pop      { animation: pop-in       0.25s ease forwards; }
 .animate-up       { animation: slide-up     0.3s  ease forwards; }
-.animate-left     { animation: slide-in-left 0.3s ease forwards; }
-.animate-fade     { animation: fade-in      0.25s ease forwards; }
 
 /* Users who ask for less motion get content instantly, fully opaque. */
 
@@ -40,11 +38,6 @@
 .stagger-children > *:nth-child(8)  { animation-delay: 0.35s; }
 .stagger-children > *:nth-child(9)  { animation-delay: 0.40s; }
 .stagger-children > *:nth-child(10) { animation-delay: 0.45s; }
-.sidebar-theme-label {
-  font-size: var(--fs-label); color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
-  display: block; margin-bottom: 6px;
-}
 
 /* ── Home: masthead — the editorial front door ── */
 .masthead {
@@ -52,10 +45,7 @@
   border-bottom: 2px solid var(--accent);
   max-width: 1200px;
 }
-.masthead-date {
-  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 1.2px;
-  color: var(--text-muted); margin-bottom: 0.6rem;
-}
+
 .masthead h1 {
   font-family: var(--font-display); font-weight: 900;
   font-size: clamp(2rem, 4vw, 3rem); line-height: 1.02;
@@ -82,15 +72,6 @@
   border-radius: var(--radius); background: var(--surface);
   padding: 0.9rem 1.1rem; max-width: 640px;
 }
-.marquee-teams {
-  display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
-  margin: 0.5rem 0 0.35rem;
-  font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700;
-}
-.marquee-side { display: inline-flex; align-items: center; gap: 8px; }
-.marquee-side .entity-logo { width: 26px; height: 26px; }
-.marquee-at { font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; }
-.marquee-note { font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ── Editorial primitives: eyebrow + section rule ── */
 .eyebrow {
@@ -98,44 +79,8 @@
   font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
   color: var(--accent);
 }
-.home-section { padding: 1.5rem 2rem 0; max-width: 1200px; }
-.section-rule {
-  display: flex; align-items: baseline; gap: 0.75rem;
-  border-bottom: 1px solid var(--border-strong);
-  padding-bottom: 0.4rem; margin-bottom: 1rem;
-}
-.section-rule-sub { font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ── Storyline cards: claim headline → evidence → destination ── */
-.story-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-.story-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
-  border-radius: var(--radius); padding: 0.9rem 1rem 0.75rem;
-  display: flex; flex-direction: column; gap: 0.5rem;
-  transition: border-color 0.12s, background 0.12s;
-}
-.story-card:hover { border-color: var(--border-strong); background: var(--surface-lift); }
-.story-headline {
-  font-family: var(--font-display); font-size: var(--fs-lg);
-  font-weight: 700; line-height: 1.25; color: var(--text);
-}
-.story-headline .entity-link { font-size: inherit; }
-.story-evidence {
-  font-size: var(--fs-sm);
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-.evidence-note { color: var(--text-muted); font-size: var(--fs-sm); line-height: 1.5; }
-.evidence-arrow { color: var(--text-muted); }
-.evidence-big {
-  font-family: var(--font-display); font-size: var(--fs-2xl);
-  font-weight: 900; color: var(--positive); line-height: 1;
-}
-.story-links { margin-top: auto; padding-top: 0.35rem; border-top: 1px solid var(--border); }
-.story-links a { font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
 
 /* Delta chip — movement always ships with its number */
 .delta-chip {
@@ -147,149 +92,29 @@
 .delta-chip.down { color: var(--negative); }
 
 /* ── The opening slate ── */
-.slate-row {
-  display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
-  padding: 8px 4px; border-bottom: 1px solid var(--border);
-  font-size: var(--fs-sm);
-  transition: background 0.12s;
-}
-.slate-row:hover { background: var(--surface-lift); }
-.slate-date {
-  font-family: var(--font-display); font-weight: 700; color: var(--text-muted);
-  width: 56px; flex-shrink: 0; text-transform: uppercase; font-size: var(--fs-label);
-}
-.slate-team { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; }
-.slate-at { color: var(--text-muted); font-size: var(--fs-label); text-transform: uppercase; }
-.slate-footnote { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 0.6rem; }
 
 /* ── Research desk rail (home panel) ── */
-.mini-finding {
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 10px 14px; border-bottom: 1px solid var(--border);
-  color: inherit; transition: background 0.12s;
-}
-.mini-finding:last-child { border-bottom: none; }
-.mini-finding:hover { background: var(--surface-lift); }
-.mini-finding-tag {
-  font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent);
-  flex-shrink: 0; width: 108px;
-}
-.mini-finding-text { font-size: var(--fs-sm); line-height: 1.5; flex: 1; color: var(--text); }
-.mini-finding-arrow { color: var(--text-muted); flex-shrink: 0; }
 
 /* ── Coverage strip — counted facts + methodology link ── */
-.coverage-strip {
-  display: flex; gap: 1.5rem; flex-wrap: wrap;
-  margin: 1.5rem 2rem 0; padding: 0.9rem 0 1.5rem;
-  max-width: 1136px;
-  font-size: var(--fs-sm); color: var(--text-muted);
-  border-top: 1px solid var(--border);
-}
-.coverage-strip a { color: var(--accent); font-weight: 700; }
-
 
 /* ── Home panels (top teams/players) ── */
-.home-panels {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
-  padding: 1.5rem 2rem;
-  max-width: 1200px;
-}
-.home-panel-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.home-panel-card:hover { border-color: var(--border-strong); }
-.home-panel-hdr {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-deep);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.home-panel-title {
-  font-family: var(--font-display); font-size: var(--fs-md);
-  font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px;
-}
+
 /* Season the panel is currently showing — follows the sidebar season picker */
-.home-panel-season {
-  font-family: var(--font-ui); font-size: var(--fs-sm);
-  font-weight: 600; color: var(--text-muted); letter-spacing: 0;
-}
-.home-panel-link { font-size: var(--fs-sm); color: var(--accent); font-weight: 700; }
 
 /* ── Home page team/player rows (rendered by JS) ── */
-.home-team-row, .home-player-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 14px; border-bottom: 1px solid var(--border);
-  cursor: pointer; transition: background 0.12s;
-  text-decoration: none; color: inherit;
-}
-.home-team-row:last-child, .home-player-row:last-child { border-bottom: none; }
-.home-team-row:hover, .home-player-row:hover { background: var(--surface-lift); }
-.home-team-rank, .home-player-rank {
-  font-family: var(--font-display); font-size: var(--fs-sm);
-  color: var(--text-muted); width: 22px; flex-shrink: 0; text-align: right;
-}
-.home-team-logo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
-.home-team-info, .home-player-info { flex: 1; min-width: 0; }
-.home-team-name, .home-player-name {
-  font-size: var(--fs-sm); font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.home-team-conf, .home-player-meta { font-size: var(--fs-sm); color: var(--text-muted); }
-.home-team-ovr, .home-player-rating {
-  font-family: var(--font-display); font-size: var(--fs-md);
-  font-weight: 800; flex-shrink: 0;
-}
 
 /* ── Research page ── */
-.research-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-.research-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 1.5rem;
-}
-.research-card h3 { font-family: var(--font-display); color: var(--accent); margin-bottom: 0.5rem; }
-.research-card p  { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 0.75rem; }
+
 .research-tag {
   display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm);
   font-size: var(--fs-sm); background: var(--accent-dim); color: var(--accent);
   margin-bottom: 0.5rem;
 }
-.finding-stat {
-  font-family: var(--font-display); font-size: var(--fs-2xl);
-  color: var(--text); font-weight: 700;
-}
-.coming-soon { opacity: 0.45; }
-.research-card--active { border-color: var(--warning); opacity: 0.9; }
 
 /* Live analysis cards link down to their table — full opacity, accent border */
-a.research-card--live {
-  display: block; text-decoration: none;
-  border-color: var(--border-accent);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-a.research-card--live:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  box-shadow: var(--shadow);
-}
-a.research-card--live .finding-stat { color: var(--accent); }
-.research-tag--warning { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
-.finding-stat--warning { font-size: var(--fs-lg); color: var(--warning); }
 
 /* ── Research live data sections ── */
-.research-live-section { margin: 2rem 0; }
-.research-filter-bar {
-  display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;
-  margin-bottom: 0.75rem;
-}
-.research-filter-bar select {
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); border-radius: var(--radius-sm);
-  padding: 0.3rem 0.6rem; font-size: var(--fs-sm);
-}
-.research-table-wrap { overflow-x: auto; }
+
 /* Strong over/under-achievers: one accent edge + a faint wash, not per-cell borders */
 .row-over  td:first-child { border-left: 3px solid var(--positive); }
 .row-under td:first-child { border-left: 3px solid var(--negative); }
@@ -311,103 +136,18 @@ a.research-card--live .finding-stat { color: var(--accent); }
 
 /* Section heading — ink headline with a voice tick (tick resolves to ink
    inside entity scopes automatically). The ONE section-heading style. */
-.section-heading {
-  font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800;
-  color: var(--text); text-transform: uppercase; letter-spacing: 0.8px;
-  display: flex; align-items: center; gap: 10px;
-  margin: 2rem 0 1rem;
-}
-.section-heading::before {
-  content: "";
-  display: block; width: 4px; height: 1.05em;
-  background: var(--accent); border-radius: 2px;
-}
 
 /* ── Info (How It Works) page ── */
-.info-page { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-.info-page h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 900; color: var(--text); margin-bottom: 0.25rem; letter-spacing: 1px; text-transform: uppercase; }
-.info-page .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: var(--fs-sm); }
-.info-page h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: var(--text); margin: 2.25rem 0 0.6rem; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-.info-page h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.35rem; }
-.info-page p  { color: var(--text-muted); line-height: 1.7; margin-bottom: 0.8rem; }
-.info-page p strong { color: var(--text); }
-.info-page ul { color: var(--text-muted); line-height: 1.75; padding-left: 1.25rem; margin-bottom: 0.8rem; }
-.info-page li strong { color: var(--text); }
-.callout {
-  background: var(--surface);
-  border-left: 3px solid var(--accent);
-  padding: 0.875rem 1.125rem;
-  border-radius: 0 var(--radius) var(--radius) 0;
-  margin: 1rem 0;
-  box-shadow: var(--shadow);
-}
-.callout p { margin: 0; color: var(--text-muted); }
-.callout p strong { color: var(--text); }
-.callout-alt {
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-top: 2px solid var(--accent);
-  padding: 0.875rem 1.125rem;
-  border-radius: var(--radius);
-  margin: 1rem 0;
-  box-shadow: var(--shadow);
-}
-.callout-alt p { margin: 0; }
-.formula-block {
-  background: var(--surface-deep); border: 1px solid var(--border-strong);
-  border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0;
-  font-family: 'Barlow Condensed', monospace; font-size: 1.05rem;
-  color: var(--accent); letter-spacing: 0.3px; line-height: 1.6;
-}
-.formula-block .formula-note { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--text-muted); margin-top: 6px; display: block; }
-.weight-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin: 0.75rem 0 1.25rem; }
-.weight-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--border-strong); }
-.weight-table td { padding: 7px 10px 7px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: middle; }
-.weight-table td:first-child { color: var(--text); font-weight: 500; }
-.weight-table .w-bar-cell { min-width: 120px; }
-.w-bar-wrap { display: inline-block; width: 90px; height: 6px; background: var(--surface-deep); border-radius: var(--radius-sm); vertical-align: middle; margin-right: 6px; }
-.w-bar { height: 100%; border-radius: var(--radius-sm); background: var(--accent); }
-.step-list { list-style: none; padding: 0; counter-reset: steps; }
-.step-list li { counter-increment: steps; display: flex; gap: 0.875rem; margin-bottom: 1.1rem; }
-.step-list li::before {
-  content: counter(steps);
-  display: flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; min-width: 26px;
-  background: var(--accent); color: var(--on-accent); font-weight: 800;
-  font-size: 12px; border-radius: 50%;
-  font-family: var(--font-display);
-  flex-shrink: 0;
-}
-.step-text { color: var(--text-muted); line-height: 1.6; padding-top: 2px; }
-.step-text strong { color: var(--text); }
-.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
-.pos-card {
-  background: var(--surface); border: 1px solid var(--border-strong);
-  border-radius: var(--radius); padding: 0.875rem 1rem;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.pos-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow); }
-.pos-card-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; color: var(--accent); margin-bottom: 0.5rem; letter-spacing: 0.3px; }
-.pos-card ul { padding-left: 1rem; margin: 0; font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.7; }
+
 /* For the one position whose card describes something other than a player
    rating. Without it the OL card's weights read as per-lineman weights, which is
    the exact confusion withdrawing that rating was meant to end. */
-.pos-card-note {
-  font-size: var(--fs-sm); color: var(--text-muted);
-  margin: 0 0 0.5rem; line-height: 1.5;
-}
+
 .tier-rows { display: flex; flex-direction: column; gap: 8px; margin: 0.75rem 0 1.5rem; }
 .tier-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-sm); padding: 8px 12px; background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .tier-range { font-family: var(--font-display); font-size: 1rem; font-weight: 800; min-width: 50px; }
 .tier-desc { color: var(--text-muted); font-size: var(--fs-sm); }
-.limitations-box { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 1.125rem 1.375rem; margin: 1rem 0; }
-.limitations-box h3 { margin-top: 0; color: var(--text); }
-.version-note { margin-top: 2.5rem; color: var(--text-muted); font-size: var(--fs-sm); padding-top: 1rem; border-top: 1px solid var(--border); }
-.version-note a { color: var(--accent); }
-.status-live    { color: var(--positive); font-weight: 600; white-space: nowrap; }
-.status-wip     { color: var(--warning);  font-weight: 600; white-space: nowrap; }
-.status-planned { color: var(--text-muted); white-space: nowrap; }
 
 /* ── Responsive components ── */
 
@@ -454,12 +194,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .stat-context { font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
 
 /* ── Rank digits (draft-board style) ── */
-.rank-num {
-  font-family: var(--font-display); font-weight: 900;
-  color: var(--text-muted); font-variant-numeric: tabular-nums;
-}
-.rank-num.top3  { color: var(--accent); }
-.rank-num.top10 { color: var(--text); }
 
 /* ── Provenance: projected model output vs earned rating ── */
 .badge-proj {
@@ -490,33 +224,8 @@ a.research-card--live .finding-stat { color: var(--accent); }
 
 /* Page-level banner on a projected season — says it once, at the top, so every
    individual number does not have to carry the whole explanation. */
-.projected-notice {
-  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
-  padding: 0.6rem 0.85rem; margin: 0 0 1rem;
-  background: var(--projected-dim);
-  border: 1px solid var(--projected);
-  border-radius: var(--radius);
-  font-size: var(--fs-sm); color: var(--text);
-}
-.projected-notice a { color: var(--text); font-weight: 700; }
 
 /* Where a projected number came from — a labelled bar per driver, signed. */
-.driver-row {
-  display: grid; grid-template-columns: minmax(96px, 1fr) 1fr auto;
-  align-items: center; gap: 0.6rem; padding: 3px 0;
-  font-size: var(--fs-sm);
-}
-.driver-label { color: var(--text-muted); }
-.driver-track {
-  position: relative; height: 10px;
-  background: var(--surface-deep); border-radius: var(--radius-sm);
-}
-.driver-fill {
-  position: absolute; top: 0; height: 100%; border-radius: var(--radius-sm);
-}
-.driver-fill.pos { background: var(--positive); }
-.driver-fill.neg { background: var(--negative); }
-.driver-value { font-weight: 600; min-width: 42px; text-align: right; }
 
 /* ── Finding pages (js/findingPage.js) ──
    One layout serves every research finding and storyline, so a new analysis is
@@ -564,45 +273,12 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 
 /* Index cards — research.html and the home page render the same component. */
-.finding-card {
-  display: flex; flex-direction: column; gap: 0.4rem;
-  padding: 1rem 1.1rem; text-decoration: none; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border);
-  border-left: 3px solid var(--voice); border-radius: var(--radius);
-  transition: background 0.12s, border-color 0.12s;
-}
-.finding-card:hover { background: var(--surface-lift); border-color: var(--border-strong); }
-.finding-card h3 { margin: 0; font-size: var(--fs-lg); }
-.finding-card p { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
-.finding-card.is-upcoming { border-left-color: var(--border-strong); opacity: 0.86; }
-
-.section-lede {
-  margin: -0.25rem 0 1rem; font-size: var(--fs-sm); color: var(--text-muted); max-width: 70ch;
-}
 
 /* Projected top 25 — a wall of ranked programs, not a table. */
-.rank-wall {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px;
-}
-.rank-wall-item {
-  display: flex; align-items: center; gap: 0.6rem;
-  padding: 0.5rem 0.7rem; text-decoration: none; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-}
-.rank-wall-item:hover { background: var(--surface-lift); border-color: var(--border-strong); }
-.rank-wall-name { flex: 1; min-width: 0; font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Opponents with no team page of ours (FCS). Named, but not a link. */
-.opp-nonfbs { color: var(--text-muted); border-bottom: 1px dotted var(--border-strong); cursor: help; }
 
 /* Team preview: schedule beside projected roster. */
-.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
-.preview-player {
-  display: flex; align-items: center; gap: 0.5rem;
-  padding: 5px 0; border-bottom: 1px solid var(--border);
-}
-.preview-player:last-child { border-bottom: none; }
 
 /* A position we deliberately do not project. Stated, not blank. */
 .unprojected {
@@ -641,36 +317,9 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 
 /* Projection block inside the player modal. */
-.proj-headline { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
-.proj-headline-num { text-align: center; }
-.proj-headline-range { margin-top: 2px; }
-.proj-reasoning { margin-top: 0.9rem; }
-.proj-explanation {
-  font-size: var(--fs-base); line-height: 1.6; color: var(--text);
-  margin: 0 0 0.85rem; padding-left: 0.75rem;
-  border-left: 3px solid var(--projected);
-}
-.proj-drivers, .proj-comparables { margin-top: 0.85rem; }
 
 /* Attribute bars (archetype and skill scores): label, track, value. */
-.attr-bars {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.35rem 1.25rem; margin-top: 0.9rem;
-}
-.attr-bar { display: grid; grid-template-columns: 8.5rem 1fr 2rem; align-items: center; gap: 0.5rem; }
-.attr-bar-label { font-size: var(--fs-sm); color: var(--text-muted); }
-.attr-bar-track {
-  height: 6px; border-radius: var(--radius-pill);
-  background: var(--surface-deep); overflow: hidden;
-}
-.attr-bar-fill { display: block; height: 100%; border-radius: var(--radius-pill); }
-.attr-bar-val { font-size: var(--fs-sm); font-weight: 700; text-align: right; color: var(--text); }
-.arch-weight {
-  display: inline-block; margin-left: 0.3rem; padding: 0 0.3rem;
-  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.5px;
-  color: var(--text-muted); background: var(--surface-deep);
-  border-radius: var(--radius-sm);
-}
+
 .modal-subsection-title {
   font-family: var(--font-display); font-size: var(--fs-label);
   letter-spacing: 1px; text-transform: uppercase;
@@ -678,13 +327,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 
 /* Historical players whose careers looked like this one at the same stage. */
-.comparable-row {
-  display: flex; align-items: baseline; gap: 0.5rem;
-  padding: 4px 0; font-size: var(--fs-sm);
-  border-bottom: 1px solid var(--border);
-}
-.comparable-row:last-child { border-bottom: none; }
-.comparable-outcome { margin-left: auto; font-weight: 600; }
 
 /* ── Context strip: a value placed on its distribution ── */
 .context-strip { display: inline-flex; align-items: center; gap: 8px; }
@@ -699,8 +341,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .context-strip-label { font-size: var(--fs-sm); color: var(--text-muted); white-space: nowrap; }
 
 /* ── Comparison: prev → new (transfers, projections, week-over-week) ── */
-.compare-pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.compare-pair-arrow { color: var(--text-muted); font-size: var(--fs-sm); }
 
 /* ── Tabs (canonical; team-subnav migrates onto this) ── */
 .tabs {
@@ -744,7 +384,7 @@ a.research-card--live .finding-stat { color: var(--accent); }
   border-radius: var(--radius-sm);
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
-.skeleton-line { height: 12px; margin: 8px 0; }
+
 .skeleton-row  { height: 34px; margin: 6px 0; }
 .skeleton-card { height: 120px; }
 
@@ -757,8 +397,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .error-state a { color: var(--accent); font-weight: 700; }
 
 /* ── Chart framing: the title is a claim, the subtitle says how to read it ── */
-.chart-claim     { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; }
-.chart-claim-sub { font-size: var(--fs-sm); color: var(--text-muted); margin: 2px 0 10px; }
 
 /* ── DataTable support ── */
 .table-footnote { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 0.5rem; line-height: 1.55; }
@@ -784,8 +422,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
   transition: color 0.15s, border-color 0.15s;
 }
 .method-toc a:hover { color: var(--voice); border-bottom-color: var(--border-accent); }
-
-.method-group { margin-bottom: 2.5rem; }
 
 .method-entry {
   background: var(--surface); border: 1px solid var(--border);
@@ -891,10 +527,8 @@ a.research-card--live .finding-stat { color: var(--accent); }
   line-height: 1; text-transform: uppercase; overflow: hidden;
 }
 .entity-logo.team-mark { width: auto; min-width: 22px; height: 18px; padding: 0 3px; }
-.marquee-side .entity-logo.team-mark { height: 26px; min-width: 26px; }
-.home-team-logo.team-mark { width: auto; min-width: 22px; height: 22px; padding: 0 3px; }
+
 .team-tile-logo.team-mark { width: auto; min-width: 28px; height: 28px; padding: 0 3px; }
-.d-hero-logo.team-mark { font-size: var(--fs-xl); border-radius: var(--radius); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    KEYBOARD FOCUS
@@ -910,13 +544,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .skip-link:focus { left: 8px; }
 
 /* ── League hub (standings, transfer portal) ─────────────────────────────── */
-.league-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
-.league-count { margin-left: auto; color: var(--text-muted); font-size: var(--fs-sm); }
-.league-conf { margin-bottom: 1.5rem; }
-.league-controls input[type="search"] {
-  min-width: 220px; padding: 0.45rem 0.7rem; font: inherit; color: var(--text);
-  background: var(--input-bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-}
 
 /* ── Depth chart (team page, Depth tab) ─────────────────────────────────────── */
 .depth-section { margin-bottom: 1.25rem; }
@@ -938,15 +565,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .depth-meta { color: var(--stars); font-size: var(--fs-sm); white-space: nowrap; }
 
 /* ── Earned-to-date section on the '26 page ─────────────────────────────────── */
-.badge-live {
-  display: inline-block; padding: 1px 7px; border: 1px solid var(--accent); color: var(--accent);
-  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  border-radius: var(--radius-sm);
-}
-.live-sub {
-  margin: 1.25rem 0 0.5rem; font-family: var(--font-display); font-size: var(--fs-md);
-  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
-}
 
 /* ── Three ratings: 2025 earned · projection · to date ──────────────────────────
    The three kinds are told apart by SHAPE, not colour alone: earned is a plain
@@ -955,10 +573,6 @@ a.research-card--live .finding-stat { color: var(--accent); }
    header and each row, which swaps only the last three grid columns. */
 .ovr-badge.is-live { box-shadow: inset 0 -3px 0 var(--accent); }
 .trio-na { color: var(--text-muted); font-size: var(--fs-sm); white-space: nowrap; cursor: help; }
-.draft-row.trio, .draft-board-header.trio {
-  grid-template-columns: 36px 58px minmax(120px,1fr) 118px 104px 74px 46px 46px 62px 62px 66px;
-}
-.draft-row.trio > :nth-child(n+9), .draft-board-header.trio > :nth-child(n+9) { text-align: center; }
 
 .trio-strip {
   display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: stretch; gap: 0.5rem;
@@ -980,12 +594,12 @@ a.research-card--live .finding-stat { color: var(--accent); }
 .trio-chip { min-height: 1.4rem; }
 .trio-sub { color: var(--text-muted); font-size: var(--fs-sm); }
 .trio-arrow { align-self: center; color: var(--text-muted); font-size: var(--fs-xl); }
-.d-hero-ovr-box.is-live { box-shadow: inset 0 -3px 0 var(--accent); }
 
 /* ── Media rules — kept at the end of the file: a media rule placed before a desktop rule of equal
    specificity silently loses to it (see css/README.md). Moved here in v4.24. ───────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .animate-pop, .animate-up, .animate-left, .animate-fade {
+  .animate-pop,
+.animate-up {
     animation: none;
     opacity: 1;
     transform: none;
@@ -993,20 +607,13 @@ a.research-card--live .finding-stat { color: var(--accent); }
 }
 @media (max-width: 720px) {
   .masthead { padding: 1.25rem 1rem 1.1rem; }
-  .home-section { padding: 1rem 1rem 0; }
-  .marquee-teams { font-size: var(--fs-lg); }
-  .slate-date { width: 100%; }
-  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
-  .coverage-strip { margin: 1rem 1rem 0; }
+  
+  
+  
+  
+  
 }
-@media (max-width: 900px) {
-  .home-panels { grid-template-columns: 1fr; padding: 1rem; }
-  .home-stats-row { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 640px) {
-  .home-panels { padding: 0.75rem; }
-  .modal-inner { border-radius: 0; }
-}
+
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; opacity: 0.6; }
 }

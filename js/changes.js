@@ -1,6 +1,6 @@
-// changes.js — the CHANGES registry behind changes.html.
+// changes.js — the CHANGES registry behind the Build Log reader (About › Build Log).
 //
-// methods.html explains what a number IS. research-*.html explains what a finding
+// Methods explains what a number IS. Research explains what a finding
 // CLAIMS. This explains what happened in a working session: which alternative was
 // built and abandoned, what the measurement said, which constant moved and why.
 // That record used to live only in commit messages and four markdown changelogs,
@@ -32,6 +32,67 @@
 // the reasoning is freshest in the session that produced it.
 
 const CHANGES = [
+  {
+    id: "v4.25-classic-retired",
+    version: "v4.25",
+    date: "2026-11-02",
+    title: "The classic site retired: what it had that the menu did not came across, the rest is on record",
+    summary: `The seven-section menu (v4.24) left the classic site behind it: nineteen pages, a sidebar and seven scripts, still reachable at ?classic. The owner asked for it to be retired, with anything the menu lacked brought across first. A line-by-line audit of the seven scripts against the menu found fifteen things the menu did not do. Fourteen came across; one was dropped on evidence (the "model factors" bars on the player modal), and one more idea, the Research index's headline on each card, was dropped on cost. Every old address still works: each classic page is a ten-line stub that forwards to its menu screen and carries its season, player, team and anchor.
+      The audit also found three things that would have gone quiet without anyone deciding it: a pipeline test that read the archetype weights out of the deleted modal script (and skips when its file is missing, so it would have passed for ever), the data credit and version number that only the classic sidebar printed, and the generated API-availability table that only the classic Methods page drew.`,
+    motivation: `The owner: "retire the classic site, bringing in any missing features from the classic site", after the menu's navigation was rebuilt in v4.24.`,
+    did: [
+      { what: "Fifteen things the menu lacked, brought in (js/menuScreensRatings.js, menuStorylines.js, menuCard.js, menuScreensPages.js, menuScreensLeague.js, menuScreensTeam.js, menuHome.js)",
+        why: `**Players:** a search of names and teams, a conference button and a minimum-rating button (any, 60+ to 90+), kept while you change position or season; a search also finds an offensive lineman, who is otherwise not listed because he has no rating. **The player card:** where his production score sits among his position that season (a percentile strip: raw scores are not comparable across positions), the recruiting grade and breakout flag in "how this rating is built", a defensive back's three jobs as bars with their weights, the Engine D projection for the season it is for with its 80% range, the drivers as centred bars and the careers that looked like his, and similar players from any era. **A team's Ratings page:** the five sub-ratings, the offensive line as a unit with its five measurements, the per-game team stats, and the SP+ margin and recruiting score as references. **Talent vs Production:** the scatter of rating against recruiting stars with its trend line, a tooltip, a click to the card, and a list of who is furthest above the line. **The Transfer Portal:** a search of players and schools and the day each entered. **The Season:** the games still to play ranked by matchup quality, and the biggest team changes since last year (for every season, not only the one in progress). **Home:** the storylines (the projected rise and slide, the team that most beat its recruiting, the model's boldest call, a hidden gem, the best recruiting class), each a link to the team or player and to its full list, and the version and data credit. **Methods:** the generated API-availability table, listed beside the registry entries. **Research:** the six open questions the classic index listed.`,
+        cost: "New page code, about 790 lines of script and 53 of CSS: this is the design change the working agreement says to stop and say so for, and the owner asked for it. The Players list still reads the whole season's file (about 8 MB, as before). Search and the conference and rating buttons are a mouse and keyboard feature; a controller can step the two buttons but cannot type." },
+      { what: "Every classic page is a redirect stub, and menu.html turns an old query into a route (menuResolveLegacyLink in js/menuRouter.js)",
+        why: `GitHub Pages cannot redirect on the server, so the nineteen old addresses stay as files that forward. players.html?player=ID&season=2024 opens that card in 2024, teams.html?team=Ohio%20State&season=2023 or teams.html#boise-state opens that team, info.html#projections and methods.html#ol open the reader at that entry, research-breakout.html and story-hidden-gems.html open that finding. menu.html accepts ?season=, ?player= and ?team= itself, applies them, and drops the query so it cannot fight the season stepper.`,
+        cost: "Nineteen small files stay for as long as old links should work; deleting one breaks every bookmark to it." },
+      { what: "The seven classic scripts, what only they used, and the classic stylesheet rules deleted (js/, css/)",
+        why: `Deleted: shell.js, home.js, teamsPage.js, playerSearch.js, ratingsDisplay.js, season2026.js, leaguePage.js; the loaders only they called (fetchPlayers, fetchPlayerProfile, fetchPlayerStats, the three that read every season's file for the modal); the sortable-table helpers and entity-link delegation in config.js; comparePair, storyCard, sparkline, makeActivatable and the provenance banner in ui.js; the page entry points initMethods, initChanges, initGuide and renderFindingIndex. The stylesheets lost every rule whose selectors name a class no script or page uses any more: 255 selectors from styles.css and 194 from components.css, found by a scan that counts a class as used when its name, or the stem of a name built with \${...}, appears in any script or page.`,
+        cost: "The prune is proven for the 42 routes and both modes the screenshot comparison covered, and for the phone and keyboard states the smoke suite drives; a state neither reaches could still lose a rule." },
+      { what: "How It Works describes the menu, not the classic pages (js/guide.js, js/guidePage.js, js/changesPage.js, js/findingPage.js)",
+        why: `The GUIDE's "getting around" and seven page entries described a sidebar, a modal and sortable grids that no longer exist; they now describe the seven sections, the second bar, the quick menu, the search boxes and the old addresses. Entry ids are unchanged, so an old #page-players anchor still lands. Links that the readers emit (a method, a finding, "all research") are menu routes instead of classic addresses.`,
+        cost: "Prose, so it can drift again; the guide's own check (every entry renders, every sample draws, every live line fills, every entry has limits) runs in the smoke suite." },
+      { what: "A pipeline guard moved with its target (cfb-analytics-pipeline/tests/test_coverage_credit.py)",
+        why: `TestTheFrontendPrintsTheSameWeights read the defensive-back archetype weights out of the deleted playerSearch.js and called pytest.skip when the file was missing. Deleting the file would have turned a guard into a skip that reports green. It now reads MENU_ARCHETYPE_WEIGHTS from menuCard.js, and a missing file is a failure whenever the app is present.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Port the \"Model factors (% of rating influence)\" bars from the classic player modal",
+        result: "The player row's shap field is not SHAP. In 2025, 2,952 of 11,321 rows have none, and the other 8,369 hold the raw inputs of the rating's basis in unlike units (an edge score of 87.4, 14 games, an opponent quality of 13.3, 105 stats counted; or a recruiting composite and a stat fallback). The modal drew each as a share of the sum of absolute values, so \"stats counted\" read as the biggest driver of a rating. A bar with no contribution behind it cannot show its evidence.",
+        verdict: "rejected" },
+      { what: "Draw the conference and minimum-rating choices as drop-down lists, as the classic Players board did",
+        result: "A game controller cannot open a select, and the menu's rule is that every control is a button on screen. Buttons that step through the choices replace them: a conference takes up to a dozen presses, the rating floor four.",
+        verdict: "rejected" },
+      { what: "Port the Research index's computed headline on each finding card",
+        result: "Each card loaded its finding's whole dataset (nine of them) to print one line, and each finding opens with the same hero figures. The list names the finding and says whether it is planned.",
+        verdict: "dropped" },
+      { what: "Rank the \"recruiting, graded\" storyline on the raw hit rate, as the classic home did",
+        result: "Ranked on the shrunk rate (pulled toward the average for a class of this size) with the raw rate and the range shown beside it, because the largest of many noisy rates is the one most likely to be luck. The class is the same either way (Oklahoma 2018: 75.0% of 24, 48.7% shrunk, 39 to 58%), so nothing shown changed.",
+        verdict: "shipped" },
+    ],
+    measured: [
+      { label: "Classic scripts and stylesheet", before: "7 scripts (3,424 lines), 19 pages with a sidebar, styles.css 44,190 bytes, components.css 46,008", after: "0 scripts, 19 stubs of 560 to 650 bytes each, styles.css 16,667, components.css 26,014" },
+      { label: "Menu screenshots before and after the stylesheet prune (42 routes, dark and light, 1280px)", before: "84", after: "0 differ by more than 204 pixels (0.02%); 60 are byte for byte identical" },
+      { label: "The name column of the Players and Portal lists on a 390px phone", before: "12px on Players, 0px on the Portal (a grid with one track too many for the cells left after the team column is hidden: the names could not be read)", after: "159px on Players and 110px on the Portal, guarded by a check that fails below 100px" },
+      { label: "Old addresses tested", before: "5 redirects", after: "26, with the season, player, team slug and anchor each carries" },
+    ],
+    gates: [
+      { check: "node --check js/*.js, tools/doc-check.mjs, prose-check.mjs, theme-check.mjs, contrast-check.mjs", result: "all green; 0 colour literals outside token blocks" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "78 of 78 checks pass (the classic page checks are gone; this run adds checks for each ported feature, every old address and the stubs themselves, and keeps the menu's own)" },
+      { check: "pytest tests -q", result: "586 passed and 1 failed: the recruiting-basis contract test (4.7% against a 5% floor), which failed before this release and is unchanged. The archetype-weights guard passes against menuCard.js (33 passed in its file), and test_frontend_config confirms CONFIG.VERSION v4.25 equals the newest Build Log entry" },
+    ],
+    unfixed: `**The Players list has fewer columns than the classic board.** It shows rank, name, position, team, class and the rating; stars, height, weight and hometown are on rosters and the card, and the percentile and projection are on the card. The classic board's clickable column headings are the Sort button here.
+      **A team's Roster has no EDGE-percentile or projection column**; they are on each player's card. The classic Teams page's conference-standing chip (the conference's top five by rating) is the Standings screen.
+      **A controller cannot type**, so a search is a mouse and keyboard feature.
+      **The nineteen stubs stay for as long as old links should work.** The root CLAUDE.md still lists "info.html prose predates Engine D" and "player search is only on classic" as open; both are done, and the file is the owner's, so it was not edited.
+      **Not changed, by request: the DL and EDGE ceiling in a season in progress.** Measured and reported, not touched. A finished season is not capped low (a median season has 41 EDGE and 53 DL at 85+, against the 36 and 40 the frozen anchors were built to give). The season in progress is: the part-season curve's DL/EDGE line has the shallowest slope of any family (0.57 at eight or nine games, against 0.67 to 0.91), so the most a DL or EDGE can show then is 88.3 (LB 91.8, DB 92.5, QB 95.3, RB 97.3); at week 9 of 2026 the best EDGE is 87.2, the best DL 87.3, none is at 90+ and 11 of 1,665 are at 85+; their levels before the curve would put 43 EDGE and 62 DL at 85+. In the 2024 and 2025 replays an EDGE rated 80+ at week 9 with six games ended the season 6.0 points above that rating (DL 5.8) against 0.6 to 2.2 for every other position. The curve predicts how a player plays his remaining games, which is what it was fitted to; it is not comparable to a season-end rating, and these two positions are the least comparable. Fixing it means a curve whose target is the season-end rating (banked games plus the expected rest), DL and EDGE as separate lines, fitted on 2021 to 2025 leave-one-season-out with the shuffled-games placebo, and judged by whether the gap above falls to about two points. That is its own release, because PART_SEASON_CURVE is a frozen constant.`,
+    methods: ["live-season", "projection", "ol", "team-ratings"],
+    files: ["menu.html", "js/menuScreensRatings.js", "js/menuStorylines.js", "js/menuCard.js", "js/menuScreensTeam.js", "js/menuScreensPages.js", "js/menuScreensLeague.js", "js/menuHome.js",
+            "js/menuRouter.js", "js/menuChrome.js", "js/menuFocus.js", "js/menuScreens.js", "js/dataLoader.js", "js/config.js", "js/ui.js", "js/guide.js", "js/guidePage.js",
+            "js/changesPage.js", "js/methodsPage.js", "js/findingPage.js", "js/findings.js", "css/menu.css", "css/styles.css", "css/components.css", "*.html (19 stubs)",
+            "tools/ui-smoke/smoke.mjs", "cfb-analytics-pipeline/tests/test_coverage_credit.py"],
+  },
   {
     id: "v4.24-week-nine-audit-and-weekly-integrity",
     version: "v4.24",

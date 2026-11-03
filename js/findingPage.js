@@ -6,10 +6,9 @@
 // everything composes the existing primitives (masthead, statBig, createFilterBar,
 // createDataTable, entity links, the player modal).
 //
-// Shell contract:
-//   <div id="finding-root"></div>  and  <script>initFinding("some-id")</script>
+// The Research reader (menuScreensPages.js) puts <div id="finding-root"></div> on screen and calls initFinding("some-id").
 
-// Entry point for every research-*.html and story-*.html shell: renders the
+// Entry point for the Research reader: renders the
 // FINDINGS[id] entry into #finding-root. An "upcoming" finding renders its
 // question, plan and difficulties only. A live one renders prose first, then
 // calls its load(), then hero stats, filter bar and table — applying the
@@ -88,8 +87,7 @@ async function initFinding(id) {
 }
 
 // The finding's masthead: eyebrow, title, claim, and a breadcrumb back to
-// its index (Research or the home storylines), plus "Not built yet" for an
-// upcoming finding.
+// the Research list, plus "Not built yet" for an upcoming finding.
 function _findingMasthead(f) {
   return `
     <header class="masthead masthead--page animate-pop">
@@ -97,8 +95,7 @@ function _findingMasthead(f) {
       <h1>${_esc(f.title)}</h1>
       <p class="masthead-sub">${_esc(f.claim)}</p>
       <p class="finding-breadcrumb">
-        <a href="${f.kind === "research" ? "research.html" : "index.html?classic"}">
-          ${f.kind === "research" ? "← All research" : "← All storylines"}</a>
+        <a href="#/research">${f.kind === "research" ? "← All research" : "← All storylines"}</a>
         ${f.status === "upcoming" ? '<span class="badge-upcoming">Not built yet</span>' : ""}
       </p>
     </header>`;
@@ -156,39 +153,4 @@ function _upcomingBody(f) {
         entry, with no new page code.
       </p>
     </div>`;
-}
-
-// ── Index rendering ────────────────────────────────────────────────────────
-// research.html and the home page both list findings. Same cards, same source.
-
-// Render every finding of `kind` ("research" | "storyline") as cards into
-// #containerId. Live findings load their own data to put a computed headline
-// on the card; each card fails independently and renders without its stat.
-async function renderFindingIndex(containerId, kind) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const items = findingsOfKind(kind);
-  if (!items.length) { el.innerHTML = ""; return; }
-
-  // Live findings load their own headline stat so the card states a fact, not a
-  // description. Each one fails independently.
-  const cards = await Promise.all(items.map(async f => {
-    let headline = null;
-    if (f.status === "live" && f.headline) {
-      try {
-        const { rows, meta } = await f.load();
-        headline = f.headline(rows, meta);
-      } catch (_) { /* card renders without its stat */ }
-    }
-    return `
-      <a class="finding-card animate-up ${f.status === "upcoming" ? "is-upcoming" : ""}" href="${f.page}">
-        <span class="research-tag">${_esc(f.eyebrow)}</span>
-        <h3>${_esc(f.title)}</h3>
-        <p>${_esc(f.question)}</p>
-        ${headline ? `<div class="finding-stat">${_esc(headline)}</div>` : ""}
-        ${f.status === "upcoming" ? '<div class="finding-stat finding-stat--warning">Framework in place — analysis next</div>' : ""}
-      </a>`;
-  }));
-
-  el.innerHTML = `<div class="research-grid stagger-children">${cards.join("")}</div>`;
 }

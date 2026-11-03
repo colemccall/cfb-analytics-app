@@ -238,6 +238,38 @@ function menuCardTabs() {
     ? [MENU_CARD_TABS[0], { id: "games", label: "Games" }, ...MENU_CARD_TABS.slice(1)] : MENU_CARD_TABS;
 }
 
+// Each season's production scores by position group, sorted once: { season: { position group: [score, ...] } }.
+const _menuEdgePct = {};
+
+// His production score's percentile among the players of his position in the season (0 lowest, 100 highest), or null without a
+// score or with fewer than two to compare. Brought over from the classic Players board (v4.25).
+async function menuEdgePercent(season, p) {
+  if (!p || p.edge_score == null || !p.position_group) return null;
+  if (!_menuEdgePct[season]) {
+    const byPos = {};
+    for (const q of await fetchSeasonPlayers(season)) if (q.edge_score != null) (byPos[q.position_group] ||= []).push(q.edge_score);
+    for (const k in byPos) byPos[k].sort((a, b) => a - b);
+    _menuEdgePct[season] = byPos;
+  }
+  const arr = _menuEdgePct[season][p.position_group];
+  if (!arr || arr.length < 2) return null;
+  let lo = 0, hi = arr.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (arr[mid] < p.edge_score) lo = mid + 1; else hi = mid; }
+  return Math.round(lo / (arr.length - 1) * 100);
+}
+
+// Fills the projection panel's reasoning after the card is on screen: the file behind it is 5.5 MB, so the card does not wait for
+// it. A file that is absent leaves the panel with its number and says nothing more; one that failed to load says so.
+async function menuFillProjection(el, t) {
+  try {
+    const d = await fetchTrajectoryDetail(t.player_season_id);
+    if (!el.isConnected) return;
+    el.innerHTML = menuProjectionWhy(d) || (dataFailed("trajectory_detail.json") ? '<p class="m-empty" role="alert">The reasoning did not load. Use Retry.</p>' : "");
+  } catch (e) {
+    if (el.isConnected) el.innerHTML = '<p class="m-empty" role="alert">The reasoning did not load.</p>';
+  }
+}
+
 menuRouter.register("player", {
   title: ctx => ctx.player?.name || "Player",
   crumb: () => "PLAYER",
@@ -278,6 +310,13 @@ menuRouter.register("player", {
     const trio = hasTrio(p);
     const moves = (await fetchPlayerTransfers())[String(pid)] || [];
     const hs = await fetchHeadshots();
+    // The overview also carries what the classic modal had: where his production score sits among his position, the Engine D
+    // projection (only for the season it is FOR, v4.25) and the players most like him in any era.
+    const traj = tab === "overview" ? await fetchTrajectory() : null;
+    const tRow = traj && Number(traj.meta.predicts_season ?? CONFIG.CURRENT_SEASON) === Number(season) ? traj.rows.find(r => String(r.player_id) === String(pid)) || null : null;
+    const similar = tab === "overview" && !isProjectedSeason(season) ? (await fetchSimilarPlayers(season))[String(p.player_season_id)] || [] : [];
+    const edgePct = tab === "overview" ? await menuEdgePercent(season, p) : null;
+    ctx.projectionRow = tRow;
     const careerFailed = career === null;
     const head = menuRosterHead(p, season, { photo: menuPhotoHtml(p, hs), team });
     const none = `<p class="m-empty">${_esc(menuNoStatsWhy(p))}</p>`;
@@ -301,17 +340,20 @@ menuRouter.register("player", {
           <section class="m-panel"><h3 class="m-h3">${season} at a glance</h3><div class="m-stats">${tiles || none}</div>
             <button class="m-chip m-chip--more" type="button" data-nav data-nav-group="links" data-to="#/player/${pid}/${ctx.params[1] || 0}/stats">Every stat →</button></section>
           <section class="m-panel"><h3 class="m-h3">How this rating is built</h3>
-            ${menuWhyBlock(p, rows)}
+            ${menuWhyBlock(p, rows)}${menuEdgeStrip(edgePct, p, season)}
             <p class="m-note">${trio
               ? `<b>${season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional, and on one or two games it moves only a little from a recruiting-based start.`
               : "The rating is an earned one for the season shown: production, not talent."}</p></section>
         </div>
         ${CONFIG.WEEKLY_SEASONS.includes(season) && season === MENU.season ? '<section class="m-panel" id="m-weekly"><h3 class="m-h3">Week by week</h3><p class="m-empty">Loading…</p></section>' : ""}
+        ${menuArchetypeBars(p) ? `<section class="m-panel">${menuArchetypeBars(p)}</section>` : ""}
+        ${tRow ? menuProjectionPanel(tRow, traj.meta) : ""}
         <section class="m-panel m-career"><h3 class="m-h3">Rating history</h3>${careerFailed ? failedNote : menuRatingHistory(rows, p, season)}
           <div class="m-linkrow">${team ? `<button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(team.id)}">${teamMark(team, "m-row-mark")} ${_esc(team.school)} →</button>` : ""}
             <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="#/players/${encodeURIComponent(pg)}">Best ${_esc(pg)} →</button></div></section>
         ${moves.length ? `<section class="m-panel"><h3 class="m-h3">Transfer path</h3>${menuTransferPath(moves, d.teams)}</section>`
-          : dataFailed("player_transfers.json") ? '<section class="m-panel"><h3 class="m-h3">Transfer path</h3><p class="m-empty">The transfer file did not load. Use Retry.</p></section>' : ""}`;
+          : dataFailed("player_transfers.json") ? '<section class="m-panel"><h3 class="m-h3">Transfer path</h3><p class="m-empty">The transfer file did not load. Use Retry.</p></section>' : ""}
+        ${menuSimilarPanel(similar)}`;
     }
     return `<div class="m-card">${head}${body}</div>`;
   },
@@ -319,6 +361,8 @@ menuRouter.register("player", {
     menuWirePhoto(stage);
     const weekly = stage.querySelector("#m-weekly");
     if (weekly) menuFillWeeklyPlayer(weekly, ctx.player, ctx.team, parseInt(ctx.params[0]));
+    const why = stage.querySelector("#m-proj-why");
+    if (why && ctx.projectionRow) menuFillProjection(why, ctx.projectionRow);
     const games = stage.querySelector("#m-games");
     if (games) menuFillGames(games, ctx.player, ctx.team, parseInt(ctx.params[0]), ctx.player.position_group || "ATH");
   },

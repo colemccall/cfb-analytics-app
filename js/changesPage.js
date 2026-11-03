@@ -1,4 +1,4 @@
-// changesPage.js — renders changes.html from the CHANGES registry.
+// changesPage.js — renders one CHANGES entry (the Build Log reader in menuScreensPages.js draws them one at a time).
 //
 // Same split as methods.js / methodsPage.js and findings.js / findingPage.js:
 // the registry holds content, this holds presentation. Adding a build-log entry
@@ -16,14 +16,14 @@ function _byDateDesc(a, b) {
   return String(b.date || "").localeCompare(String(a.date || ""));
 }
 
-// A METHODS id rendered as a link to methods.html#<id>, but only when the anchor
+// A METHODS id rendered as a link to its entry in the Methods reader, but only when the entry
 // really exists. A dead anchor is worse than plain text: it promises an
 // explanation and delivers a scroll to nowhere.
 function _methodLink(id) {
   const entry = (typeof METHODS !== "undefined")
     ? METHODS.find(m => m.id === id) : null;
   if (!entry) return `<span class="text-muted">${_esc(id)}</span>`;
-  return `<a href="methods.html#${_esc(id)}">${_esc(entry.title)}</a>`;
+  return `<a href="#/methods/${_esc(id)}">${_esc(entry.title)}</a>`;
 }
 
 // The "What changed" block: one row per `did` item with its reason and, when
@@ -157,29 +157,3 @@ function _changeEntry(c) {
     </article>`;
 }
 
-// Entry point for changes.html: renders the masthead, a version TOC and every
-// CHANGES entry newest first into #changes-root.
-function initChanges() {
-  const root = document.getElementById("changes-root");
-  if (!root) return;
-
-  const entries = [...CHANGES].sort(_byDateDesc);
-
-  root.innerHTML = `
-    <header class="masthead masthead--page animate-pop">
-      <div class="eyebrow">BUILD LOG</div>
-      <h1>What changed, and what it cost</h1>
-      <p class="masthead-sub">
-        Methods explains what a number is. This explains what happened to it: which
-        alternative was tried and abandoned, what the measurement said, and what each pass
-        deliberately left unfixed. Every entry names something that did not work — that is
-        the part usually missing, and it is the part worth reading.
-      </p>
-      <nav class="method-toc">
-        ${entries.map(c => `<a href="#${_esc(c.id)}">${_esc(c.version)}</a>`).join("")}
-      </nav>
-    </header>
-    <section class="method-group">
-      <div class="stagger-children">${entries.map(_changeEntry).join("")}</div>
-    </section>`;
-}

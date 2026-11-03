@@ -477,6 +477,35 @@ menuRouter.register("compare", {
 
 // ── Transfer portal ───────────────────────────────────────────────────────
 
+// What was typed in the portal's search box (v4.25, from the classic League page): kept while you change position or season.
+let _menuPortalQuery = "";
+const MENU_PORTAL_SHOWN = 150;
+
+// The portal rows, count and footnote for the position tab and the search now: best rating first, matched on the player's name and
+// both schools. Drawn by render() and again on every keystroke, which replaces only the rows so the box keeps its focus.
+function menuPortalView(ctx) {
+  const q = _menuPortalQuery.trim().toLowerCase();
+  const all = q ? ctx.moves.filter(r => `${r.name || ""} ${r.from_school || ""} ${r.to_school || ""}`.toLowerCase().includes(q)) : ctx.moves;
+  const shown = all.slice(0, MENU_PORTAL_SHOWN);
+  const season = ctx.season;
+  const rows = shown.map((r, i) => `
+      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="portal"${r.player_id ? ` data-to="${menuPlayerPath(r.player_id)}"` : ""}>
+        <span class="m-rank">${i + 1}</span>
+        <span class="m-pname">${_esc(r.name)}</span>
+        <span class="m-pos">${posBadge(r.position_group)}</span>
+        <span class="m-pmeta" title="${_esc(r.portal_date ? `Entered the portal ${r.portal_date}` : "")}">${_esc(r.from_school || "—")} → ${_esc(r.to_school || "—")}</span>
+        <span class="m-rating">${r.ovr_previous == null ? "—" : ovrPill(r.ovr_previous, { label: "Rating before the move" })}</span>
+        <span class="m-rating">${r.ovr_current == null ? "—" : ovrPill(r.ovr_current, { label: `Rating, ${season}`, season })}</span>
+        <span class="m-rating">${r.ovr_current != null && r.ovr_previous != null ? deltaChip(r.ovr_current - r.ovr_previous) : ""}</span>
+      </button>`).join("");
+  return {
+    rows: rows || `<p class="m-empty">No moves match${q ? ` "${_esc(_menuPortalQuery.trim())}"` : ""}.</p>`,
+    count: `${shown.length.toLocaleString()} of ${all.length.toLocaleString()}`,
+    foot: `${shown.length.toLocaleString()} of ${all.length.toLocaleString()} moves, best rating first. Before is the rating the season before he moved (blank if he had none); Now is his earned rating at the new school${isProjectedSeason(season)
+      ? `, which does not exist yet for ${season}: see his team's roster for the projection and the to-date rating` : ""}. Entries with no landing school are not listed. Hover a row for the day he entered the portal.`,
+  };
+}
+
 menuRouter.register("portal", {
   title: "Transfer Portal",
   crumb: () => "LEAGUE › TRANSFER PORTAL",
@@ -486,33 +515,43 @@ menuRouter.register("portal", {
                   active: ctx.params[0] || "ALL", go: id => menuRouter.go(`#/portal/${id}`) }),
   async render(ctx) {
     ctx.team = menuMyTeam((await menuTeams(MENU.season)));
-    const season = MENU.season;
+    const season = ctx.season = MENU.season;
     if (!CONFIG.TRANSFER_SEASONS.includes(season)) {
       return `<section class="m-panel"><p class="m-empty">No transfer-portal data for ${season}. It covers ${CONFIG.TRANSFER_SEASONS[0]}–${CONFIG.TRANSFER_SEASONS[CONFIG.TRANSFER_SEASONS.length - 1]}; press Y to change season.</p></section>`;
     }
     const pos = ctx.params[0] || "ALL";
-    const all = leagueTransferRows(await fetchLeagueTransfers(season))
+    ctx.moves = leagueTransferRows(await fetchLeagueTransfers(season))
       .filter(r => pos === "ALL" || matchesPosition(r.position_group, pos))
       .sort((a, b) => ((b.ovr_current ?? b.ovr_previous ?? -1) - (a.ovr_current ?? a.ovr_previous ?? -1)));
-    const shown = all.slice(0, 150);
-    const rows = shown.map((r, i) => `
-      <button class="m-row m-row--portal" type="button" data-nav data-nav-group="portal"${r.player_id ? ` data-to="${menuPlayerPath(r.player_id)}"` : ""}>
-        <span class="m-rank">${i + 1}</span>
-        <span class="m-pname">${_esc(r.name)}</span>
-        <span class="m-pos">${posBadge(r.position_group)}</span>
-        <span class="m-pmeta">${_esc(r.from_school || "—")} → ${_esc(r.to_school || "—")}</span>
-        <span class="m-rating">${r.ovr_previous == null ? "—" : ovrPill(r.ovr_previous, { label: "Rating before the move" })}</span>
-        <span class="m-rating">${r.ovr_current == null ? "—" : ovrPill(r.ovr_current, { label: `Rating, ${season}`, season })}</span>
-        <span class="m-rating">${r.ovr_current != null && r.ovr_previous != null ? deltaChip(r.ovr_current - r.ovr_previous) : ""}</span>
-      </button>`).join("");
+    const view = menuPortalView(ctx);
     return `<section class="m-panel m-list" aria-label="Transfer portal">
+        <div class="m-filterbar">
+          <input class="m-input" id="m-tq" type="search" placeholder="Search a player or a school" aria-label="Search the transfer portal" autocomplete="off" value="${_esc(_menuPortalQuery)}" data-nav data-nav-group="filters">
+          <span class="m-count" id="m-tcount" aria-live="polite">${view.count}</span>
+        </div>
         <div class="m-rowhead m-row--portal"><span>#</span><span>PLAYER</span><span>POS</span><span>FROM → TO</span><span>BEFORE</span><span>NOW</span><span>CHANGE</span></div>
-        ${rows || '<p class="m-empty">No moves match.</p>'}
+        <div id="m-trows">${view.rows}</div>
       </section>
-      <p class="m-foot">${shown.length.toLocaleString()} of ${all.length.toLocaleString()} moves, best rating first. <b>Before</b> is the rating the season before he moved
-        (blank if he had none); <b>Now</b> is his earned rating at the new school${isProjectedSeason(season)
-          ? `, which does not exist yet for ${season} — see his team's roster for the projection and the to-date rating` : ""}. Entries with no landing school are not listed.</p>`;
+      <p class="m-foot" id="m-tfoot">${view.foot}</p>`;
   },
+  mount(stage, ctx) {
+    const q = stage.querySelector("#m-tq");
+    if (!q) return;
+    let timer;
+    q.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        _menuPortalQuery = q.value;
+        const view = menuPortalView(ctx);
+        stage.querySelector("#m-trows").innerHTML = view.rows;
+        stage.querySelector("#m-tcount").textContent = view.count;
+        stage.querySelector("#m-tfoot").textContent = view.foot;
+      }, 120);
+    });
+    q.addEventListener("keydown", e => { if (e.key === "Enter") q.blur(); });
+    ctx.cleanups.push(menuInput.on("back", () => { if (document.activeElement === q) { q.blur(); return true; } return false; }));
+  },
+  prefer: () => ".m-row--portal",
 });
 
 // ── Recruiting ────────────────────────────────────────────────────────────

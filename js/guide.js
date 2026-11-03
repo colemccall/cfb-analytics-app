@@ -1,4 +1,4 @@
-// guide.js — the GUIDE registry behind info.html ("How It Works").
+// guide.js — the GUIDE registry behind the How It Works reader (About › How It Works).
 //
 // methods.html explains how every number is MADE. changes.html explains what
 // happened to it. This explains how to USE the site: what each page answers,
@@ -79,25 +79,29 @@ const GUIDE = [
     id: "getting-around",
     group: "start",
     title: "Getting around",
-    summary: `Every page has the same sidebar (a five-item tab bar on a phone). Almost every team
-      and player name anywhere on the site is a link: a **team** opens its team page in the season
-      you were looking at; a **player** opens his card in place, without leaving the page.
+    summary: `The whole site is one menu. Seven sections run along the top (Home, My Team, Season, Teams, Players,
+      Recruiting, About); under them a second bar lists the pages of the section you are in, with the current one
+      marked. Use the mouse, the keyboard (Enter opens, Esc goes back) or a game controller. Almost every team and
+      player name is a button to its page: a **team** opens its team page, a **player** opens his card.
 
-      Links carry their season, so they can be shared or bookmarked:
-      \`players.html?player=ID&season=2025\` opens that player's 2025 card, and
-      \`teams.html?team=Boise%20State&season=2013\` opens that team in 2013. Ctrl- or cmd-click
-      any player or team link to open it in a new tab.`,
+      Addresses carry their place, so a page can be shared or bookmarked: \`menu.html#/team/13\` is a team, \`menu.html#/player/57596\`
+      a card, and \`menu.html?player=57596&season=2024\` or \`menu.html?team=Boise%20State&season=2013\` opens that player or
+      team in that season. The old page addresses (players.html?player=…, teams.html?team=…, methods.html#ol and the rest)
+      still work: each forwards here.`,
     controls: [
-      { name: "Theme swatches (sidebar, bottom)", what: "Dark or light. Remembered on this device; every coloured number repaints in the new theme's palette." },
-      { name: "Player card", what: "Close with ✕, Esc, or a click outside it. A similar player inside a card opens his own card." },
-      { name: "Sortable tables", what: "Click a column header to sort; click again to reverse. Blank values always sort to the bottom." },
+      { name: "Season stepper (◀ ▶, Y)", what: "Sets the season the whole menu shows: every page, the ticker and the rankings follow it. Remembered on this device." },
+      { name: "Menu (Start, H)", what: "The quick menu: every screen in one list, plus Change Year and Light or Dark mode. Back or Menu closes it." },
+      { name: "Light / Dark mode", what: "Remembered on this device; every coloured number repaints in the new mode's palette." },
+      { name: "Search boxes", what: "Players, the Transfer Portal and Talent vs Production each have one. Type to narrow; Esc or Enter leaves the box without leaving the page. What you typed is kept while you change position or season." },
+      { name: "Column headings", what: "On a roster, click a heading to sort by it. The Sort button in the bar below cycles through the sorts for Players and rosters." },
+      { name: "My Team", what: "Follow a team from its page. Home shows it, My Team opens it, and the short menu entries default to it." },
     ],
     tips: [
-      "Filters and pickers are per page and reset on reload — a shared link carries the player, team and season, not the filters.",
-      "Opening the first player card on a page is the slow one: it reads every season's file to draw the career. Later cards are instant.",
+      "A first player card on a page can be slow: it reads one small file for his whole career. Later cards are instant.",
+      "The filters on Players and the Portal are kept while you move around and reset when the page reloads.",
     ],
     limits: `The site is static files with no accounts or server, so nothing you do on it is saved
-      beyond the theme choice on this device.`,
+      beyond My Team, the season and the colour mode on this device.`,
   },
 
   // ── Reading a number ──────────────────────────────────────────────────────
@@ -314,126 +318,119 @@ const GUIDE = [
   {
     id: "page-home",
     group: "pages",
-    page: "index.html?classic",
+    page: "#/home",
     title: "Home",
-    summary: `The front door: a handful of claims the data supports this week, each linking to the
-      full list behind it. Every number on it is computed from the data files when the page loads;
-      none is typed in.`,
+    summary: `The league at a glance, and every row a link to the page you would want next. Every number on it is
+      computed from the data files when the page loads; none is typed in.`,
     panels: [
-      { name: "Masthead", what: `Days to kickoff, and the opener to circle: the week-1 game with the best matchup-quality score (combined projected team rating, penalised for a mismatch).` },
-      { name: "Storylines", what: `Computed claims — projected risers and sliders, the team that most beat its recruiting, the model's boldest breakout call, a hidden gem, the recruiting class that hit hardest. Each card links to its full list.` },
-      { name: "The opening slate", what: "The next six week-1 games by the same matchup-quality score." },
-      { name: "Last Season's Standard", what: `The eight best teams by earned ${CONFIG.LAST_PLAYED_SEASON} team rating, each linking to that season's team page.` },
-      { name: "From the Research Desk", what: "One computed headline from each live research finding." },
-      { name: "Open the full lists", what: "Every storyline as a full, sortable page." },
+      { name: "My Team strip", what: "The team you follow: record, rank, next game, and buttons to its roster and schedule. Without one it offers to follow a team." },
+      { name: "Storylines", what: `Computed claims: the projected risers and sliders (or, for a played season, the biggest rise and fall), the team that most beat its recruiting, the model's boldest breakout call, a hidden gem, the recruiting class that did best. Each row opens the team or player, and its button opens the full list in Research. A claim whose data file is absent is left out.` },
+      { name: "Top 10, Top players", what: "The ten best teams by power and the ten best players, from the to-date file in a season being played." },
+      { name: "Results and what is next", what: "In a season being played, last week's results and the coming week's games, the best-ranked teams first; for a played season its bowls and playoff; before a season its first week." },
+      { name: "Playoff picture, Rating movers, Recruiting classes, Transfer portal", what: "A short list of each, ending in the screen that holds the rest." },
     ],
     limits: `Storylines are picked by rule (largest move, best residual, …), not by judgement, so
-      one can be the product of a thin sample. Its full list shows the context.`,
+      one can be the product of a thin sample. Its full list in Research shows the context. The recruiting class is
+      ranked on the shrunk hit rate, so a small class cannot top the list by luck.`,
   },
   {
     id: "page-season26",
     group: "pages",
-    page: "season2026.html",
-    title: `'${String(CONFIG.CURRENT_SEASON).slice(2)} Season`,
-    summary: `Everything known about a season that has not been played: the schedule, which is fact,
-      and projected ratings, which are labelled as projections.`,
+    page: "#/season",
+    title: "The Season",
+    summary: `What the season has done so far and what is left of it. In a season being played: the biggest team risers and fallers against the
+      preseason projection, the best players to date, the games still to play ranked by matchup quality, and the biggest changes in team
+      rating since last year. For a played season: the changes since the year before.`,
     panels: [
-      { name: "Projected top 25", what: "Teams by projected team rating — built from rosters, not a prediction of record." },
-      { name: "Biggest movers", what: `Projected ${CONFIG.CURRENT_SEASON} team rating against what the team earned in ${CONFIG.LAST_PLAYED_SEASON}. Movement is mostly roster turnover.` },
-      { name: "25 games to circle", what: "The whole season ranked by matchup quality. Sortable by week, date, either team, or quality." },
-      { name: "Team preview", what: "Pick any team for its schedule (non-FBS opponents are named but not linked — we have no page for them) and its ten highest-projected players." },
+      { name: "Risers and fallers", what: "Teams by earned-to-date rating minus preseason projection. The earned number is provisional and rescaled to full-season pace." },
+      { name: "Best players to date", what: "The ten best earned-to-date ratings, each opening his card." },
+      { name: "Games to circle", what: "The games still to play, best first. Quality is the two teams' combined rating minus twice the gap between them, so an even heavyweight game outranks a lopsided one. Each opens the game." },
+      { name: "Biggest changes since last year", what: `Team rating against the year before: the eight biggest gains and falls. For a season not yet played the new number is the preseason projection, which is labelled.` },
     ],
-    controls: [
-      { name: "Team preview picker", what: "Choose a team; choose \"Pick a team…\" to clear." },
-    ],
-    methods: ["projection", "team-ratings"],
-    limits: `There are no win probabilities or playoff odds yet. Those arrive with the prediction
-      model, which ships only alongside its backtest.`,
+    methods: ["live-season", "projection", "team-ratings"],
+    limits: `Quality is not a win probability: win probabilities and playoff odds ship only alongside their backtest. A finished season has no
+      games to circle, so that panel is absent.`,
   },
   {
     id: "page-teams",
     group: "pages",
-    page: "teams.html",
+    page: "#/team-select",
     title: "Teams",
-    summary: `Every FBS program, in any season since ${CONFIG.FIRST_SEASON}. Pick a team from the wall of
-      logos (a "Choose a team" button on a phone), then read it tab by tab.`,
+    summary: `Every FBS program in any season since ${CONFIG.FIRST_SEASON}. All Teams is the wall of logos (conference tabs narrow it, and the season
+      stepper changes which year's membership); My Team is the one you follow. A team has the same eight pages wherever you reach it from.`,
     controls: [
-      { name: "Search", what: "Filters the logo wall by school name as you type." },
-      { name: "Season", what: "Switches every tab, and the conference chips, to that season — conferences are rebuilt per season because realignment changed them." },
-      { name: "Conference chips", what: "Narrow the wall to one conference." },
-      { name: "Conference standing chip", what: "Under the team name: click to expand the conference's top five." },
+      { name: "Conference tabs", what: "Narrow the wall to one conference. Conferences are rebuilt per season because realignment changed them." },
+      { name: "Follow this team", what: "On a team's page: Home, My Team and the short menu entries then open it." },
     ],
     panels: [
-      { name: "Roster", what: "Every player on the roster, rated or not, ranked by rating. Position chips filter it; any row opens the player card. On a projected season the last two columns show the projection's 80% range and its source instead of projected change and EDGE percentile." },
-      { name: "Ratings", what: "Team rating, offence, defence and POWER (the raw schedule-adjusted SP+ margin, comparable across seasons); five sub-ratings; the offensive line as a unit with its five inputs; per-game team stats (played seasons); top five players." },
-      { name: "Schedule", what: "Every game with the result. Opponent names link to their team page in the same season." },
-      { name: "Transfers", what: `Players in and out through the portal (${2021} onward), with each player's earned rating at the old school the season before and at the new school, and the change. A projected season has no earned new-school rating yet, so that side is blank.` },
-      { name: "History", what: "The program season by season: record, conference, SP+ and team rating." },
+      { name: "Overview", what: "Rating, offense and defense, record, national rank and next game; the six best players; the week-by-week panel in a season with one." },
+      { name: "Ratings", what: "The rating broken into pass and run, offense and defense and special teams; the offensive line as a unit with its five measurements (not a per-player rating); per-game team stats for a played season; the SP+ margin and recruiting score as references." },
+      { name: "Roster", what: "Every player on the roster, rated or not. Position tabs filter it; click a heading to sort; the strip above follows the selection; any row opens the card." },
+      { name: "Depth Chart", what: "Position groups in the order of their ratings. Not an official chart: no source we hold has depth data." },
+      { name: "Schedule", what: "Every game with byes and the postseason, the opponent's rating and record, and the result; select a game for the two teams side by side." },
+      { name: "Recruiting, Transfers, History", what: `The class with a map of where it comes from; players in and out through the portal (${CONFIG.TRANSFER_SEASONS[0]} onward) with the rating before and after; the program season by season.` },
     ],
     methods: ["team-ratings", "ol"],
     limits: `A team rating blends schedule-adjusted results, our ratings of the roster and the
       team's own statistics; it is not a prediction of who would win, and says nothing about who
-      was healthy.`,
+      was healthy. A season not yet played has no offense and defense split, and no line rating.`,
   },
   {
     id: "page-players",
     group: "pages",
-    page: "players.html",
+    page: "#/players",
     title: "Players",
-    summary: `A draft-board view of every rated player in a season: the top players at each position,
-      merged and ranked by rating. Click any row for his card.`,
+    summary: `Leaders: every rated player in a season, ranked. Click any row for his card.`,
     controls: [
-      { name: "Season", what: `Any season from ${CONFIG.FIRST_SEASON}. On ${CONFIG.CURRENT_SEASON} the last two columns become the projection range and its source; on a played season they are projected change and EDGE percentile.` },
-      { name: "Conference", what: "Listed from the conferences that existed that season." },
-      { name: "Min OVR slider", what: "Hides everyone below the rating you set." },
-      { name: "Search", what: "Matches player or team name." },
-      { name: "Position chips", what: "One position group at a time. DB includes corners, safeties and generically-labelled defensive backs." },
-      { name: "Column headers", what: "Click to sort by that column." },
+      { name: "Search", what: "Matches a player's name or his team. A search also finds offensive linemen, who are not otherwise listed because they have no rating." },
+      { name: "Conference, Rating", what: "Buttons that step through the conferences that existed that season, and through the minimum ratings (any, 60+, 70+, 80+, 90+)." },
+      { name: "Position tabs", what: "One position group at a time. DB includes corners, safeties and generically-labelled defensive backs." },
+      { name: "Sort", what: "Best available first (to date, then the projection, then last season), or by any column." },
     ],
     panels: [
-      { name: "Player card", what: `Header with rating (or projected rating); recruiting and bio; season stats (regular season, postseason, total); EDGE score and its percentile; career stats; rating history; "Why this rating?" — what raised and lowered the number; for defensive backs, the three jobs the rating is built from; on ${CONFIG.CURRENT_SEASON}, the projection with its range and reasoning; transfer path; similar players from any era.` },
+      { name: "Overview", what: `The ratings (earned last season, projection, earned to date in a season being played); the season at a glance; how the rating is built: the production score and the games behind it, where it sits among his position, his recruiting grade and any breakout flag; for a defensive back, the three jobs the rating is made of with their weights; week by week; on ${CONFIG.CURRENT_SEASON} the projection with its 80% range, the reasoning (drivers, careers that looked like his); rating history; transfer path; similar players from any era.` },
+      { name: "Games, Stats, Career", what: "The game-by-game box score (a season with game logs), every stat for the season (regular season, postseason, total), and the career by season with totals." },
     ],
     tips: [
-      "The board shows the top 100 per position (60 for kickers and punters). Use the position chips or search to go deeper.",
-      `players.html?player=ID&season=${CONFIG.LAST_PLAYED_SEASON} opens a card directly — it is what every shared player link uses.`,
+      "The list shows the first 200 matches. Use the position tabs, the conference button or the search to go deeper.",
+      `menu.html?player=ID&season=${CONFIG.LAST_PLAYED_SEASON} opens a card directly; it is what a shared player link uses.`,
     ],
     methods: ["edge-core", "defense", "secondary", "specialists", "rating-basis"],
     limits: `A player is only as rateable as his position's box score. Read the rating-basis chip
-      and the Methods entry for his position before comparing across positions.`,
+      and the Methods entry for his position before comparing across positions. The percentile
+      is within his position and season only.`,
   },
   {
     id: "page-ratings",
     group: "pages",
-    page: "ratings.html",
-    title: "Ratings",
-    summary: `Where production and recruiting disagree. The scatter puts every player's rating
-      against his recruiting stars; the leaderboards are the top 50 at each position.`,
+    page: "#/scatter",
+    title: "Talent vs Production",
+    summary: `Where production and recruiting disagree: every player's rating against his recruiting stars, with the players furthest above the trend listed below.`,
     controls: [
-      { name: "Season and team pickers", what: "Redraw both panels for that season, optionally one team." },
-      { name: "Position chips", what: "Narrow the scatter to one position group." },
-      { name: "Leaderboard tabs", what: "One position at a time; headers sort." },
+      { name: "Position tabs", what: "Narrow the chart to one position group." },
+      { name: "Search", what: "Shows only the players or teams that match. The trend line stays fitted to everyone." },
     ],
     panels: [
-      { name: "Scatter", what: "Each dot is a player: stars across (jittered so they don't stack), rating up. The dashed line is a straight-line fit of rating on stars. Larger green dots are more than 8 points above it — production the recruiting grade missed. Hover for the player; click to open his card." },
-      { name: "Position leaderboards", what: "Top 50 per position group for the season. 🔥 marks a breakout candidate (played seasons only)." },
+      { name: "The chart", what: "Each dot is a player: stars across (nudged so they don't stack), rating up. The dashed line is a straight-line fit of rating on stars. Larger green dots are 8 or more points above it: production the recruiting grade missed. Hover for the player; click to open his card." },
+      { name: "Furthest above the trend", what: "The twelve players with the largest gap above the line, each opening his card." },
     ],
-    limits: `Players with no recruiting stars are not on the scatter, and walk-ons are a large
-      share of the genuinely overlooked, so the chart understates how often production beats
-      recruiting.`,
+    limits: `Players with no recruiting stars are not on the chart, and walk-ons are a large
+      share of the genuinely overlooked, so it understates how often production beats
+      recruiting. In a season being played the ratings are earned so far and provisional.`,
   },
   {
     id: "page-research",
     group: "pages",
-    page: "research.html",
+    page: "#/research",
     title: "Research and storylines",
-    summary: `Each finding is a claim with its full table behind it. The index lists the live
-      analyses, the storylines the home page draws from, and open questions with nothing behind them
-      yet — listed so the unfinished work is visible.
+    summary: `Each finding is a claim with its full table behind it. The list on the left holds the live
+      analyses, the storylines Home draws from, and open questions with nothing behind them
+      yet, listed so the unfinished work is visible.
 
-      Every finding page has the same shape: headline figures, filters, a sortable table (the first
+      Every finding has the same shape: headline figures, filters, a sortable table (the first
       few hundred rows; filter to narrow), then **How it's computed** and **What it can't see**.`,
     tips: [
-      "Filters apply as soon as you change them, and a filter's default (often the last played season) is already applied when the page opens.",
+      "Filters apply as soon as you change them, and a filter's default (often the last played season) is already applied when the finding opens.",
       "Player and team names in any table open the card or team page.",
     ],
     methods: ["research-team-performance", "research-recruiting-roi", "research-coaching", "research-gems"],
@@ -443,13 +440,13 @@ const GUIDE = [
   {
     id: "page-methods",
     group: "pages",
-    page: "methods.html",
+    page: "#/methods",
     title: "Methods and the Build Log",
     summary: `**Methods** is how every number is made: the inputs and their coverage, the formula as
       the code actually computes it (and, where they ever differed, what the code really did), why it
       is built that way, what has been measured about it, what it cannot support, and every
-      alternative considered — including the rejected ones and the measurement that rejected them. At
-      the bottom, a generated table of what the data source does and does not contain.
+      alternative considered, including the rejected ones and the measurement that rejected them. At
+      the end of the data group, a generated table of what the data source does and does not contain.
 
       The **Build Log** is what happened to those numbers, pass by pass: what prompted the work,
       what changed and what it cost, what was tried and dropped, the checks that were run, and what
@@ -457,10 +454,10 @@ const GUIDE = [
     live: async () => {
       if (typeof CHANGES === "undefined" || !CHANGES.length) return "";
       const latest = [...CHANGES].sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
-      return `Latest entry: <a href="changes.html#${_esc(latest.id)}"><strong>${_esc(latest.version)}</strong>
+      return `Latest entry: <a href="#/changes/${_esc(latest.id)}"><strong>${_esc(latest.version)}</strong>
         — ${_esc(latest.title)}</a> (${_esc(latest.date)}).`;
     },
-    limits: `Both pages are written for someone who wants to check a claim, and they are long on
+    limits: `Both are written for someone who wants to check a claim, and they are long on
       purpose. This guide is the short version.`,
   },
 
