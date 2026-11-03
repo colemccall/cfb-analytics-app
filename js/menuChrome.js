@@ -38,6 +38,7 @@ menuChrome.build = function (root) {
         <button class="m-step" type="button" data-nav data-nav-group="season" data-step="-1" aria-label="Next season">▶</button>
       </div>
     </header>
+    <nav class="m-subnav" id="m-subnav" aria-label="Pages in this section" hidden></nav>
     <nav class="m-tabs" id="m-tabs" aria-label="Screen tabs" hidden></nav>
     <main class="m-stage" id="m-stage" tabindex="-1"></main>
     <footer class="m-bottom">
@@ -46,7 +47,7 @@ menuChrome.build = function (root) {
         <div class="m-ticker-run"><div class="m-ticker-track" id="m-ticker-track"></div></div><span class="m-ticker-end">CFB</span></div>
     </footer>
     <div class="m-toast" id="m-toast" role="status" aria-live="polite"></div>`;
-  for (const id of ["banner", "crumb", "title", "season", "season-label", "nav", "tabs", "stage", "prompts", "ticker-track", "toast"]) {
+  for (const id of ["banner", "crumb", "title", "season", "season-label", "nav", "subnav", "tabs", "stage", "prompts", "ticker-track", "toast"]) {
     this.el[id] = root.querySelector(`#m-${id}`);
   }
   window.addEventListener("menu:device", () => this.renderPrompts());
@@ -65,8 +66,8 @@ menuChrome.build = function (root) {
 
 // Draws the header from a description: { title, crumb, team, season }. `team` is a
 // team row with a colour; its banner is the block in the top-left corner.
-menuChrome.setHeader = function ({ title, crumb, team, season, section }) {
-  this.drawNav(section);
+menuChrome.setHeader = function ({ title, crumb, team, season, route }) {
+  this.drawNav(route, team);
   this.el.title.textContent = title;
   this.el.crumb.textContent = crumb || "";
   this.el.season.hidden = season == null;
@@ -77,25 +78,75 @@ menuChrome.setHeader = function ({ title, crumb, team, season, section }) {
   this.el.banner.classList.toggle("has-team", !!team);
 };
 
-// The sections that are always one click away, on every screen: where you are is highlighted. A team-scoped
-// screen belongs to Teams; a player card to Players. More opens the quick menu with everything else.
-const MENU_NAV = [["home", "Home", "#/home"], ["teams", "Teams", "#/team-select"], ["rankings", "Rankings", "#/rankings"],
-  ["standings", "Standings", "#/standings"], ["players", "Players", "#/players"], ["playoff", "Playoff", "#/playoff"],
-  ["recruiting", "Recruiting", "#/recruiting"], ["portal", "Portal", "#/portal"]];
-const MENU_SECTION = { home: "home", "team-select": "teams", team: "teams", roster: "teams", depth: "teams", schedule: "teams", game: "teams",
-  "team-recruiting": "teams", "team-portal": "teams", "team-history": "teams", rankings: "rankings", compare: "rankings", standings: "standings",
-  players: "players", player: "players", playoff: "playoff", recruiting: "recruiting", portal: "portal" };
+// â”€â”€ The seven sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Every screen belongs to one section; the section bar names all seven on every screen, and a second bar under it lists
+// that section's pages (v4.24). A row of the tree is [label, route, test(route)]: the test says which routes the page is.
+//   Home Â· My Team Â· Season Â· Teams Â· Players Â· Recruiting Â· About
+// My Team is the team you follow; Teams is any other team's pages and the picker. A team's pages are the same list in both.
+const MENU_TEAM_PAGES = [["Overview", "", ["team"]], ["Roster", "roster", ["roster"]], ["Depth Chart", "depth", ["depth"]],
+  ["Schedule", "schedule", ["schedule", "game"]], ["Recruiting", "recruiting", ["team-recruiting"]], ["Transfers", "transfers", ["team-portal"]],
+  ["History", "history", ["team-history"]]];
+const MENU_TEAM_ROUTES = new Set(MENU_TEAM_PAGES.flatMap(p => p[2]));
+const MENU_SECTIONS = [
+  { id: "home", label: "Home", to: "#/home", screens: ["home"] },
+  { id: "myteam", label: "My Team", screens: [] },
+  { id: "season", label: "Season", to: "#/rankings", screens: ["rankings", "standings", "season", "playoff", "compare"],
+    pages: [["Rankings", "#/rankings", ["rankings"]], ["Standings", "#/standings", ["standings"]], ["The Season", "#/season", ["season"]],
+            ["Playoff", "#/playoff", ["playoff"]], ["Compare", "#/compare", ["compare"]]] },
+  { id: "teams", label: "Teams", to: "#/team-select", screens: ["team-select"] },
+  { id: "players", label: "Players", to: "#/players", screens: ["players", "player"] },
+  { id: "recruiting", label: "Recruiting", to: "#/recruiting", screens: ["recruiting", "portal"],
+    pages: [["Classes", "#/recruiting", ["recruiting"], r => r.params[0] !== "prospects"], ["Prospects", "#/recruiting/prospects", ["recruiting"], r => r.params[0] === "prospects"],
+            ["Transfer Portal", "#/portal", ["portal"]]] },
+  { id: "about", label: "About", to: "#/guide", screens: ["guide", "methods", "research", "changes"],
+    pages: [["How It Works", "#/guide", ["guide"]], ["Methods", "#/methods", ["methods"]], ["Research", "#/research", ["research"]], ["Build Log", "#/changes", ["changes"]]] },
+];
 
-// Draws the section bar in the header. `section` is the route id of the screen being shown. The team you follow
-// gets its own button after Home.
-menuChrome.drawNav = function (routeId) {
-  const here = MENU_SECTION[routeId] || "more";
-  const mine = MENU.teamId ? `<button class="m-navbtn" type="button" data-nav data-nav-group="nav" data-to="${menuTeamPath(MENU.teamId)}">My Team</button>` : "";
-  this.el.nav.innerHTML = MENU_NAV.map(([id, label, to], i) =>
-    `<button class="m-navbtn${id === here ? " is-here" : ""}" type="button" data-nav data-nav-group="nav" data-to="${to}">${label}</button>${i === 0 ? mine : ""}`).join("")
-    + `<button class="m-navbtn${here === "more" ? " is-here" : ""}" type="button" data-nav data-nav-group="nav" data-nav-more>More</button>`;
+// Which section a route is in, and which team its pages belong to. A team's own screens are My Team when the team is the one
+// followed, else Teams; a game is Teams. `team` is the team the screen is showing (the router's banner team).
+menuChrome.locate = function (route, team) {
+  const id = route.id;
+  const teamScreen = MENU_TEAM_ROUTES.has(id);
+  if (teamScreen) {
+    const teamId = route.teamId || (team && team.id) || MENU.teamId;
+    const mine = id !== "game" && teamId && teamId === MENU.teamId;
+    return { section: mine ? "myteam" : "teams", teamId };
+  }
+  const s = MENU_SECTIONS.find(x => x.screens.includes(id));
+  return { section: s ? s.id : null, teamId: null };
+};
+
+// The pages of a section as { label, to, here }: the section's own list, or for a team's pages the team's seven (and, under
+// Teams, the picker first).
+menuChrome.pagesOf = function (section, route, teamId) {
+  if (section === "myteam" || (section === "teams" && teamId)) {
+    const own = MENU_TEAM_PAGES.map(([label, sub, ids]) => ({ label, to: menuTeamPath(teamId, sub), here: ids.includes(route.id) }));
+    return section === "teams" ? [{ label: "All Teams", to: "#/team-select", here: false }, ...own] : own;
+  }
+  const s = MENU_SECTIONS.find(x => x.id === section);
+  return (s && s.pages ? s.pages : []).map(([label, to, ids, test]) => ({ label, to, here: ids.includes(route.id) && (!test || test(route)) }));
+};
+
+// Draws the section bar and the bar of that section's pages. `route` is the parsed route; `team` the team on the screen.
+// A section that has one page (Players) or none (Home) shows no second bar.
+menuChrome.drawNav = function (route, team) {
+  route = route || { id: "home", params: [] };
+  const { section, teamId } = this.locate(route, team);
+  const bar = MENU_SECTIONS.map(s => {
+    const to = s.id === "myteam" ? (MENU.teamId ? menuTeamPath(MENU.teamId) : "#/team-select") : s.to;
+    const here = s.id === section;
+    return `<button class="m-navbtn${here ? " is-here" : ""}" type="button" data-nav data-nav-group="nav" data-to="${to}"${here ? ' aria-current="page"' : ""}>${s.label}</button>`;
+  }).join("") + `<button class="m-navbtn m-navbtn--menu" type="button" data-nav data-nav-group="nav" data-nav-more aria-label="Open the menu">Menu</button>`;
+  this.el.nav.innerHTML = bar;
   this.el.nav.querySelector("[data-nav-more]").addEventListener("click", () => this.openMenu());
-  this.el.nav.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => menuRouter.go(b.dataset.to)));
+  const pages = section ? this.pagesOf(section, route, teamId) : [];
+  const sub = this.el.subnav;
+  sub.hidden = pages.length < 2;
+  sub.innerHTML = pages.length < 2 ? "" : pages.map(p =>
+    `<button class="m-subbtn${p.here ? " is-here" : ""}" type="button" data-nav data-nav-group="subnav" data-to="${p.to}"${p.here ? ' aria-current="page"' : ""}>${_esc(p.label)}</button>`).join("");
+  for (const el of [this.el.nav, sub]) el.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => menuRouter.go(b.dataset.to)));
+  const here = sub.querySelector(".is-here");              // a narrow screen scrolls the bar: the current page must be in view
+  if (here && sub.scrollWidth > sub.clientWidth) sub.scrollLeft = Math.max(0, here.offsetLeft - 16);
 };
 
 // Draws the tab strip for a screen: { items: [{id,label}], active, go(id) }, or hides
@@ -185,14 +236,16 @@ menuChrome.setMode = function (mode, redraw) {
 // has it, else the projection), each with its record. The text is written twice so the
 // marquee can loop without a gap. A failed load leaves the ticker empty, which is harmless.
 menuChrome.loadTicker = async function () {
+  const season = MENU.season;
+  this.tickerSeason = season;          // the router redraws the ticker when the season it shows is not the season being viewed
   try {
-    const d = await menuTeams(MENU.season);
+    const d = await menuTeams(season);
     const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, 25);
     const one = top.map((t, i) => {
       const s = d.standings[t.id];
       return `<a href="${menuTeamPath(t.id)}">#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</a>`;
     }).join("");
-    this.el["ticker-track"].innerHTML = one + one;
+    if (season === MENU.season) this.el["ticker-track"].innerHTML = one + one;     // a slower, older request must not overwrite a newer one
   } catch (e) { /* no ticker */ }
 };
 
@@ -214,8 +267,9 @@ menuChrome.openMenu = function () {
       <h2 class="m-ovl-title">MENU</h2>
       <div class="m-ovl-cols">
         <div>${teamCol}</div>
-        <div><h3 class="m-ovl-h">LEAGUE</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/compare", "Compare ratings")}${item("#/standings", "Standings")}${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting")}${item("#/portal", "Transfer Portal")}${item("#/team-select", "All Teams")}</div>
-        <div><h3 class="m-ovl-h">NEWS</h3>${item("#/playoff", "Playoff Picture")}${item("#/season", "The Season")}${item("#/research", "Research")}${item("#/guide", "How It Works")}${item("#/methods", "Methods")}${item("#/changes", "Build Log")}</div>
+        <div><h3 class="m-ovl-h">SEASON</h3>${item("#/home", "Home")}${item("#/rankings", "Rankings")}${item("#/standings", "Standings")}${item("#/season", "The Season")}${item("#/playoff", "Playoff Picture")}${item("#/compare", "Compare ratings")}${item("#/team-select", "All Teams")}</div>
+        <div><h3 class="m-ovl-h">PLAYERS · RECRUITING</h3>${item("#/players", "Players & Leaders")}${item("#/recruiting", "Recruiting Classes")}${item("#/recruiting/prospects", "Prospect Board")}${item("#/portal", "Transfer Portal")}</div>
+        <div><h3 class="m-ovl-h">ABOUT</h3>${item("#/guide", "How It Works")}${item("#/methods", "Methods")}${item("#/research", "Research")}${item("#/changes", "Build Log")}</div>
       </div>
       <div class="m-ovl-opts">
           <button class="m-item" type="button" data-nav data-nav-group="ovl" data-act="season"><span class="m-item-label">Change Year</span></button>

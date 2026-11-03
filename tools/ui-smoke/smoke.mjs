@@ -1254,7 +1254,8 @@ check("menu: the menu opens on a home page with no team chosen, and every row on
   await waitCount(page, ".m-hp", 5);
   assert(await page.locator(".m-tile").count() === 0, "a first visit was sent to team select");
   assert(!/dynasty/i.test(await page.locator(".m-crumb, .m-title").allInnerTexts().then(a => a.join(" "))), "the home page still says Dynasty");
-  assert(await page.locator(".m-nav .m-navbtn").count() >= 9, "the section bar is missing");
+  const sections = await page.locator(".m-nav .m-navbtn:not(.m-navbtn--menu)").allInnerTexts();
+  assert(sections.join("|").toUpperCase() === "HOME|MY TEAM|SEASON|TEAMS|PLAYERS|RECRUITING|ABOUT", `the seven sections are not all on the bar: ${sections}`);
   assert(await page.locator(".m-mystrip").count() === 1, "no strip offering to follow a team");
   const rows = page.locator(".m-hp .m-row");
   const n = await rows.count();
@@ -1381,8 +1382,9 @@ check("menu: with a mouse there are no key labels and no arrow or WASD movement;
 check("menu: a section bar is on every screen and highlights where you are; a schedule game opens its matchup screen", async ctx => {
   const page = await openMenu(ctx, "#/rankings");
   await waitCount(page, ".m-row--rank", 5);
-  assert(/RANKINGS/i.test(await page.locator(".m-navbtn.is-here").innerText()), "the section bar does not mark Rankings");
-  await page.locator('.m-navbtn[data-to="#/standings"]').click();
+  assert(/SEASON/i.test(await page.locator(".m-navbtn.is-here").innerText()), "the section bar does not mark Season");
+  assert(/RANKINGS/i.test(await page.locator(".m-subbtn.is-here").innerText()), "the page bar does not mark Rankings");
+  await page.locator('.m-subbtn[data-to="#/standings"]').click();
   await page.waitForFunction(() => location.hash.startsWith("#/standings"), null, { timeout: 10000 });
   await page.evaluate(() => { location.hash = "#/schedule"; });
   await waitCount(page, "button.m-row--sched", 5);
@@ -1393,6 +1395,72 @@ check("menu: a section bar is on every screen and highlights where you are; a sc
   assert(await page.locator(".m-gm-team").count() === 2, "a matchup shows two teams");
   assert(/TEAMS/i.test(await page.locator(".m-navbtn.is-here").innerText()), "a game does not belong to Teams");
   return null;
+});
+
+check("menu: each of the seven sections lists its own pages, and the page you are on is marked", async ctx => {
+  const page = await openMenu(ctx, "#/home");
+  await waitCount(page, ".m-nav .m-navbtn", 8);
+  const here = async () => ({ section: (await page.locator(".m-navbtn.is-here").allInnerTexts()).join(","),
+    pages: (await page.locator(".m-subnav:not([hidden]) .m-subbtn").allInnerTexts()).join("|"),
+    page: (await page.locator(".m-subbtn.is-here").allInnerTexts()).join(",") });
+  const go = async (hash, ready) => { await page.evaluate(h => { location.hash = h; }, hash); await waitCount(page, ready, 1); await page.waitForTimeout(150); };
+  const cases = [
+    ["#/home", ".m-hp", "HOME", "", ""],
+    ["#/standings", ".m-row--stand", "SEASON", "RANKINGS|STANDINGS|THE SEASON|PLAYOFF|COMPARE", "STANDINGS"],
+    ["#/team/68/roster", ".m-row", "MY TEAM", "OVERVIEW|ROSTER|DEPTH CHART|SCHEDULE|RECRUITING|TRANSFERS|HISTORY", "ROSTER"],
+    ["#/team/70/depth", ".m-drow", "TEAMS", "ALL TEAMS|OVERVIEW|ROSTER|DEPTH CHART|SCHEDULE|RECRUITING|TRANSFERS|HISTORY", "DEPTH CHART"],
+    ["#/players", ".m-row--player", "PLAYERS", "", ""],
+    ["#/recruiting/prospects", ".m-row--prospect", "RECRUITING", "CLASSES|PROSPECTS|TRANSFER PORTAL", "PROSPECTS"],
+    ["#/portal", ".m-row--portal", "RECRUITING", "CLASSES|PROSPECTS|TRANSFER PORTAL", "TRANSFER PORTAL"],
+    ["#/methods", ".m-readlist", "ABOUT", "HOW IT WORKS|METHODS|RESEARCH|BUILD LOG", "METHODS"],
+  ];
+  for (const [hash, ready, section, pages, cur] of cases) {
+    await go(hash, ready);
+    const h = await here();
+    assert(h.section.toUpperCase() === section && h.pages.toUpperCase() === pages && h.page.toUpperCase() === cur,
+      `${hash}: section "${h.section}", pages "${h.pages}", page "${h.page}"; wanted ${section} / ${pages} / ${cur}`);
+  }
+  return page;
+});
+
+check("menu: on a touch phone every navigation control is at least 44px, nothing scrolls the page sideways, and the page bar keeps the current page in view", async ctx => {
+  const tctx = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
+  try {
+    await tctx.addInitScript(id => { try { localStorage.setItem("cfb-menu-team", id); } catch (e) {} }, MENU_TEAM_ID);
+    const page = await tctx.newPage();
+    await page.goto(BASE + "menu.html#/team/52/history", { waitUntil: "domcontentloaded" });
+    await waitCount(page, ".m-subbtn", 7);
+    const small = await page.evaluate(() => [...document.querySelectorAll(".m-navbtn, .m-subbtn, .m-step, .m-tab")]
+      .map(e => ({ t: e.textContent.trim(), h: e.getBoundingClientRect().height })).filter(x => x.h < 43.5));
+    assert(!small.length, `controls under 44px: ${small.map(x => `${x.t} ${x.h.toFixed(0)}`).join(", ")}`);
+    assert(await noHorizontalScroll(page), "the page scrolls sideways on a phone");
+    const view = await page.evaluate(() => { const s = document.querySelector(".m-subnav"), b = s.querySelector(".is-here").getBoundingClientRect(), r = s.getBoundingClientRect();
+      return b.left >= r.left - 1 && b.right <= r.right + 1; });
+    assert(view, "the current page (History, the seventh) is scrolled out of view in the page bar");
+    const rows = await page.evaluate(() => document.querySelector(".m-ticker") ? getComputedStyle(document.querySelector(".m-ticker")).display : "none");
+    assert(rows === "none", "the ticker still takes room on a phone");
+  } finally { await tctx.close(); }
+  return null;
+});
+
+check("menu: stepping to an earlier season from a live rankings address does not break Rankings, and the ticker follows the season", async ctx => {
+  const page = await openMenu(ctx, "#/rankings/live/top/blend/w7");
+  await waitCount(page, "button.m-row--rank", 5);
+  const now = (await page.locator(".m-ticker-track").first().innerText()).slice(0, 60);
+  await page.evaluate(() => { menuRouter.stepSeason(1); });
+  await page.waitForFunction(() => /2025/.test(document.querySelector("#m-season-label")?.textContent || ""), null, { timeout: 15000 });
+  await waitCount(page, "button.m-row--rank", 20);
+  assert(!(await page.locator(".m-error-text").count()), "Rankings failed on a finished season reached from a live address");
+  assert(!/by week|to date/i.test(await page.locator(".m-tab.is-active").innerText()), `the active list is ${await page.locator(".m-tab.is-active").innerText()}`);
+  await page.waitForFunction(prev => (document.querySelector(".m-ticker-track")?.textContent || "").slice(0, 60) !== prev, now, { timeout: 15000 });
+  // and a season with no weekly file, from the same stale address
+  await openMenu(ctx, "#/rankings/live/top/blend/w7");
+  const old = await ctx.newPage();
+  await old.addInitScript(() => { try { localStorage.setItem("cfb-menu-season", "2018"); } catch (e) {} });
+  await old.goto(BASE + "menu.html#/rankings/live/top/blend/w7", { waitUntil: "domcontentloaded" });
+  await waitCount(old, "button.m-row--rank", 20);
+  assert(!(await old.locator(".m-error-text").count()), "Rankings failed on 2018 from a live address");
+  return page;
 });
 
 check("menu: the depth chart lists a deep bench, not three or four players a position", async ctx => {

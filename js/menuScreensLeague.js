@@ -175,8 +175,13 @@ menuRouter.register("rankings", {
     const d = await menuTeams(MENU.season);
     ctx.d = d; ctx.team = menuMyTeam(d);
     ctx.weekly = await fetchWeeklyTeams(MENU.season);     // null for a season with no weekly file
-    ctx.list = ctx.params[0] || (d.live ? "live" : "pre");
-    if (ctx.list === "weeks" && (!ctx.weekly || d.live)) ctx.list = d.live ? "live" : "pre";
+    // The address names a list (#/rankings/live/...), and it survives a change of season: stepping from 2026 to 2024 keeps "live",
+    // which a finished season does not have. A list the season does not offer falls back to its default instead of failing.
+    const fallback = d.live ? "live" : "pre";
+    ctx.list = ctx.params[0] || fallback;
+    if (!["live", "pre", "weeks", "polls"].includes(ctx.list)) ctx.list = fallback;
+    if (ctx.list === "live" && !d.live) ctx.list = "pre";
+    if (ctx.list === "weeks" && (!ctx.weekly || d.live)) ctx.list = fallback;
     ctx.view = ctx.params[1] === "all" ? "all" : "top";
     if (ctx.list === "polls") {
       return `<section class="m-panel"><p class="m-empty">Polls (AP, Coaches, CFP) are not shown: no poll data is on disk, and fetching it

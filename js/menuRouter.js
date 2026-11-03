@@ -146,8 +146,9 @@ menuRouter.render = async function () {
     crumb: safe(() => (typeof def.crumb === "function" ? def.crumb(ctx) : def.crumb), ""),
     team: def.banner === false ? null : team || ctx.bannerTeam || null,
     season: def.season === false ? null : MENU.season,
-    section: route.id,
+    route,
   });
+  if (menuChrome.tickerSeason !== MENU.season) menuChrome.loadTicker();      // the ticker is the top 25 of the season being viewed
   const tabs = safe(() => (def.tabs ? def.tabs(ctx) : null), null);
   this.tabs = tabs;
   menuChrome.setTabs(tabs);

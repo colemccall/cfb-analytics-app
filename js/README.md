@@ -16,7 +16,7 @@ The data these files read comes from `../data/`, written by the pipeline (see
 | 3 | `ui.js` | Shared render helpers: rating pills (`ovrPill`, `livePill`), `emptyState` / `errorState` / skeletons, `trendChart`, team marks. Pill text colour comes from the luminance guard, never a fixed value. |
 | 4 | `leagueData.js`, `dataTable.js` | League rules (records, standings) and the one sortable/filterable table. |
 | 5 | `methods.js` + `methodsPage.js`, `changes.js` + `changesPage.js`, `guide.js` + `guidePage.js`, `findings.js` + `findingPage.js` | **The registries** and their renderers: how a number is computed (METHODS), what happened in a working session (CHANGES), How It Works (GUIDE), research claims (FINDINGS). Adding an entry is content, never page code. |
-| 6 | `menuInput.js`, `menuFocus.js`, `menuChrome.js`, `menuBackdrop.js`, `menuRouter.js` | The menu's frame: mouse / keyboard / gamepad input, selection, header and tabs, the backdrop slideshow, hash routes (`#/team/52/roster`). |
+| 6 | `menuInput.js`, `menuFocus.js`, `menuChrome.js`, `menuBackdrop.js`, `menuRouter.js` | The menu's frame: mouse / keyboard / gamepad input, selection, header, the section bar and the bar of that section's pages (the `MENU_SECTIONS` table in `menuChrome.js`: every screen is in exactly one of the seven sections, so a new screen is a row there), tabs, the backdrop slideshow, hash routes (`#/team/52/roster`). |
 | 7 | `menuScreens.js`, `menuCard.js`, `menuWeekly.js`, `menuScreensTeam.js`, `menuScreensLeague.js`, `menuScreensClass.js`, `menuScreensPages.js`, `menuGame.js`, `menuHome.js` | The screens. Each calls `menuRouter.register(id, { … })`. |
 
 ## Classic pages only

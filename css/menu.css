@@ -100,7 +100,7 @@
 
 
   position: fixed; inset: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   color: var(--m-text); font-family: var(--font-ui);
   background:
     radial-gradient(110% 60% at 50% -8%, color-mix(in srgb, var(--m-sky) 62%, transparent) 0%, transparent 68%),
@@ -192,6 +192,21 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
   box-shadow: inset 0 1px 0 var(--m-white), 0 2px 5px var(--m-shadow);
 }
 .m-navbtn.is-here { color: var(--m-white); background: linear-gradient(var(--m-hot-hi), var(--m-hot) 60%, var(--m-hot-lo)); border-color: var(--m-hot-edge); box-shadow: 0 0 0 1px var(--m-rim); }
+.m-navbtn--menu { margin-left: auto; background: linear-gradient(var(--m-bar-hi), var(--m-bar-mid)); color: var(--m-bar-ink); border-color: var(--m-black); box-shadow: none; }
+
+/* ── The pages of the current section: the second bar (v4.24). An underline marks the page you are on. ── */
+.m-subnav {
+  display: flex; align-items: stretch; gap: 0.2rem; padding: 0.3rem 2rem 0; overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--m-line);
+}
+.m-subnav[hidden] { display: none; }
+.m-subbtn {
+  flex: none; padding: 0.5rem 1.1rem 0.4rem; background: transparent; border: 0; border-bottom: 4px solid transparent; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); letter-spacing: 0.1em; text-transform: uppercase; color: var(--m-muted);
+}
+.m-subbtn:hover { color: var(--m-text); }
+.m-subbtn.is-here { color: var(--m-text); border-bottom-color: var(--m-hot); }
+.m-subbtn.is-selected { color: var(--m-white); background: linear-gradient(var(--m-bar-hi), var(--m-black)); border-bottom-color: var(--m-hot); box-shadow: 0 0 14px var(--m-hot-glow); }
 .m-navbtn.is-selected { color: var(--m-white); background: linear-gradient(var(--m-bar-hi), var(--m-black)); border-color: var(--m-black); box-shadow: 0 0 0 1px var(--m-rim), 0 0 14px var(--m-hot-glow); }
 
 /* ── Tab strip: dark slanted tabs, the active one red, bumper markers at the ends ── */
@@ -202,9 +217,10 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
 .m-tabs[hidden] { display: none; }
 /* Explicit rows: a hidden tab strip must not let the stage and bottom bar slide up a row. */
 .m-header { grid-row: 1; }
-.m-tabs { grid-row: 2; }
-.m-stage { grid-row: 3; }
-.m-bottom { grid-row: 4; }
+.m-subnav { grid-row: 2; }
+.m-tabs { grid-row: 3; }
+.m-stage { grid-row: 4; }
+.m-bottom { grid-row: 5; }
 .m-tab {
   padding: 0.5rem 1.5rem; border: 0; white-space: nowrap;
   font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md);
@@ -566,7 +582,7 @@ img.m-banner-mark, img.m-preview-mark { background: var(--m-bar-ink); border-rad
 .m-overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--m-shade-62); }
 .m-ovl-panel { width: min(1000px, calc(100% - 2rem)); max-height: calc(100% - 2rem); overflow: auto; border: 2px solid var(--m-panel-edge); }
 .m-ovl-title { margin: 0 0 0.6rem; font-family: var(--font-display); font-weight: 900; font-size: 2rem; letter-spacing: 0.08em; }
-.m-ovl-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.m-ovl-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
 .m-ovl-h { margin: 0 0 0.4rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: var(--fs-label); color: var(--m-muted); }
 .m-ovl-cols .m-item { margin-bottom: 0.4rem; font-size: 1.1rem; padding-top: 0.45rem; padding-bottom: 0.45rem; }
 
@@ -685,7 +701,7 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 
 /* ── Backdrop slideshow: photos behind the home page and a team's screens ─────────────── */
 .m-backdrop { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.m-header, .m-tabs, .m-stage, .m-bottom { position: relative; z-index: 1; }
+.m-header, .m-subnav, .m-tabs, .m-stage, .m-bottom { position: relative; z-index: 1; }
 .m-bd-img { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.04); transition: opacity 1.6s ease; }
 .m-bd-img.is-on { opacity: 1; animation: m-kenburns 14s ease-out forwards; }
 @keyframes m-kenburns { from { transform: scale(1.04); } to { transform: scale(1.12) translateX(-1.2%); } }
@@ -773,8 +789,12 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 
 /* ── Narrow screens (kept at the end of the file) ────────────────────────── */
 @media (max-width: 900px) {
-  .m-header { padding: 0.7rem 1rem 0.3rem; grid-template-columns: auto minmax(0, 1fr); }
-  .m-season { grid-column: 1 / -1; justify-self: start; }
+  .m-header { padding: 0.5rem 1rem 0.2rem; grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem 0.7rem; }
+  .m-season { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
+  .m-banner { grid-column: 1; grid-row: 2; width: 64px; height: 46px; }
+  .m-titles { grid-column: 2; grid-row: 2; padding: 0.2rem 1rem 0.3rem; }
+  .m-title { font-size: 1.7rem; }
+  .m-ticker { display: none; }
   .m-tabs, .m-stage { padding-left: 1rem; padding-right: 1rem; }
   .m-prompts { padding: 0.5rem 1rem 0.5rem 4.6rem; }
   .m-ticker-tag { padding-left: 4.6rem; }
@@ -789,7 +809,10 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
   .m-ovl-opts { grid-template-columns: 1fr; }
   .m-ovl-cols { grid-template-columns: 1fr; }
   .m-home-grid { grid-template-columns: 1fr; }
-  .m-nav { grid-column: 1 / -1; grid-row: auto; flex-wrap: nowrap; overflow-x: auto; }
+  .m-nav { grid-column: 1 / -1; grid-row: 3; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .m-navbtn { flex: none; }
+  .m-navbtn--menu { margin-left: 0; }
+  .m-subnav { padding-left: 1rem; padding-right: 1rem; }
   .m-sband { flex-wrap: wrap; }
   .m-rhead--card { grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem 1rem; padding: 0.8rem; }
   .m-rhead--card .m-photo { width: 88px; height: 108px; grid-row: span 2; }
@@ -818,4 +841,19 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 
 /* ── Media rules — kept at the end of the file: a media rule placed before a desktop rule of equal
    specificity silently loses to it (see css/README.md). Moved here in v4.24. ───────────────────── */
+/* A touch screen: every control that navigates is at least 44px tall (the size a fingertip can hit), and the season stepper too. */
+@media (pointer: coarse) {
+  .m-navbtn, .m-subbtn, .m-tab, .m-prompt:not(.is-static), .m-chip, .m-retry { min-height: 44px; }
+  .m-navbtn, .m-subbtn { display: inline-flex; align-items: center; justify-content: center; }
+  .m-step { width: 44px; height: 44px; }
+  .m-season-label { min-width: 8rem; }
+  .m-ovl-cols .m-item { min-height: 44px; }
+}
+/* A phone that is touched: Year and Menu are already on screen (the season stepper, the Menu button), so the button bar keeps
+   Back and what the screen itself offers (light and dark is in the Menu), in one row instead of three. */
+@media (pointer: coarse) and (max-width: 900px) {
+  .m-prompt[data-prompt="season"], .m-prompt[data-prompt="home"], .m-prompt[data-prompt="mode"] { display: none; }
+  .m-prompts { gap: 0.4rem; padding-top: 0.3rem; padding-bottom: 0.3rem; }
+}
+@media (min-width: 901px) and (max-width: 1100px) { .m-ovl-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .m-bd-img { transition: none; } .m-bd-img.is-on { animation: none; } }
