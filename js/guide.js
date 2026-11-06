@@ -59,10 +59,12 @@ const GUIDE = [
       That is what lets a number on one page be compared with a number on any other.
 
       Three things to know before reading anything else:
-      **${CONFIG.CURRENT_SEASON} has not been played**, so every ${CONFIG.CURRENT_SEASON} number
-      is a projection and says so; **offensive linemen carry no individual rating**, because
+      **${CONFIG.CURRENT_SEASON} is being played**, so a ${CONFIG.CURRENT_SEASON} player carries three
+      numbers that are never merged (last season's, the preseason projection, and what he has earned so
+      far), each labelled; **offensive linemen carry no individual rating**, because
       no individual blocking data exists anywhere; and **every number links to how it was made** —
-      the Methods page — including what it cannot support.`,
+      the Methods page — including what it cannot support. The whole system on one page, with who set
+      each part and what is still wrong, is the Methods entry **The ratings spec**.`,
     live: async () => {
       const m = await _load("manifest.json");
       if (!m) return "";
@@ -70,7 +72,7 @@ const GUIDE = [
         Earned ratings run through <strong>${_esc(m.last_played_season)}</strong>;
         ${(m.projected_seasons || []).map(_esc).join(", ")} ${m.projected_seasons?.length === 1 ? "is" : "are"} projected.`;
     },
-    methods: ["edge-core"],
+    methods: ["system-spec", "edge-core"],
     limits: `Box scores are the only per-player signal college football publishes, so everything a
       box score cannot see — blocking, route running, coverage that produced no statistic, gap
       discipline — is invisible or estimated. The Methods page says which, position by position.`,
@@ -476,17 +478,20 @@ const GUIDE = [
       coverage is credited from what his defence allowed through the air, because a covered receiver
       produces no statistic.
 
-      **Team ratings** blend schedule-adjusted results (SP+) with our own ratings of the roster
-      and the team's per-game statistics; an unplayed season has only the roster, and the blend
-      renormalises rather than counting the missing signals as zero.
+      **Team ratings** blend three readings of our own: the roster, the team's per-game statistics
+      adjusted for the schedule it faced, and its results (points scored and allowed against the
+      opponents it played). SP+ is shown beside them as a reference and goes into none of them. Teams
+      are ranked by power, which credits what a team has done; while a season is being played it is
+      the games alone.
 
       **Projections** follow a player's career curve and what players like him did next, with an
       opportunity model for offensive skill players (who is ahead of him on the depth chart, and
       whether they are leaving).
 
       The weights, anchors, thresholds and their measured accuracy are on the Methods page and nowhere
-      else, so there is one version of each.`,
-    methods: ["edge-core", "defense", "secondary", "specialists", "rating-basis", "team-ratings", "projection", "reliability"],
+      else, so there is one version of each. The whole system on one page (what sets every number, who
+      set it, what has been measured and what is still wrong) is the Methods entry **The ratings spec**.`,
+    methods: ["system-spec", "edge-core", "defense", "secondary", "specialists", "rating-basis", "team-ratings", "projection", "reliability"],
     limits: `No individual data exists for offensive linemen, targets allowed, coverage snaps or
       missed tackles, and individual defensive statistics before 2016 are largely absent — so those
       ratings lean on recruiting. The Methods entries give the size of each gap.`,

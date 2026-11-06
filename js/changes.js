@@ -33,6 +33,117 @@
 
 const CHANGES = [
   {
+    id: "v4.25.1-spec-markers-and-log-audit",
+    version: "v4.25.1",
+    date: "2026-11-06",
+    title: "The ratings spec, a Build Log audit, the pre-playoff marker test, and two replay defects the test found",
+    summary: `The owner asked for detailed specs of what these sessions completed, everything recorded in the Build Log, and the outstanding issues, then questions. Two standing intents framed it: build our own ratings rather than match anyone else's, and treat the 2024 and 2025 seasons and playoffs as the best markers of football now. This pass wrote the spec (docs/RATINGS_SPEC.md, carried on the site as the Methods entry system-spec), audited the four registries with a script that now runs as a check, and built the pre-playoff marker test. The test asks what each reading said the day the 12-team field was picked, and scores it against the field, the 22 playoff games and the bowls, beside the record, last season, the committee's seed and the closing spread.
+      The test found its own data wrong before it found anything else. Its first results were too good: the headline picked 21 of the 22 playoff games, the closing spread 16. The 2024 and 2025 week-by-week replays it reads had let each season's postseason into every week, because postseason games are numbered weeks 1 to 5 again and the replay blanked later games by week number. A placebo that scrambles the postseason proved it, the builder was fixed and both seasons were rebuilt. A second defect showed in the rebuilt files: 2025's snapshots were treated as a played season, because four lower-division games are stored as week 1 with December dates. That is fixed in the season-in-progress test, which now counts FBS games only. No production rating changed. On the clean replays the headline picks 17 of the 22 playoff games, as many as last season's rating and one more than the closing spread; a plain top 12 holds 7 or 8 of the committee's twelve and the format's own rule 8 to 10, against 11 for the record. Two seasons cannot rank the readings, and the spec says so.`,
+    motivation: `The owner: "draft detailed specs explaining what has been completed in these sessions, all updates pushed to the log, and any outstanding issues; then ask me any questions." Answers before the plan: the markers are pre-playoff ratings only; whether the postseason should count in a rating is to be examined, with evidence and no change; the 2026 disagreement is about individual players and about how the rating and the ranking differ; "the log" is the site's Build Log.`,
+    did: [
+      { what: "The ratings spec (cfb-analytics-pipeline/docs/RATINGS_SPEC.md; Methods entry system-spec; pointers from How It Works)",
+        why: `One document for the whole system, in thirteen parts:
+          - principles;
+          - the two repositories and the data path;
+          - player ratings and ratings for a season in progress;
+          - team ratings, and how the rating and the ranking differ;
+          - projections and the app;
+          - every validation with its number;
+          - the marker test and the postseason question;
+          - a change index for v4.16 to v4.25.1;
+          - the outstanding issues and the player cases, as before and after;
+          - a decisions log saying who set what;
+          - the constants and the validator commands;
+          - the three questions for the owner.
+          Every number in it is copied from a validator's output or a Build Log entry. The constants table is generated from the code (scripts/spec_constants.py reads the live modules) and tests/test_ratings_spec.py fails when the two differ: a hand-typed table is how the Methods entry opponent-strength came to give the cross-conference weight as 1.0 while the code had 1.5. The site carries the same content as the Methods entry system-spec (group "How much of a rating is signal"); How It Works links it from "What this site measures" and from "The short version".`,
+        cost: "Prose drifts and only the constants table is guarded; the spec's player cases and team ranks are 2026 through week 9 and will age." },
+      { what: "The Build Log audit, now a check (cfb-analytics-app/tools/registry-check.mjs)",
+        why: `A read-only script loads CHANGES, METHODS, GUIDE and FINDINGS and checks each entry's contract. Failures: unique ids, ISO dates, CHANGES tried and unfixed present, the did / measured / gates shapes, every methods id exists, METHODS limits present, groups exist, GUIDE limits present, FINDINGS page files exist, and CONFIG.VERSION equals the newest Build Log version. Warnings: verdicts outside the chip vocabulary, evidence with no number, and unbreakable words that overflow a phone.
+          What it and the read-through found:
+          - two entries (v4.17, v4.19) linked a Methods id that does not exist ("player-rating", now "edge-core");
+          - How It Works said team ratings blend SP+ (not true since v4.11) and that 2026 has not been played (it has been live since v4.8);
+          - the weekly-progression entry said 2024 and 2025 were not rebuilt by week and listed that backfill as an experiment (v4.24 built it);
+          - the projection entry quotes MAE 8.22 against 9.10 where the file now says 8.11 against 9.02, which is listed and not fixed.
+          The 36 warnings are reported and left alone: 21 are verdicts or statuses outside the chip vocabulary ("dropped", "replaced", "shipped (v4.24)"; 13 in the Build Log, 8 in Methods) and 15 are evidence rows that carry no number (14 in Methods, 1 in the Build Log), in entries that are history as written.`,
+        cost: "It checks shape, not truth: an entry can hold its contract and still be wrong, as the projection entry is." },
+      { what: "The pre-playoff marker test (scripts/validate_playoff_markers.py; docs/PLAYOFF_MARKERS_2024_2025.md; tests/test_playoff_markers.py)",
+        why: `For 2024 and 2025 it reads the replay's week-15 snapshot: the conference championships are week 15 and the committee picks the next day, so this is what the committee could know. It scores five readings (headline, power, results, roster, stats) against three things: the field (how many of the 12 are in the reading's top 12, the champion's rank, the order), every playoff game (did the higher-rated team win), and the bowls (the same, plus the margin against the closing spread on neutral sites). Beside them are baselines that use no rating of ours (the record so far, last season's rating, the committee's seed, the closing spread) and a placebo that deals the ratings to the wrong teams: exact for selection (hypergeometric), 5,000 permutations for games. Every miss is listed beside the hits. Eleven unit tests check the scoring on made-up leagues; eight data tests check that the files are what the report assumes (twelve teams and one champion a season, eleven playoff games, a week-15 row for every selected team, the spread's sign).`,
+        cost: "Two seasons: 24 selected teams and 22 playoff games. The intervals are wide and a two-game difference between readings means nothing. It is reported, not a gate." },
+      { what: "The postseason taken out of every replay week (scripts/17b_weekly_progression.py; scripts/validate_snapshot_invariance.py check (c))",
+        why: `Postseason games are numbered weeks 1 to 5 again. The builder blanked later games by week number, so a finished season's bowl and playoff scores stayed in every snapshot, and script 10 solves the results reading and the schedule map from every scored game it is given. Check (c) scrambles a finished season's postseason scores and asks whether any team reading of a week moves. Before the fix, at 2025 week 5 it moved the headline of 136 of 136 teams (largest 6.10 points), power 132, stats 136 (2.77) and results 135 (9.16); at week 15 the headline moved for 135 (4.22) and results for 136 (6.31): Miami 90.72 to 84.75, Mississippi State 80.87 to 86.97.
+          Now a snapshot blanks every game whose type is not regular, as well as every game after week N. A finished season (one with a scored postseason game) never reads its season totals, which include the postseason, and the game shown for a team's week is a regular-season game. Check (c) now moves 0 of 136 at 2025 weeks 5 and 15 , and 0 of 134 at 2024 weeks 5 and 15.`,
+        cost: "The replays change (see measured). Check (c) covers the postseason channel only; a channel no check scrambles would not be caught." },
+      { what: "A 2025 snapshot that looked finished (scripts/10_compute_team_ratings.py season_in_progress; IN_PROGRESS_MIN_FBS)",
+        why: `Four 2025 games between two lower-division teams are stored as regular-season week 1 and dated 2025-12-13. A week-N snapshot never blanks a week-1 score, so the last scored game always looked like the season's last, and every 2025 snapshot was treated as a played season: power carried its rating part (0.98 x the play rating's distance from the mean) and the part-season shrink was off. 2024 had neither. Measured in the replay before the fix: power correlated 0.85 to 0.89 with the headline at 2025 weeks 1 to 5, holding the record fixed, against 0.36 to 0.63 in 2024.
+          season_in_progress now counts only games with an FBS team, with a minimum of 5 games still to come (a postponed finale or two is fewer; a conference-championship week holds 10 to 12). Verdicts: every finished season from 2008 to 2025 is unchanged (0 such games); 2026 is in progress at every week either way; 2024's replay keeps the verdict it had at every week; 2025 weeks 1 to 14 change from played to in progress, matching 2024; week 15, the marker snapshot, reads as played in both seasons under either rule.`,
+        cost: "A change to a team-rating script in a pass whose plan said no scoring changes. It changes no production rating, only the replays; it is recorded here because it was not in the plan." },
+      { what: "2024 and 2025 replayed again, offline (weekly_{teams,players}_{2024,2025}.json in both repositories)",
+        why: `Each snapshot reran scripts 06, 07 and 10 in a private copy with a dead proxy: 0 requests. The previous files are kept in _snapshots/v4.25-pre-replay-fix/. Team readings moved at every week of both seasons, most at week 1: the 2025 headline by a mean of 2.31 points at week 1 (largest 13.20) and 0.45 at week 15; 2025 power by 4.33 at week 1 as its rating part came off; the 2024 headline by 1.63 at week 1 and 0.62 at week 15; 2024 power only at week 15 (mean 0.13). Player ratings moved only at week 15 (3,795 of 7,655 in 2024 and 3,773 of 7,917 in 2025, mean 0.23 and 0.22 points, mean signed -0.01), where the old snapshot had read the season totals, which include the postseason. 2024 rebuilt with both fixes is identical field for field to 2024 rebuilt with the first (0 of 35,971 fields differ), so the second fix touched 2025 only, as its verdict table said it would.`,
+        cost: "Every Rankings-by-week page and team progression for 2024 and 2025 shows different numbers from v4.24's. Week 16 is still not replayed." },
+      { what: "Registry and mirror corrections",
+        why: `Methods weekly-progression gained the v4.25.1 reality, re-measured replay evidence, a corrected limits section, a "shipped" status for the 2024-2025 backfill and the v4.24 and v4.25.1 changelog lines it lacked. Methods data-flow gained the second leak. The mirrors changed with them: FORMULAS.md (what a snapshot holds), ALTERNATIVES.md (the options rejected here), DATA_FLOW.md (check (c)), the scripts, tests and docs READMEs, and ROADMAP.md.`,
+        cost: "None beyond the edits." },
+    ],
+    tried: [
+      { what: "Score the markers on the replays as they stood",
+        result: "Headline 21 of 22 playoff games, results 21, stats 18, power 15, against 16 for the closing spread and 9 for the committee's seed. A rating built from box scores beating the betting market by five games in 22 was not believable, and it was not: the postseason was inside the readings.",
+        verdict: "rejected" },
+      { what: "Count only FBS games in season_in_progress but keep its minimum of 20",
+        result: "A conference-championship week has 10 to 12 FBS games left, so it would read as a played season: 2024's week 14 would change verdict, and a live season would switch to the finished-season method a week early. The minimum is 5.",
+        verdict: "rejected" },
+      { what: "Special-case 2025, or relabel the four games in games.json",
+        result: "A special case needs another one for the next mislabelled game; games.json is a gitignored raw file the next harvest would rewrite. One rule for every season instead; the rows stay mislabelled and are listed.",
+        verdict: "rejected" },
+      { what: "Snapshot after week 14 for the marker test",
+        result: "The committee picked after the conference championships (week 15); a week-14 snapshot would hide games it saw. Week 16 (Army-Navy) comes after the pick and is excluded.",
+        verdict: "rejected" },
+      { what: "Rewrite old entries' free-text verdicts into chip statuses",
+        result: "They are history as written; the check reports them as warnings and the reader shows them as plain chips.",
+        verdict: "rejected" },
+      { what: "Make the marker test a gate",
+        result: "The owner's decision (question 3 in the spec). A gate is never added in the release whose output it first judges.",
+        verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Check (c): teams whose reading moved when the 2025 postseason was scrambled", before: "week 5: headline 136 of 136 (largest 6.10 points), power 132, stats 136, results 135 (9.16); week 15: headline 135 (4.22), results 136 (6.31)", after: "0 of 136 at weeks 5 and 15; 2024: 0 of 134 at weeks 5 and 15" },
+      { label: "2025 power against the headline, holding the record fixed (partial correlation, weeks 1 / 5 / 10)", before: "0.85 / 0.89 / 0.94: the rating part was on in every week", after: "0.35 / 0.80 / 0.89, ranked on games alone like 2024 (0.37 / 0.65 / 0.84)" },
+      { label: "Replay team readings, old file to rebuilt, mean move at week 1 / week 15", before: "-", after: "2024 headline 1.63 / 0.62, results 2.42 / 0.79, stats 1.27 / 0.69, power 0 / 0.13; 2025 headline 2.31 / 0.45, results 2.52 / 0.59, stats 8.98 / 0.52, power 4.33 / 0.09" },
+      { label: "Replay player ratings, old file to rebuilt", before: "-", after: "weeks 1-14: 0 moved in either season; week 15: 3,795 of 7,655 (2024) and 3,773 of 7,917 (2025), mean 0.23 / 0.22, largest 40.6 (Joshua Eaton 2024: his season totals hold 24 tackles and the per-game file one game of 3, so the totals rated him on production and his one game puts him on the low-game rule) / 8.0" },
+      { label: "Team-weeks showing a bowl or playoff game as their week-1 game", before: "46 (2024), 82 (2025)", after: "0" },
+      { label: "Pre-playoff markers: playoff games picked (of 22)", before: "on the leaky replays: headline 21, results 21, stats 18, power 15, roster 12 of 21", after: "headline 17 (P = 0.013), results 16, power 15, stats 15, roster 13; baselines last season 17, closing spread 16, committee seed 9, record 7 of 18" },
+      { label: "Pre-playoff markers: the committee's 12 held, 2024 / 2025", before: "leaky: headline, power, results, stats 8 / 8; roster 4 / 9", after: "top 12: headline 8 / 8, power 8 / 8, results 7 / 8, stats 7 / 8, roster 4 / 8 (record 11 / 11 on a 15- and 16-team top 12); under the format: headline 10 / 8, power 9 / 9, results 10 / 8, stats 10 / 8, roster 7 / 8" },
+      { label: "Pre-playoff markers: bowls picked", before: "leaky: headline 45 of 70, results 46 of 69", after: "stats 43 of 70, headline 39, power 38, results 38 of 69, roster 28 of 68; closing spread 43, record 30 of 55" },
+      { label: "The postseason question: next-season winners from season strengths at postseason weight 0 / 0.5 / 1 / 2 (2016-2025, seven pairs)", before: "-", after: "0.669 / 0.670 / 0.671 / 0.674; margin MAE 14.17 / 14.14 / 14.13 / 14.14" },
+      { label: "The postseason question: how much the postseason moves a finished season's strengths, 2024 / 2025", before: "-", after: "mean 0.98 / 0.76 points a game; 37 / 22 teams move five or more places; Ohio State 6th to 1st in 2024" },
+      { label: "Registry audit (tools/registry-check.mjs)", before: "no check; two links to a Methods id that does not exist; three stale statements on the site", after: "0 failures and 36 warnings over 29 Build Log entries, 33 Methods, 16 How It Works and 9 findings" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "615 passed, 1 failed: the recruiting-basis contract test (4.7% against a 5% floor), which failed before this release and is unchanged. New here: tests/test_playoff_markers.py (23: 13 on made-up leagues, 10 on the data, including that every automatic bid won a title game), tests/test_ratings_spec.py (4) and two season_in_progress tests in test_schedule_adjust.py" },
+      { check: "validate_snapshot_invariance.py --season 2025 --postseason-weeks 5 15, on the final code", result: "(a) weeks 3, 6 and 9: 0 rows not cut at their week, 0 wrong game counts; (b) week 3: 0 of 6,241 earned ratings moved with later stats scrambled or advanced stats dealt to other teams; (c) weeks 5 and 15: 0 of 136 teams moved. 2024, check (c): 0 of 134 at weeks 5 and 15" },
+      { check: "validate_ratings.py --season 2025", result: "11,321 rated; every 85+ and 90+ count identical to the spec's table (QB 40 / 6 to DB 67 / 22): no production rating moved" },
+      { check: "The rebuild itself (17b, 2024 then 2025, --through-week 15)", result: "0 requests through the dead proxy; 2024 identical field for field to the first-fix build (0 of 35,971 fields); the app's four files byte-identical to data/computed" },
+      { check: "validate_opponent_strength.py (re-run for the postseason question)", result: "part B reproduced: 0.669 / 0.670 / 0.671 / 0.674; part A: shipped settings 0.703, best 0.709 (no conference level, cross weight 1.0), not adopted" },
+      { check: "node --check js/*.js; tools/doc-check, prose-check, theme-check, contrast-check, registry-check", result: "29 files, 0 failures; 125 of 125 functions documented; prose renders clean; 0 colour literals outside token blocks; every contrast floor green; registries 0 failures and 36 warnings, all of them older than this entry" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "76 of 78 in the full run. The two failures were the machine, not the pages: a page load refused with net::ERR_NETWORK_IO_SUSPENDED, and the recruiting check timing out after 362 seconds. Re-run alone, both pass (12.9 s and 1.1 s). The weekly panels, Rankings by week and the readers that show these registries pass" },
+    ],
+    unfixed: `**The marker test is two seasons.** 24 selected teams and 22 playoff games cannot tell the readings apart; it becomes a stronger test by one season a year. Whether it becomes a gate, and under what rule, is the owner's question 3; nothing here is a gate.
+      **The owner's three questions are open** (which player ratings look wrong, which ranking to show first, the gate), and so is the postseason question itself: the evidence is in the spec, §8.4, and no setting changed.
+      **The Methods entry projection still quotes MAE 8.22 against 9.10** where trajectory.json says 8.11 against 9.02 (offense) and 8.49 against 9.63 (defense). Listed in the spec, not edited.
+      **The four mislabelled 2025 games are still in games.json** (lower-division games stored as regular-season week 1, dated in December); the season-in-progress test no longer reads them, the rows are unchanged. **Week 16 is not replayed** (Army-Navy; the team box-score fetch stops at week 15).
+      **Some players' season totals hold games their per-game rows lack:** of defenders with 10 or more season tackles, 26 in 2024 (1.0%) and 5 in 2025 (0.2%) have under half of them in per-game rows. A snapshot reads only the per-game rows, so they rate lower there. Found through the largest replay move (Joshua Eaton); not traced to a cause.
+      **A replay's week 15 is not the published season rating.** The replay rates players as a season in progress at every week, through the part-season curve, so its last week sits 1.3 to 4.5 points above the published rating by family on average (report_replay.py section 0). Unchanged; it is the machinery, not an identity.
+      **Carried over, unchanged:** the DL/EDGE in-season ceiling (v4.25); the recruiting-basis contract test (4.7% against a 5% floor, failing by design); a measured better cross-conference weight and conference level not adopted (0.709 against 0.703); missing values that still become defaults (v4.24 audit S5); the inoperative pre-2016 defensive rating; the 36 registry warnings.
+      **Not re-run, because no player rating changed:** validate_vs_draft.py and validate_reliability.py; the production team ratings were not recomputed, because season_in_progress gives the same verdict for every finished season.`,
+    methods: ["system-spec", "weekly-progression", "data-flow", "opponent-strength", "power-rating", "team-ratings"],
+    files: ["cfb-analytics-pipeline/docs/RATINGS_SPEC.md", "cfb-analytics-pipeline/docs/PLAYOFF_MARKERS_2024_2025.md", "cfb-analytics-pipeline/scripts/validate_playoff_markers.py",
+            "cfb-analytics-pipeline/scripts/spec_constants.py", "cfb-analytics-pipeline/scripts/17b_weekly_progression.py", "cfb-analytics-pipeline/scripts/10_compute_team_ratings.py",
+            "cfb-analytics-pipeline: scripts/validate_snapshot_invariance.py", "cfb-analytics-pipeline/tests/test_playoff_markers.py", "cfb-analytics-pipeline/tests/test_ratings_spec.py",
+            "cfb-analytics-pipeline/tests/test_schedule_adjust.py", "cfb-analytics-pipeline/docs/FORMULAS.md", "cfb-analytics-pipeline/docs/ALTERNATIVES.md", "cfb-analytics-pipeline/docs/DATA_FLOW.md",
+            "cfb-analytics-pipeline/docs/ROADMAP.md", "cfb-analytics-pipeline/docs/README.md", "cfb-analytics-pipeline/scripts/README.md", "cfb-analytics-pipeline/tests/README.md",
+            "tools/registry-check.mjs", "tools/README.md", "README.md", "js/methods.js", "js/guide.js", "js/changes.js", "js/config.js", "data/weekly_teams_2024.json",
+            "data/weekly_players_2024.json", "data/weekly_teams_2025.json", "data/weekly_players_2025.json"],
+  },
+  {
     id: "v4.25-classic-retired",
     version: "v4.25",
     date: "2026-11-02",
@@ -659,7 +770,7 @@ const CHANGES = [
       **Kansas State and Nebraska are unchanged by this and still rate highly;** the explanation above is the finding, and the next measurements are the thin third-down, havoc and line readings on fixed anchors and the line unit's and special teams' scale (15 and 7.5 points of spread against 2-5 for player terms), not a tuning of either team.
       **The weights come from players who later earned a rating,** a third of the group. **A rating from one or two games is the same small adjustment in a season in progress;** it is not rescaled to a full-season pace. **The to-date pill still says provisional on every live number, low-game players included,** as before.
       **Players with no productive game are still rated from recruiting alone.** **Everything is uncommitted** in both repositories.`,
-    methods: ["low-game-players", "player-rating", "team-ratings"],
+    methods: ["low-game-players", "edge-core", "team-ratings"],
     files: ["scripts/06_compute_edge_scores.py", "scripts/07_compute_player_ratings.py", "scripts/validate_low_game_weights.py", "scripts/explore_low_game_players.py", "tests/test_low_game_ratings.py", "js/menuCard.js", "js/menuScreensTeam.js", "js/guide.js", "js/methods.js", "tools/ui-smoke/smoke.mjs"],
   },
   {
@@ -824,7 +935,7 @@ const CHANGES = [
     unfixed: `**The level gap is still about half of what the games show** (4.4 of about 7.8 rating points): Liberty is 20th by rating and 21st by power. A harsher weak-opponent penalty costs predictive fit, so the answer is probably not a bigger multiplier
       but a different input (the rating of the competition level itself); that needs its own measured pass. **The slideshow is mostly stadiums** and 47 teams have none. **The game screen shows season figures, not that game's box score.**
       **The Methods, Research and Build Log readers keep their document tables** (dark and consistent with the theme, not console rows). **Player cards still have no awards or trophies** (the data has none). **Everything is uncommitted** in both repositories.`,
-    methods: ["opponent-strength", "player-rating", "team-ratings", "power-rating"],
+    methods: ["opponent-strength", "edge-core", "team-ratings", "power-rating"],
     files: ["utils/opponent_strength.py", "utils/store.py", "scripts/06_compute_edge_scores.py", "scripts/12_export_frontend_json.py", "scripts/20_harvest_backdrops.py", "scripts/validate_opponent_strength.py",
             "tests/test_store_shutouts.py", "js/menuChrome.js", "js/menuGame.js", "js/menuBackdrop.js", "js/menuCard.js", "js/menuScreensLeague.js", "js/leagueData.js", "css/menu.css", "tools/ui-smoke/smoke.mjs"],
   },

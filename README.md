@@ -66,6 +66,7 @@ should.
 node --check js/*.js              # syntax
 node tools/doc-check.mjs          # every function over 5 lines documented
 node tools/prose-check.mjs        # registry prose renders without stray markup
+node tools/registry-check.mjs     # every CHANGES / METHODS / GUIDE / FINDINGS entry holds its contract (tried, unfixed, limits, ids that exist)
 node tools/contrast-check.mjs     # after palette edits
 node tools/theme-check.mjs        # after adding or editing a theme
 cd tools/ui-smoke && npm install && npm run smoke   # headless run of every screen, panel, control and old address
