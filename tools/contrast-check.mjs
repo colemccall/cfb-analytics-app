@@ -41,10 +41,10 @@ function contrast(a, b) {
   const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
 }
-// Mirrors ratingTextColor() in config.js (perceived-luminance guard)
+// Mirrors ratingTextColor() in config.js: black or white, whichever has the higher contrast with the fill (v4.26.1; the
+// perceived-luminance cut at 140 it replaced picked white on fills where white failed AA).
 function guardText(hex) {
-  const [r, g, b] = hexToRgb(hex);
-  return 0.299 * r + 0.587 * g + 0.114 * b > 140 ? "#111111" : "#ffffff";
+  return contrast(hex, "#000000") >= contrast(hex, "#ffffff") ? "#000000" : "#ffffff";
 }
 
 // ── Parse CSS token blocks ──────────────────────────────────────────────────
@@ -130,11 +130,19 @@ for (const [themeName, t] of Object.entries(themes)) {
 
   // Domain palettes from config.js
   for (const [min, fill] of CFG.RATING_RAMP[themeName]) {
-    check(themeName, `ramp[${min}] fill vs guarded text`, guardText(fill), fill, 3.0);
+    check(themeName, `ramp[${min}] fill vs guarded text`, guardText(fill), fill, 4.5);   // 12-14px bold badge text is normal text (v4.26.1; was 3.0)
     check(themeName, `ramp[${min}] as text on --surface`, fill, t["surface"], 4.5);
   }
   for (const [pos, fill] of Object.entries(CFG.POS_COLORS[themeName])) {
-    check(themeName, `pos ${pos} fill vs guarded text`, guardText(fill), fill, 3.0);
+    check(themeName, `pos ${pos} fill vs guarded text`, guardText(fill), fill, 4.5);   // was 3.0, the large-text floor
+  }
+}
+
+// ── Team colours: the guard writes a team's monogram text on its own colour (ui.js _monogramHtml) ────
+{
+  const teams = JSON.parse(readFileSync(join(root, "data", "teams.json"), "utf8"));
+  for (const t of teams) {
+    if (/^#[0-9a-fA-F]{6}$/.test(t.color || "")) check("teams", `${t.school} monogram vs guarded text`, guardText(t.color), t.color, 4.5);
   }
 }
 
