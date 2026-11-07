@@ -389,7 +389,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); cursor: pointer
 
 /* Canonical rating pill — the single way an OVR appears anywhere.
    Fill + text color are set inline via ratingColor()/ratingTextColor()
-   (luminance-guarded #111/#fff). */
+   (black or white, whichever has the higher contrast with the fill). */
 .ovr-badge {
   display: inline-block;
   min-width: 30px;

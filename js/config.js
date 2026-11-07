@@ -4,7 +4,7 @@ const CONFIG = {
   DATA_BASE:      "./data/",
   // The release shown in the quick menu and at the foot of the home page: always the newest Build Log entry's version
   // (js/changes.js). cfb-analytics-pipeline/tests/test_frontend_config.py fails if they differ.
-  VERSION:        "v4.26",
+  VERSION:        "v4.26.1",
 
   // ── Seasons ───────────────────────────────────────────────────────────────
   // Three constants, because "the current season" means two different things:
@@ -127,7 +127,7 @@ const CONFIG = {
   },
 
   // Rating ramp: [threshold, fill] pairs, walked top-down. Fill text color is
-  // chosen by ratingTextColor()'s luminance guard. Two things were wrong here
+  // chosen by ratingTextColor()'s contrast guard (black or white, whichever is higher). Two things were wrong here
   // and both are fixed:
   //
   //  · the ELITE gold was #FFD700 — a pure, maximally light yellow. It cleared
@@ -188,16 +188,19 @@ function ratingColor(rating) {
   return ramp[ramp.length - 1][1];
 }
 
-// Returns #111 or #fff depending on whether the hex background is light enough
+// The text colour for a coloured badge, pill or monogram: whichever of black and white has the higher
+// WCAG contrast with the fill. v4.26.1, the owner's decision (2026-11-06): the old rule (perceived
+// luminance above 140 means dark text #111) picked white on mid-tone fills where white failed AA for
+// the badges' 12-14px bold text (K 3.08:1, EDGE 3.16, RB 3.30, the low-rating red 3.41, WR 3.68,
+// LB 3.79, P 3.86, DL 4.23) and on 9 team colours (down to 2.94). The better of black and white is
+// at least 4.58:1 on any colour, so every badge passes AA; #111 in place of black would only
+// guarantee 4.35:1 (the DL red would stay at 4.46).
 function ratingTextColor(hexOrRating) {
-  let hex = typeof hexOrRating === "number" ? ratingColor(hexOrRating) : hexOrRating;
-  if (!hex || !hex.startsWith("#")) return "#111";
-  const r = parseInt(hex.slice(1,3),16);
-  const g = parseInt(hex.slice(3,5),16);
-  const b = parseInt(hex.slice(5,7),16);
-  // Perceived luminance
-  const lum = 0.299*r + 0.587*g + 0.114*b;
-  return lum > 140 ? "#111" : "#fff";
+  const hex = typeof hexOrRating === "number" ? ratingColor(hexOrRating) : hexOrRating;
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return "#000";
+  const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const L = 0.2126 * lin(parseInt(hex.slice(1, 3), 16)) + 0.7152 * lin(parseInt(hex.slice(3, 5), 16)) + 0.0722 * lin(parseInt(hex.slice(5, 7), 16));
+  return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? "#000" : "#fff";
 }
 
 // Position color helper — theme-aware

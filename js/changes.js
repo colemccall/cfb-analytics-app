@@ -33,6 +33,51 @@
 
 const CHANGES = [
   {
+    id: "v4.26.1-badge-text-by-contrast",
+    version: "v4.26.1",
+    date: "2026-11-06",
+    title: "Badge text by contrast: black or white, whichever reads better, so every badge clears AA",
+    summary: `The v4.26 audit left one readability failure: the text on the position and rating badges, 713 elements across the audited screens. ratingTextColor() chose that text by perceived luminance with a frozen cut at 140, which picked white on mid-tone fills where white failed WCAG AA and dark text would have passed. The cut was a frozen constant (CLAUDE.md §3), so v4.26 put the written case to the owner and changed nothing. The owner's answer was "fix it". The guard now picks whichever of black and white has the higher contrast with the fill.`,
+    motivation: `The owner, answering the case v4.26 left open: "fix it".`,
+    did: [
+      { what: "ratingTextColor() chooses by WCAG contrast (js/config.js)",
+        why: `One function sets the text on every coloured badge: rating pills, position badges, live badges, tier chips and team monograms (five call sites in ui.js, one in menuWeekly.js). It now computes the fill's relative luminance and returns black or white, whichever has the higher contrast ratio. The better of the two is at least 4.58:1 on any colour, so no fill can fail AA for normal-size text, whatever the palette or a team's colours become.`,
+        cost: "A visible change on 9 palette fills and 9 team colours, from white text to black: in dark mode the K, EDGE, RB, WR, P and DL badges and the low-rating red; in light mode the LB and TE badges. Nothing changes from black to white." },
+      { what: "Black, not #111, as the dark text",
+        why: `With #111 as the dark option, the better of the two is guaranteed only 4.35:1, and the DL red (#e53935) would have stayed under AA at 4.46:1. Pure black guarantees 4.58:1 on every colour. It is also what an earlier owner note asked for in spirit: dark text on coloured badges, because white "clashes".`,
+        cost: "Dark badge text is #000 instead of #111 everywhere it was already dark; at badge size the difference is not visible." },
+      { what: "The comments that described the old rule (js/config.js, css/styles.css), and the idea in docs/IDEAS.md",
+        why: `The idea "choose badge text by contrast" left the parking lot as built, and the audit-as-gate idea now records that its precondition (no failures) holds.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Choose by contrast but keep #111 as the dark text",
+        result: "It fixes seven of the eight palette fills. The DL red would sit at 4.46:1, the better of #111 (4.46) and white (4.23), still under AA.",
+        verdict: "rejected" },
+      { what: "Darken the eight palette colours instead, keeping the old cut",
+        result: "Not chosen. It changes the colours readers know positions by, and team colours are data, so nine team monograms would still have failed (down to 2.94:1).",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Palette fills (rating ramp and positions, both themes) below 4.5:1 with their guarded text", before: "8 of 40; the worst 3.08:1 (K)", after: "0 of 40; the worst 4.61:1" },
+      { label: "Team monograms below 4.5:1 with their guarded text", before: "9 of 138; the worst 2.94:1", after: "0 of 138; the worst 4.63:1" },
+      { label: "Rendered audit (tools/ui-smoke/a11y.mjs, 112 views): text below WCAG AA on any ground, photos included", before: "11 components, 713 elements: all badges", after: "0 (tools/ui-smoke/a11y-v4.26.1-after.json)" },
+      { label: "Text colours that changed", before: "-", after: "9 palette fills and 9 team colours from white to black; none from black to white" },
+    ],
+    gates: [
+      { check: "Rendered audit (tools/ui-smoke/a11y.mjs), 112 views", result: "0 text failures on any ground, photos included (it was 11 components, 713 elements, all badges); 13 photo groups unscored because their text was off-screen when the screenshot was taken" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "79 of 79 passed" },
+      { check: "node --check js/*.js; tools/doc-check, prose-check, theme-check, contrast-check, registry-check", result: "29 files, 0 failures; 126 of 126 functions documented; prose renders clean; 0 colour literals outside token blocks; every contrast floor green; registries 0 failures and 36 warnings, all older than this release" },
+      { check: "pytest: test_frontend_config, test_ratings_spec, test_snapshots, test_export_contract_v1, test_export_contract", result: "170 passed, 1 failed: the recruiting-basis contract test (4.7% against a 5% floor), failing before this release and unchanged" },
+      { check: "A screenshot of a roster in dark mode", result: "black text on the WR, RB, TE and EDGE badges, readable" },
+    ],
+    unfixed: `**CLAUDE.md §3 still lists "the ratingTextColor() luminance threshold" among the frozen constants.** That threshold no longer exists. A session does not edit the owner's working agreement, so the line waits for the owner. The suggested wording: "the ratingTextColor() rule: black or white, whichever has the higher contrast (v4.26.1)".
+      **tools/contrast-check.mjs is updated in a separate commit.** It gets a mirror of the new rule, a 4.5:1 floor for badge text (it was 3.0, the large-text floor) and the team colours. A gate does not change in the commit that ships what it judges (CLAUDE.md §3).
+      **The audit's blind spots stand:** focus indicators, colour used as the only carrier of meaning, and screen readers. The badge fills themselves are unchanged, so colour still carries position identity, and the text label beside it is what makes that readable.`,
+    methods: [],
+    files: ["js/config.js", "css/styles.css", "js/changes.js", "tools/ui-smoke/a11y-v4.26.1-after.json", "cfb-analytics-pipeline/docs/IDEAS.md"],
+  },
+  {
     id: "v4.26-accessibility-snapshots-initiative-log-ideas-export",
     version: "v4.26",
     date: "2026-11-06",
