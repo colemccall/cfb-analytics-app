@@ -167,6 +167,11 @@ for (const [themeName, t] of Object.entries(themes)) {
     check(name, "ink on --m-text (key glyphs)", m["m-bg-0"], m["m-text"], 7.0);
     check(name, "ink on --m-muted (bumpers)", m["m-bg-0"], m["m-muted"], 4.5);
     check(name, "line vs --m-panel-bot", m["m-line"], m["m-panel-bot"], 1.8);
+    // v4.26: the data colours (styles.css) are drawn on the menu's grounds too, not only on --surface: the light-mode green
+    // passed on --surface and measured 3.6 to 3.9:1 on the menu's light panels (tools/ui-smoke/a11y.mjs).
+    const site = themes[mode] || {};
+    for (const dc of ["positive", "negative", "info", "projected"])
+      for (const f of ["m-bg-0", "m-bg-1", "m-panel-top", "m-panel-bot"]) check(name, `${dc} on --${f}`, site[dc], m[f], 4.5);
   }
 }
 
