@@ -45,10 +45,20 @@ function menuRewriteLinks(host, teamIds = {}) {
 
 // ── The readers ───────────────────────────────────────────────────────────
 
-// Registers a reader screen. `def.groups()` returns [{ label, items: [{ id, label, sub }] }] for
+// The filter a reader was last left on, per viewer (a convenience: a blocked or empty store means "all").
+function menuReadFilterGet(key) {
+  try { return localStorage.getItem(`cfb-readfilter-${key}`) || "all"; } catch (e) { return "all"; }
+}
+function menuReadFilterSet(key, value) {
+  try { localStorage.setItem(`cfb-readfilter-${key}`, value); } catch (e) { /* the filter still applies */ }
+}
+
+// Registers a reader screen. `def.groups()` returns [{ label, items: [{ id, label, sub, tag, badge }] }] for
 // the left list, and `def.show(id, host)` draws the entry into the element on the right (it may
 // return a promise). The entry in the route, or the first, is shown at once; moving the selection
 // down the list shows each in turn. LT / RT (or PgUp / PgDn) scroll the entry.
+// v4.26: `def.filters()` (optional) returns [{ id, label, count }]; a row of buttons above the list then shows
+// only the items whose `tag` is that id ("all" shows every item), and `badge` prints a chip on an item's row.
 function menuRegisterReader(id, def) {
   menuRouter.register(id, {
     title: def.title,
@@ -57,12 +67,18 @@ function menuRegisterReader(id, def) {
     async render(ctx) {
       ctx.team = menuMyTeam(await menuTeams(MENU.season));
       const groups = def.groups();
-      ctx.first = ctx.params[0] || groups.flatMap(g => g.items)[0]?.id;
+      const filters = def.filters ? def.filters() : null;
+      const filter = filters && filters.some(f => f.id === menuReadFilterGet(id)) ? menuReadFilterGet(id) : "all";
+      const shown = it => !filters || filter === "all" || it.tag === filter;
+      const items = groups.flatMap(g => g.items);
+      ctx.first = ctx.params[0] || (items.find(shown) || items[0])?.id;
       const list = groups.map(g => `<div class="m-readgroup">${_esc(g.label)}</div>${g.items.map(it => `
-        <button class="m-row m-row--read${it.id === ctx.first ? " is-open" : ""}" type="button" data-nav data-nav-group="read" data-eid="${_esc(it.id)}">
-          <span class="m-pname">${_esc(it.label)}</span>${it.sub ? `<span class="m-pmeta">${_esc(it.sub)}</span>` : ""}</button>`).join("")}`).join("");
+        <button class="m-row m-row--read${it.id === ctx.first ? " is-open" : ""}" type="button" data-nav data-nav-group="read" data-eid="${_esc(it.id)}"${it.tag ? ` data-tag="${_esc(it.tag)}"` : ""}${shown(it) || it.id === ctx.first ? "" : " hidden"}>
+          <span class="m-pname">${_esc(it.label)}${it.badge ? ` <span class="m-readbadge">${_esc(it.badge)}</span>` : ""}</span>${it.sub ? `<span class="m-pmeta">${_esc(it.sub)}</span>` : ""}</button>`).join("")}`).join("");
+      const bar = filters ? `<div class="m-readfilter" role="group" aria-label="Show entries">${filters.map(f => `
+        <button class="m-chip m-chip--tiny${f.id === filter ? " is-view" : ""}" type="button" data-nav data-nav-group="readfilter" data-filter="${_esc(f.id)}" aria-pressed="${f.id === filter}">${_esc(f.label)} <small>${f.count}</small></button>`).join("")}</div>` : "";
       return `<div class="m-split m-split--read">
-        <section class="m-panel m-list m-readlist" aria-label="${_esc(def.title)} entries">${list}</section>
+        <section class="m-panel m-list m-readlist" aria-label="${_esc(def.title)} entries">${bar}${list}</section>
         <section class="m-panel m-reader" id="m-reader" tabindex="-1" aria-live="polite"></section>
       </div>`;
     },
@@ -84,10 +100,22 @@ function menuRegisterReader(id, def) {
         if (mine !== token) return;
         menuRewriteLinks(host, teamIds);
       };
+      // A filter button hides the rows whose tag it does not match; if that hides the open entry, the first one left opens.
+      const applyFilter = f => {
+        stage.querySelectorAll("[data-filter]").forEach(b => { const on = b.dataset.filter === f; b.classList.toggle("is-view", on); b.setAttribute("aria-pressed", String(on)); });
+        stage.querySelectorAll(".m-row--read").forEach(r => { r.hidden = f !== "all" && r.dataset.tag !== f; });
+        menuReadFilterSet(id, f);
+        const open = stage.querySelector(".m-row--read.is-open");
+        const first = stage.querySelector(".m-row--read:not([hidden])");
+        if ((!open || open.hidden) && first) show(first.dataset.eid);
+      };
       stage.addEventListener("menu:select", e => {
+        const f = e.target.closest?.("[data-filter]")?.dataset.filter;
+        if (f) { applyFilter(f); return; }
         const eid = e.target.closest?.("[data-eid]")?.dataset.eid;
         if (eid) show(eid);
       });
+      stage.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => applyFilter(b.dataset.filter)));
       stage.querySelectorAll("[data-eid]").forEach(b => b.addEventListener("click", () => show(b.dataset.eid)));
       ctx.cleanups.push(menuInput.on("pageDown", () => { host.scrollBy({ top: host.clientHeight * 0.85 }); return true; }));
       ctx.cleanups.push(menuInput.on("pageUp", () => { host.scrollBy({ top: -host.clientHeight * 0.85 }); return true; }));
@@ -119,7 +147,14 @@ menuRegisterReader("methods", {
 
 menuRegisterReader("changes", {
   title: "Build Log", crumb: "ABOUT › BUILD LOG",
-  groups: () => [{ label: "Newest first", items: [...CHANGES].sort(_byDateDesc).map(c => ({ id: c.id, label: `${c.version} · ${c.title}`, sub: c.date })) }],
+  // v4.26: work Claude did unasked is chipped and can be shown on its own (docs/BUILD_LOG_SPEC.md).
+  filters: () => {
+    const n = CHANGES.filter(_isInitiative).length;
+    return [{ id: "all", label: "All", count: CHANGES.length }, { id: "requested", label: "Requested", count: CHANGES.length - n },
+            { id: "initiative", label: "Claude initiative", count: n }];
+  },
+  groups: () => [{ label: "Newest first", items: [...CHANGES].sort(_byDateDesc).map(c => ({ id: c.id, label: `${c.version} · ${c.title}`, sub: c.date,
+    tag: _isInitiative(c) ? "initiative" : "requested", badge: _isInitiative(c) ? "Claude initiative" : "" })) }],
   show: (id, host) => { const c = CHANGES.find(x => x.id === id); host.innerHTML = c ? _changeEntry(c) : '<p class="m-empty">No such entry.</p>'; },
 });
 

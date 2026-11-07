@@ -1,0 +1,14 @@
+{
+ "snapshots": [
+  {
+   "id": "2026-wk09-v4.26",
+   "season": 2026,
+   "week": 9,
+   "kind": "first",
+   "release": "v4.26",
+   "model_fingerprint": "85182634430227d2",
+   "frozen_at": "2026-11-07T00:14:37+00:00",
+   "previous": null
+  }
+ ]
+}

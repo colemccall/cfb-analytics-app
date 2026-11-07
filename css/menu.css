@@ -103,7 +103,7 @@
   display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   color: var(--m-text); font-family: var(--font-ui);
   background:
-    radial-gradient(110% 60% at 50% -8%, color-mix(in srgb, var(--m-sky) 62%, transparent) 0%, transparent 68%),
+    radial-gradient(110% 60% at 50% -8%, color-mix(in srgb, var(--m-sky) 40%, transparent) 0%, transparent 68%),   /* v4.26: 62% put muted text at 3.9:1 where it peaks */
     radial-gradient(circle at 50% 50%, transparent 55%, color-mix(in srgb, var(--m-bg-0) 70%, transparent) 100%),
     linear-gradient(var(--m-bg-1), var(--m-bg-0));
   overflow: hidden;
@@ -198,6 +198,7 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
 .m-subnav {
   display: flex; align-items: stretch; gap: 0.2rem; padding: 0.3rem 2rem 0; overflow-x: auto; scrollbar-width: none;
   border-bottom: 1px solid var(--m-line);
+  background: color-mix(in srgb, var(--m-panel-bot) 96%, transparent);   /* v4.26: its labels sat on the photo, 2.6:1 at the median */
 }
 .m-subnav[hidden] { display: none; }
 .m-subbtn {
@@ -296,6 +297,7 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
   padding: 0.35rem 0.4rem 0.35rem 0.9rem; border-left: 8px solid var(--m-team);
   background: linear-gradient(90deg, color-mix(in srgb, var(--m-team) 34%, transparent), transparent);
 }
+.m-preview-head .m-sub { color: var(--m-text); }   /* v4.26: muted on a dark team tint was 3.2:1 */
 .m-preview-head h2 {
   margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 2.1rem;
   text-transform: uppercase; line-height: 1;
@@ -502,6 +504,7 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: va
 .m-cmp-pw { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); }
 .m-cmp-rank { font-size: var(--fs-label); color: var(--m-muted); white-space: nowrap; }
 .m-cmp-rank.is-gap { color: var(--m-text); font-weight: 800; text-decoration: underline; }
+.m-row.is-selected .m-cmp-rank, button.m-bslot.is-selected i { color: var(--m-on-hot); }   /* v4.26: muted or red-on-red was 1.3 to 3.2:1 */
 .m-cmp-table th, .m-cmp-table td { vertical-align: top; text-align: left; padding: 0.25rem 0.5rem; }
 .m-viewbar { margin: 0 0 0.6rem; }
 .m-chip.is-view { box-shadow: inset 0 -3px 0 var(--m-hot); }
@@ -552,11 +555,11 @@ img.m-banner-mark, img.m-preview-mark { background: var(--m-bar-ink); border-rad
 .m-rhead-trio { grid-area: trio; display: flex; gap: 0.3rem; }
 .m-rowhead.m-row--roster, .m-row--roster { grid-template-columns: 2.2rem minmax(0, 1.7fr) 3.8rem 3rem 3.6rem 3.4rem 2.6rem 4.6rem 4.2rem; }
 .m-rowhead.m-row--roster.is-trio, .m-row--roster.is-trio { grid-template-columns: 2.2rem minmax(0, 1.7fr) 3.8rem 3rem 3.6rem 3.4rem 2.6rem 4.6rem repeat(3, 4.2rem); }
-.m-th { background: transparent; border: 0; padding: 0; text-align: left; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
+.m-th { background: transparent; border: 0; padding: 0; text-align: left; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; min-height: 1.5rem; }
 .m-th--c { text-align: center; }
 .m-th.is-sorted { color: var(--m-white); text-decoration: underline; text-decoration-color: var(--m-hot); text-decoration-thickness: 3px; text-underline-offset: 4px; }
 .m-th:hover { color: var(--m-hot-ink); }
-.m-row.is-bye { opacity: 0.6; font-style: italic; cursor: default; background: repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--m-line) 25%, transparent) 8px 16px); }
+.m-row.is-bye { color: var(--m-muted); font-style: italic; cursor: default; background: repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--m-line) 25%, transparent) 8px 16px); }
 
 /* ── State tile map, playoff seeds ────────────────────────────────────────── */
 .m-statemap { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); grid-auto-rows: minmax(2.2rem, auto); gap: 3px; margin: 0.6rem 0; }
@@ -570,6 +573,8 @@ img.m-banner-mark, img.m-preview-mark { background: var(--m-bar-ink); border-rad
   color: var(--m-white); border-color: var(--m-shine-50);
   background: color-mix(in srgb, var(--m-hot) calc(var(--m-heat) * 100%), var(--m-bg-0));
 }
+/* v4.26: in light mode the page colour is pale, so a cool state was white on pink (2.5:1); slate keeps every tile dark enough */
+.menu-app[data-mode="light"] .m-state.has { background: color-mix(in srgb, var(--m-hot) calc(var(--m-heat) * 100%), var(--m-slate)); }
 .m-state b { font-size: var(--fs-md); }
 .m-state.is-hot { outline: 3px solid var(--m-white); outline-offset: 1px; z-index: 1; box-shadow: 0 0 14px var(--m-hot-glow); }
 .m-row--seed, .m-rowhead.m-row--seed { grid-template-columns: 3rem minmax(0, 1fr) 8rem 4rem 4.6rem; }
@@ -603,7 +608,7 @@ img.m-banner-mark, img.m-preview-mark { background: var(--m-bar-ink); border-rad
 .m-bslot b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .m-bslot.is-mine { border-color: var(--m-white); box-shadow: 0 0 0 2px var(--m-hot); }
 .m-bslot.is-empty { background: color-mix(in srgb, var(--m-panel-bot) 80%, transparent); border-style: dashed; color: var(--m-muted); justify-content: center; }
-.m-bslot.is-empty span { font-family: var(--font-display); letter-spacing: 0.08em; font-size: var(--fs-label); }
+.m-bslot.is-empty span { font-family: var(--font-display); letter-spacing: 0.08em; font-size: var(--fs-label); text-transform: uppercase; }
 img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3rem; object-fit: contain; font-size: 0; }
 .m-bchamp { text-align: center; font-family: var(--font-display); font-weight: 900; letter-spacing: 0.1em; color: var(--m-ink-dark); background: linear-gradient(var(--m-gold), var(--m-gold-mid)); border-radius: 3px; padding: 0.4rem; border: 2px solid var(--m-gold-lo); }
 .m-bnote { margin: 0.7rem 0; }
@@ -619,10 +624,10 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-pparts div.is-total { border-top-color: var(--m-hot); }
 .m-pparts span { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; font-size: var(--fs-label); color: var(--m-muted); }
 .m-pparts b { font-family: var(--font-display); font-weight: 900; font-size: 1.7rem; line-height: 1.1; }
-.m-pparts small { color: var(--m-muted); font-size: var(--fs-label); line-height: 1.25; }
+.m-pparts small { color: var(--m-muted); font-size: var(--fs-sm); line-height: 1.25; }
 .m-pparts i { font-style: normal; font-weight: 800; color: var(--m-muted); }
 .m-ptable { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.m-ptable th { text-align: left; font-family: var(--font-display); letter-spacing: 0.04em; font-size: var(--fs-label); color: var(--m-muted); padding: 0.2rem 0.2rem; border-bottom: 2px solid var(--m-hot); }
+.m-ptable th { text-align: left; font-family: var(--font-display); letter-spacing: 0.04em; font-size: var(--fs-label); text-transform: uppercase; color: var(--m-muted); padding: 0.2rem 0.2rem; border-bottom: 2px solid var(--m-hot); }
 .m-ptable td { padding: 0.22rem 0.2rem; border-bottom: 1px solid color-mix(in srgb, var(--m-line) 45%, transparent); }
 .m-ptable td:nth-child(2) { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-detail { overflow-x: auto; }
@@ -652,7 +657,7 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-mv { margin-left: 0.3rem; font-size: var(--fs-sm); font-weight: 600; color: var(--m-muted); }
 .m-ptable--units td, .m-ptable--units th[scope="col"] { text-align: center; }
 .m-ptable--units th[scope="row"] { text-align: left; font-weight: 600; white-space: nowrap; }
-.m-unit-group th { text-align: left; font-family: var(--font-display); letter-spacing: 0.1em; font-size: var(--fs-label); color: var(--m-muted); padding-top: 0.5rem; border-bottom: 1px solid var(--m-line); }
+.m-unit-group th { text-align: left; font-family: var(--font-display); letter-spacing: 0.1em; font-size: var(--fs-label); text-transform: uppercase; color: var(--m-muted); padding-top: 0.5rem; border-bottom: 1px solid var(--m-line); }
 .m-ptable--glog td, .m-ptable--games td { white-space: nowrap; }
 .m-ptable--glog .m-gl-line { white-space: normal; min-width: 11rem; }
 .m-ptable--weeks td:nth-child(2) { max-width: none; overflow: visible; text-overflow: clip; white-space: nowrap; }
@@ -660,8 +665,9 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 /* Readers, players, history */
 .m-split--read { grid-template-columns: minmax(240px, 30%) minmax(0, 1fr); height: calc(100% - 0.4rem); min-height: 20rem; }
 .m-readlist { overflow: auto; max-height: 100%; }
-.m-readgroup { padding: 0.45rem 1rem 0.2rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: var(--fs-label); color: var(--m-muted); background: var(--m-bg-0); border-bottom: 2px solid var(--m-hot); }
+.m-readgroup { padding: 0.45rem 1rem 0.2rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; font-size: var(--fs-label); text-transform: uppercase; color: var(--m-muted); background: var(--m-bg-0); border-bottom: 2px solid var(--m-hot); }
 .m-row--read { grid-template-columns: minmax(0, 1fr) auto; padding: 0.45rem 1rem; }
+.m-row--read[hidden] { display: none; }   /* v4.26: a reader filter hides rows; the row's grid would otherwise keep them */
 .m-row--read .m-pname { white-space: normal; font-size: var(--fs-sm); }
 .m-row--read.is-open:not(.is-selected) { box-shadow: inset 5px 0 0 var(--m-hot); }
 .m-reader { overflow: auto; max-height: 100%; padding: 1.2rem 1.6rem; color: var(--m-text); }
@@ -700,7 +706,7 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 .m-row--pl { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; padding: 0.32rem 0.5rem; }
 
 /* ── Backdrop slideshow: photos behind the home page and a team's screens ─────────────── */
-.m-backdrop { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.m-backdrop { position: absolute; inset: 0; z-index: auto; overflow: hidden; pointer-events: none; }   /* v4.26: auto (was 0) so the credit can sit above the stage */
 .m-header, .m-subnav, .m-tabs, .m-stage, .m-bottom { position: relative; z-index: 1; }
 .m-bd-img { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.04); transition: opacity 1.6s ease; }
 .m-bd-img.is-on { opacity: 1; animation: m-kenburns 14s ease-out forwards; }
@@ -709,10 +715,19 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
     linear-gradient(180deg, var(--m-veil-72) 0, var(--m-veil-25) 22%, var(--m-veil-35) 60%, var(--m-veil-88) 100%),
     radial-gradient(120% 90% at 50% 40%, transparent 40%, var(--m-veil-55) 100%),
     linear-gradient(115deg, color-mix(in srgb, var(--m-bd-team, transparent) 38%, transparent), transparent 55%); }
-.m-bd-credit { position: absolute; right: 1rem; bottom: 6.4rem; max-width: 46vw; font-size: var(--fs-sm); color: var(--m-shine-78); text-decoration: none; text-shadow: 0 1px 3px var(--m-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-bd-credit { position: absolute; right: 1rem; bottom: 2.6rem; max-width: 46vw; font-size: var(--fs-sm); color: var(--m-white); text-decoration: none; text-shadow: 0 1px 3px var(--m-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--m-veil-72); padding: 0 0.55rem; line-height: 1.5rem; min-height: 1.5rem; border-radius: 3px; z-index: 2; }
+/* v4.26: on a veil, 24px tall, and above the stage (it was under the home panels at rest, so the licence's attribution was hidden).
+   On a wide screen it sits in the prompt bar's empty right side, and on a narrow one in the top row beside the season stepper:
+   where it covers nothing. */
 .m-bd-credit:hover { color: var(--m-white); text-decoration: underline; }
+/* v4.26: a footnote that sits on the stage itself (the home footer, a roster's note) was text straight on the photo */
+.menu-app[data-bd="home"] :is(.m-stage, .m-home) > .m-foot, .menu-app[data-bd="team"] :is(.m-stage, .m-home) > .m-foot {
+  display: inline-block; padding: 0.3rem 0.6rem; border-radius: 3px; background: color-mix(in srgb, var(--m-panel-bot) 92%, transparent); }
 .menu-app[data-bd="none"] .m-backdrop, .menu-app:not([data-bd]) .m-backdrop { display: none; }
-.menu-app[data-bd="home"] .m-panel, .menu-app[data-bd="team"] .m-panel { background: linear-gradient(color-mix(in srgb, var(--m-panel-top) 62%, transparent), color-mix(in srgb, var(--m-panel-bot) 78%, transparent)); backdrop-filter: blur(5px); }
+/* v4.26: the glass was 62% to 78% opaque, so the photo behind decided whether a row could be read (1.7:1 over a bright one).
+   92% to 96% keeps a hint of the photo and puts every token pair back on a known ground. */
+.menu-app[data-bd="home"] .m-panel, .menu-app[data-bd="team"] .m-panel { background: linear-gradient(color-mix(in srgb, var(--m-panel-top) 92%, transparent), color-mix(in srgb, var(--m-panel-bot) 96%, transparent)); backdrop-filter: blur(5px); }
 
 /* ── Schedule band and the game screen ───────────────────────────────────── */
 .m-sband { --m-team: var(--m-hot); display: flex; align-items: center; gap: 1rem; padding: 0.6rem 1rem; border-left: 8px solid var(--m-team);
@@ -784,7 +799,7 @@ img.m-bmark, .m-bmark.team-mark { width: 1.3rem; height: 1.3rem; min-width: 1.3r
 button.m-bslot.is-selected { border-color: var(--m-white); background: linear-gradient(var(--m-hot-hi), var(--m-hot) 60%, var(--m-hot-deep)); box-shadow: 0 0 0 2px var(--m-white); }
 button.m-vs-side { background: transparent; border: 0; color: var(--m-text); padding: 0.4rem; border-radius: 3px; }
 button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(--m-hot) 60%, var(--m-hot-deep)); color: var(--m-on-hot); }
-.m-ticker-track a { color: inherit; text-decoration: none; }
+.m-ticker-track a { color: inherit; text-decoration: none; display: inline-block; min-height: 1.5rem; line-height: 1.5rem; }   /* v4.26: 24px targets */
 .m-ticker-track a:hover { text-decoration: underline; }
 
 /* ── Brought over from the classic site (v4.25): filters, the projection's reasoning, a team's Ratings, the scatter, storylines ── */
@@ -833,7 +848,18 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 }
 
 /* ── Narrow screens (kept at the end of the file) ────────────────────────── */
+
+/* ── v4.26: filters above a reader's list, and a chip on a row (the Build Log marks work done on Claude's initiative) ── */
+.m-readfilter { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--m-line); }
+.m-readfilter .m-chip small { margin-left: 0.25rem; }
+.m-readbadge {
+  display: inline-block; margin-left: 0.35rem; padding: 0 0.4rem; border: 1px solid var(--info); border-radius: 3px; color: var(--info);
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; vertical-align: middle;
+}
+.m-row.is-selected .m-readbadge { color: var(--m-on-hot); border-color: var(--m-on-hot); }
+
 @media (max-width: 900px) {
+  .m-bd-credit { top: 0.75rem; bottom: auto; max-width: 42vw; }   /* v4.26: the prompt bar is full here; the top row beside the season stepper is free */
   .m-header { padding: 0.5rem 1rem 0.2rem; grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem 0.7rem; }
   .m-season { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
   .m-banner { grid-column: 1; grid-row: 2; width: 64px; height: 46px; }

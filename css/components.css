@@ -597,6 +597,22 @@
 
 /* ── Media rules — kept at the end of the file: a media rule placed before a desktop rule of equal
    specificity silently loses to it (see css/README.md). Moved here in v4.24. ───────────────────── */
+
+/* ── v4.26: a Build Log entry done on Claude's initiative ──────────────────
+   Framed, chipped and given its own panel so work nobody asked for is never read as requested work. --info is a data
+   colour already held to 4.5:1 on --surface in both themes (tools/contrast-check.mjs); nothing new is coloured here. */
+.change-entry--initiative { border-left: 4px solid var(--info); padding-left: 1rem; }
+.origin-chip {
+  display: inline-block; margin-left: 0.4rem; padding: 0 0.45rem; border: 1px solid var(--info); border-radius: 3px;
+  color: var(--info); font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle;
+}
+.change-initiative { border: 1px solid var(--info); border-radius: 4px; padding: 0.8rem 1rem; background: color-mix(in srgb, var(--info) 7%, transparent); }
+.change-initiative-list { margin: 0; }
+.change-initiative-list dt { margin-top: 0.6rem; font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--info); }
+.change-initiative-list dt:first-child { margin-top: 0; }
+.change-initiative-list dd { margin: 0.15rem 0 0; }
+.change-initiative-list ol, .change-initiative-list ul { margin: 0.2rem 0 0; padding-left: 1.2rem; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pop,
 .animate-up {

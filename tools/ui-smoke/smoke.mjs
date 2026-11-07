@@ -1006,6 +1006,29 @@ check("menu: the readers show Methods, the Build Log, How It Works and Research 
   return r;
 });
 
+// v4.26: work Claude did unasked is marked in the Build Log and can be shown on its own (docs/BUILD_LOG_SPEC.md).
+check("menu: the Build Log marks Claude-initiative entries and filters to them", async ctx => {
+  const page = await openMenu(ctx, "#/changes");
+  await page.waitForSelector(".m-reader .method-title", { timeout: 20000 });
+  const all = await page.locator(".m-row--read").count();
+  const badged = await page.locator(".m-row--read .m-readbadge").count();
+  assert(badged >= 1, "no entry carries the Claude initiative chip");
+  await page.locator('[data-filter="initiative"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-filter="initiative"]').getAttribute("aria-pressed") === "true", null, { timeout: 5000 });
+  const visible = await page.locator(".m-row--read:not([hidden])").count();
+  const visibleBadged = await page.locator(".m-row--read:not([hidden]) .m-readbadge").count();
+  assert(visible === badged && visibleBadged === badged, `the initiative filter shows ${visible} rows, ${visibleBadged} chipped, of ${badged}`);
+  await page.waitForSelector(".m-reader .change-entry--initiative .change-initiative", { timeout: 10000 });
+  for (const label of ["What", "Why", "How", "Evidence", "How to reverse it", "Open questions"])
+    assert(await page.locator(".m-reader .change-initiative dt", { hasText: label }).count() >= 1, `the initiative panel has no ${label}`);
+  await page.locator('[data-filter="requested"]').click();
+  assert(await page.locator(".m-row--read:not([hidden]) .m-readbadge").count() === 0, "a chipped entry shows under Requested");
+  await page.locator('[data-filter="all"]').click();
+  assert(await page.locator(".m-row--read:not([hidden])").count() === all, "All does not bring every entry back");
+  assert(await noHorizontalScroll(page), "the Build Log scrolls sideways");
+  return page;
+});
+
 check("menu: Players & Leaders lists rated players by position and opens a card", async ctx => {
   const page = await openMenu(ctx, "#/players/QB");
   await waitCount(page, "button.m-row--player", 20);
@@ -1161,7 +1184,8 @@ check("menu: the weekly chart carries the rating on it, a change column and a un
   const units = await page.locator("#m-weekly .m-ptable--units tbody tr").count();
   assert(units >= 9, `the units matrix has ${units} rows`);
   const text = await page.locator("#m-weekly .m-ptable--units").innerText();
-  assert(/QB/.test(text) && /Offense/.test(text) && /Roster/.test(text), "the units matrix lacks the position groups, halves or readings");
+  // case-insensitive: since v4.26 these 12px group labels are uppercase labels (the project's 12px rule), and innerText follows text-transform
+  assert(/QB/.test(text) && /offense/i.test(text) && /roster/i.test(text), "the units matrix lacks the position groups, halves or readings");
   assert(!/\bundefined\b|\bNaN\b|\bnull\b/.test(text), "the units matrix shows undefined, NaN or null");
   return page;
 });

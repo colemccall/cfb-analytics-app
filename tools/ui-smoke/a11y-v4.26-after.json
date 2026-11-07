@@ -1,0 +1,3676 @@
+{
+ "generated_at": "2026-11-07T00:10:24.298Z",
+ "routes": 28,
+ "views": [
+  {
+   "route": "#/home",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 3,
+    "review": 13,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team-select",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 4,
+    "review": 12,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/roster",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 7,
+    "review": 8,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/depth",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 2,
+    "review": 6,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/schedule",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 16,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/recruiting",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 3,
+    "review": 11,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/transfers",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 6,
+    "review": 12,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/history",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/standings",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/rankings",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/compare",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/season",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/playoff",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/players",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 6,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/games",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/stats",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/career",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting/prospects",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 4,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/portal",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 5,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/scatter",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/methods/power-rating",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/changes",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/guide/numbers",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/research/team-performance",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/home",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 3,
+    "review": 9,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team-select",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 4,
+    "review": 4,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/roster",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 6,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/depth",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 2,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/schedule",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 8,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/recruiting",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 3,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/transfers",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 6,
+    "review": 7,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/history",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/standings",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/rankings",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/compare",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/season",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/playoff",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/players",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 6,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/games",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/stats",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/career",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting/prospects",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 4,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/portal",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 5,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/scatter",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/methods/power-rating",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/changes",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/guide/numbers",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/research/team-performance",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/home",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 13,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team-select",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 12,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/roster",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 8,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/depth",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 6,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/schedule",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 16,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/recruiting",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 11,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/transfers",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 12,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/history",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/standings",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/rankings",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/compare",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/season",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/playoff",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/players",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/games",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/stats",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/career",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting/prospects",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/portal",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/scatter",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/methods/power-rating",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/changes",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/guide/numbers",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/research/team-performance",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/home",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 9,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team-select",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 4,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/roster",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 6,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/depth",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/schedule",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 8,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/recruiting",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/transfers",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 7,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/history",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 5,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/standings",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/rankings",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/compare",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/season",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/playoff",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/players",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/games",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/stats",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/player/105817/81/career",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/recruiting/prospects",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/portal",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 1,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/scatter",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/methods/power-rating",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/changes",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/guide/numbers",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/research/team-performance",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  }
+ ],
+ "totals": {
+  "contrast": {
+   "distinct": 11,
+   "elements": 713
+  },
+  "review": {
+   "distinct": 111,
+   "elements": 1502
+  },
+  "small": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "twelve": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "target": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "unnamed": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "noalt": {
+   "distinct": 0,
+   "elements": 0
+  }
+ },
+ "findings": [
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #039be5",
+   "ratio": 3.08,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#039be5",
+   "ground": "solid",
+   "text": "K",
+   "opacity": 1,
+   "n": 14,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280",
+    "#/team/52/transfers dark 375",
+    "#/players dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #ff5722",
+   "ratio": 3.16,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#ff5722",
+   "ground": "solid",
+   "text": "EDGE",
+   "opacity": 1,
+   "n": 78,
+   "where": [
+    "#/home dark 1280",
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #43a047",
+   "ratio": 3.3,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#43a047",
+   "ground": "solid",
+   "text": "RB",
+   "opacity": 1,
+   "n": 111,
+   "where": [
+    "#/home dark 1280",
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280",
+    "#/recruiting/prospects dark 1280"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-group-head > span.pos-group-badge | #ffffff on #43a047",
+   "ratio": 3.3,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#43a047",
+   "ground": "solid",
+   "text": "RB",
+   "opacity": 1,
+   "n": 2,
+   "where": [
+    "#/team/52/depth dark 1280",
+    "#/team/52/depth dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-rating > span.ovr-badge | #ffffff on #f0574a",
+   "ratio": 3.41,
+   "need": 4.5,
+   "px": 14,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#f0574a",
+   "ground": "solid",
+   "text": "39",
+   "opacity": 1,
+   "n": 12,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/roster dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": "span.ovr-badge | #ffffff on #f0574a",
+   "ratio": 3.41,
+   "need": 4.5,
+   "px": 14,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#f0574a",
+   "ground": "solid",
+   "text": "33",
+   "opacity": 1,
+   "n": 6,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52 dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #1e88e5",
+   "ratio": 3.68,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#1e88e5",
+   "ground": "solid",
+   "text": "WR",
+   "opacity": 1,
+   "n": 270,
+   "where": [
+    "#/home dark 1280",
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-group-head > span.pos-group-badge | #ffffff on #1e88e5",
+   "ratio": 3.68,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#1e88e5",
+   "ground": "solid",
+   "text": "WR",
+   "opacity": 1,
+   "n": 2,
+   "where": [
+    "#/team/52/depth dark 1280",
+    "#/team/52/depth dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #e65100",
+   "ratio": 3.79,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#e65100",
+   "ground": "solid",
+   "text": "LB",
+   "opacity": 1,
+   "n": 119,
+   "where": [
+    "#/home light 1280",
+    "#/team/52/roster light 1280",
+    "#/team/52/transfers light 1280",
+    "#/players light 1280",
+    "#/recruiting/prospects light 1280",
+    "#/portal light 1280"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #0288d1",
+   "ratio": 3.86,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#0288d1",
+   "ground": "solid",
+   "text": "P",
+   "opacity": 1,
+   "n": 14,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280",
+    "#/portal dark 1280",
+    "#/team/52/transfers dark 375",
+    "#/players dark 375"
+   ]
+  },
+  {
+   "bucket": "contrast",
+   "key": ".m-pos > span.pos-group-badge | #ffffff on #e53935",
+   "ratio": 4.23,
+   "need": 4.5,
+   "px": 12,
+   "wt": 700,
+   "fg": "#ffffff",
+   "bg": "#e53935",
+   "ground": "solid",
+   "text": "DL",
+   "opacity": 1,
+   "n": 85,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280",
+    "#/players dark 1280",
+    "#/recruiting/prospects dark 1280",
+    "#/portal dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-stage > p.m-foot | #4a525d",
+   "text": "113 players · sorted by best available ·",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 4.61,
+   "median_ratio": 4.97,
+   "where": [
+    "#/team/52/roster light 1280",
+    "#/team/52/roster light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-tag | #ff8f84",
+   "text": "PROJECTED TO RISE",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 12,
+   "wt": 800,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 4.96,
+   "median_ratio": 6.06,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pmeta | #ff8f84",
+   "text": "Boise State",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 24,
+   "ratio": 5.07,
+   "median_ratio": 5.48,
+   "where": [
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-pmeta | #ff8f84",
+   "text": "LA",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 26,
+   "ratio": 5.41,
+   "median_ratio": 5.98,
+   "where": [
+    "#/team/52/recruiting dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-result | #ff8f84",
+   "text": "W 51–10",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 15,
+   "wt": 800,
+   "need": 4.5,
+   "n": 11,
+   "ratio": 5.44,
+   "median_ratio": 6,
+   "where": [
+    "#/team/52/schedule dark 1280",
+    "#/team/52/schedule dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.delta-chip.up | #166534",
+   "text": "▲ +18.3",
+   "why": "text over a photograph",
+   "fg": "#166534",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 4,
+   "ratio": 5.48,
+   "median_ratio": 5.85,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.delta-chip.down | #b91c1c",
+   "text": "▼ -16.8",
+   "why": "text over a photograph",
+   "fg": "#b91c1c",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 5.51,
+   "median_ratio": 5.52,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-pmeta | #a80f17",
+   "text": "★★★★",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 8,
+   "ratio": 5.55,
+   "median_ratio": 6.16,
+   "where": [
+    "#/team/52/roster light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pmeta | #ff8f84",
+   "text": "2026-09-05",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 10,
+   "ratio": 5.6,
+   "median_ratio": 6.05,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-vs > span.m-vs-at | #ff8f84",
+   "text": "vs",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 25.6,
+   "wt": 900,
+   "need": 3,
+   "n": 1,
+   "ratio": 5.6,
+   "median_ratio": 5.77,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > p.m-foot | #4a525d",
+   "text": "16 recruits mapped by home state. The ma",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 5.63,
+   "median_ratio": 5.71,
+   "where": [
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-rank | #4a525d",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 12,
+   "ratio": 5.64,
+   "median_ratio": 6.3,
+   "where": [
+    "#/team/52/roster light 1280",
+    "#/team/52/roster light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-subnav > button.m-subbtn | #4a525d",
+   "text": "All Teams",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 16,
+   "wt": 800,
+   "need": 4.5,
+   "n": 81,
+   "ratio": 5.65,
+   "median_ratio": 5.76,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52/roster light 1280",
+    "#/team/52/depth light 1280",
+    "#/team/52/schedule light 1280",
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-drow > span.m-slot | #4a525d",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 5.68,
+   "median_ratio": 6.22,
+   "where": [
+    "#/team/52/depth light 1280",
+    "#/team/52/depth light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-tag | #a80f17",
+   "text": "PROJECTED TO RISE",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 12,
+   "wt": 800,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 5.72,
+   "median_ratio": 6.27,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-hp > h3.m-h3 | #b7c0cb",
+   "text": "Storylines · what the numbers are saying",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 5.72,
+   "median_ratio": 5.79,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-pmeta | #ff8f84",
+   "text": "★★★★",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 8,
+   "ratio": 5.74,
+   "median_ratio": 6.58,
+   "where": [
+    "#/team/52/roster dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-facts > span.m-live | #ff8f84",
+   "text": "TO DATE · WK 9",
+   "why": "text over a photograph",
+   "fg": "#ff8f84",
+   "px": 14,
+   "wt": 800,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 5.74,
+   "median_ratio": 5.77,
+   "where": [
+    "#/team/52 dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-next > span.m-next-label | #4a525d",
+   "text": "NEXT GAME",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 12,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 5.8,
+   "median_ratio": 5.85,
+   "where": [
+    "#/team/52 light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > p.m-note | #4a525d",
+   "text": "Not played yet · 2026-11-07 · Tiger Stad",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 5.81,
+   "median_ratio": 5.86,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-pmeta | #a80f17",
+   "text": "LA",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 26,
+   "ratio": 5.83,
+   "median_ratio": 6.47,
+   "where": [
+    "#/team/52/recruiting light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.delta-chip.down | #ff8a85",
+   "text": "▼ -16.8",
+   "why": "text over a photograph",
+   "fg": "#ff8a85",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 5.83,
+   "median_ratio": 5.91,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pmeta | #a80f17",
+   "text": "2026-09-05",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 10,
+   "ratio": 5.84,
+   "median_ratio": 6.44,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-result | #a80f17",
+   "text": "W 51–10",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 15,
+   "wt": 800,
+   "need": 4.5,
+   "n": 11,
+   "ratio": 5.89,
+   "median_ratio": 6.47,
+   "where": [
+    "#/team/52/schedule light 1280",
+    "#/team/52/schedule light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-state > span | #4a525d",
+   "text": "AK",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 12,
+   "wt": 700,
+   "need": 4.5,
+   "n": 78,
+   "ratio": 5.96,
+   "median_ratio": 6.11,
+   "where": [
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-teamcard > div.m-note | #4a525d",
+   "text": "Preseason projection 91 → 94 so far",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 5.97,
+   "median_ratio": 6.02,
+   "where": [
+    "#/team/52 light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.m-note | #4a525d",
+   "text": "projected 2026 vs earned 2025",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 8,
+   "ratio": 5.98,
+   "median_ratio": 6.47,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-rank | #4a525d",
+   "text": "17",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 6.02,
+   "median_ratio": 6.65,
+   "where": [
+    "#/team/52/recruiting light 1280",
+    "#/team/52/recruiting light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-rank | #4a525d",
+   "text": "W1",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 18,
+   "ratio": 6.03,
+   "median_ratio": 6.63,
+   "where": [
+    "#/team/52/schedule light 1280",
+    "#/team/52/schedule light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-bar > span.m-bar-label | #4a525d",
+   "text": "Overall",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 5,
+   "ratio": 6.08,
+   "median_ratio": 6.27,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.proj-range | #4a525d",
+   "text": "81–99",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 12,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 6.08,
+   "median_ratio": 6.1,
+   "where": [
+    "#/home light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--hist > span.m-rank | #4a525d",
+   "text": "2026",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 21,
+   "ratio": 6.14,
+   "median_ratio": 6.77,
+   "where": [
+    "#/team/52/history light 1280",
+    "#/team/52/history light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-mystrip > span.m-note | #4a525d",
+   "text": "Follow a team to keep it here.",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 600,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 6.21,
+   "median_ratio": 6.38,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pmeta | #a80f17",
+   "text": "Boise State",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 24,
+   "ratio": 6.29,
+   "median_ratio": 6.74,
+   "where": [
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-rank | #b7c0cb",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 6.3,
+   "median_ratio": 6.66,
+   "where": [
+    "#/team/52/transfers dark 1280",
+    "#/team/52/transfers dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--hist > span.m-rank | #b7c0cb",
+   "text": "2026",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 21,
+   "ratio": 6.35,
+   "median_ratio": 6.98,
+   "where": [
+    "#/team/52/history dark 1280",
+    "#/team/52/history dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-vs > span.m-vs-at | #a80f17",
+   "text": "vs",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 25.6,
+   "wt": 900,
+   "need": 3,
+   "n": 1,
+   "ratio": 6.35,
+   "median_ratio": 6.42,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.m-note | #b7c0cb",
+   "text": "projected 2026 vs earned 2025",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 8,
+   "ratio": 6.41,
+   "median_ratio": 7.38,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-facts > span.m-live | #a80f17",
+   "text": "TO DATE · WK 9",
+   "why": "text over a photograph",
+   "fg": "#a80f17",
+   "px": 14,
+   "wt": 800,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 6.41,
+   "median_ratio": 6.46,
+   "where": [
+    "#/team/52 light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-rank | #4a525d",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 6.46,
+   "median_ratio": 6.92,
+   "where": [
+    "#/team/52/transfers light 1280",
+    "#/team/52/transfers light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-rank | #b7c0cb",
+   "text": "17",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 6.51,
+   "median_ratio": 7.24,
+   "where": [
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/recruiting dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel > h3.m-h3 | #b7c0cb",
+   "text": "Top players",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 6.54,
+   "median_ratio": 6.63,
+   "where": [
+    "#/team/52 dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-result | #4a525d",
+   "text": "L 24–32",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 15,
+   "wt": 800,
+   "need": 4.5,
+   "n": 7,
+   "ratio": 6.55,
+   "median_ratio": 6.72,
+   "where": [
+    "#/team/52/schedule light 1280",
+    "#/team/52/schedule light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-drow > span.m-slot | #b7c0cb",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 6.62,
+   "median_ratio": 7.83,
+   "where": [
+    "#/team/52/depth dark 1280",
+    "#/team/52/depth dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel > h3.m-h3 | #4a525d",
+   "text": "Top players",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 6.68,
+   "median_ratio": 6.71,
+   "where": [
+    "#/team/52 light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-mystrip > span.m-note | #b7c0cb",
+   "text": "Follow a team to keep it here.",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 600,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 6.71,
+   "median_ratio": 7.14,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-rank | #b7c0cb",
+   "text": "W1",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 18,
+   "ratio": 6.74,
+   "median_ratio": 7.3,
+   "where": [
+    "#/team/52/schedule dark 1280",
+    "#/team/52/schedule dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-hp > h3.m-h3 | #4a525d",
+   "text": "Storylines · what the numbers are saying",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 6.88,
+   "median_ratio": 7.07,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.delta-chip.up | #52e08c",
+   "text": "▲ +18.3",
+   "why": "text over a photograph",
+   "fg": "#52e08c",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 4,
+   "ratio": 6.89,
+   "median_ratio": 8,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-rank | #b7c0cb",
+   "text": "2",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 12,
+   "ratio": 7.03,
+   "median_ratio": 8.02,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/roster dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-result | #b7c0cb",
+   "text": "L 24–32",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 800,
+   "need": 4.5,
+   "n": 7,
+   "ratio": 7.11,
+   "median_ratio": 7.18,
+   "where": [
+    "#/team/52/schedule dark 1280",
+    "#/team/52/schedule dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-bar > span.m-bar-label | #b7c0cb",
+   "text": "Overall",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 5,
+   "ratio": 7.32,
+   "median_ratio": 7.76,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > span.proj-range | #b7c0cb",
+   "text": "81–99",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 12,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 8.27,
+   "median_ratio": 8.29,
+   "where": [
+    "#/home dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-teamcard > div.m-note | #b7c0cb",
+   "text": "Preseason projection 91 → 94 so far",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 8.38,
+   "median_ratio": 8.46,
+   "where": [
+    "#/team/52 dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-state > span | #b7c0cb",
+   "text": "AK",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 12,
+   "wt": 700,
+   "need": 4.5,
+   "n": 78,
+   "ratio": 8.59,
+   "median_ratio": 8.87,
+   "where": [
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > p.m-note | #b7c0cb",
+   "text": "Not played yet · 2026-11-07 · Tiger Stad",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 8.68,
+   "median_ratio": 8.8,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-next > span.m-next-label | #b7c0cb",
+   "text": "NEXT GAME",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 12,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 8.78,
+   "median_ratio": 8.86,
+   "where": [
+    "#/team/52 dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-subnav > button.m-subbtn | #b7c0cb",
+   "text": "All Teams",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 16,
+   "wt": 800,
+   "need": 4.5,
+   "n": 81,
+   "ratio": 8.97,
+   "median_ratio": 9.04,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/depth dark 1280",
+    "#/team/52/schedule dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > p.m-foot | #b7c0cb",
+   "text": "16 recruits mapped by home state. The ma",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 8.98,
+   "median_ratio": 9.14,
+   "where": [
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-stage > p.m-foot | #b7c0cb",
+   "text": "113 players · sorted by best available ·",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 9.28,
+   "median_ratio": 9.49,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/roster dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > h2.m-detail-name | #f6f8fa",
+   "text": "LSU · 2026 class",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 30.4,
+   "wt": 900,
+   "need": 3,
+   "n": 2,
+   "ratio": 10.16,
+   "median_ratio": 10.28,
+   "where": [
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-head | #f6f8fa",
+   "text": "gains more in 2026 than any other team n",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 600,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 10.44,
+   "median_ratio": 13.07,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-head > b | #f6f8fa",
+   "text": "Oklahoma State",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 900,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 10.44,
+   "median_ratio": 12.75,
+   "where": [
+    "#/home dark 1280",
+    "#/home dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--hist > span.m-num | #f6f8fa",
+   "text": "6-2",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 55,
+   "ratio": 10.46,
+   "median_ratio": 11.8,
+   "where": [
+    "#/team/52/history dark 1280",
+    "#/team/52/history dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-rating | #f6f8fa",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 15,
+   "wt": 400,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 10.54,
+   "median_ratio": 11.27,
+   "where": [
+    "#/team/52/transfers dark 1280",
+    "#/team/52/transfers dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pname | #f6f8fa",
+   "text": "Ty Benefield",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 10.82,
+   "median_ratio": 11.5,
+   "where": [
+    "#/team/52/transfers dark 1280",
+    "#/team/52/transfers dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pos | #f6f8fa",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 15,
+   "wt": 400,
+   "need": 4.5,
+   "n": 4,
+   "ratio": 11.1,
+   "median_ratio": 11.49,
+   "where": [
+    "#/team/52/transfers dark 1280",
+    "#/team/52/transfers dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-num | #f6f8fa",
+   "text": "★★★★★",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 50,
+   "ratio": 11.25,
+   "median_ratio": 12.42,
+   "where": [
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/recruiting dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-pname | #f6f8fa",
+   "text": "Richard Anderson",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 13,
+   "ratio": 11.37,
+   "median_ratio": 12.48,
+   "where": [
+    "#/team/52/recruiting dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-drow > span.m-pname | #f6f8fa",
+   "text": "Landen Clark",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 11.4,
+   "median_ratio": 13.5,
+   "where": [
+    "#/team/52/depth dark 1280",
+    "#/team/52/depth dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-num | #f6f8fa",
+   "text": "5-3",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 17,
+   "ratio": 11.4,
+   "median_ratio": 12.44,
+   "where": [
+    "#/team/52/schedule dark 1280",
+    "#/team/52/schedule dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pname | #f6f8fa",
+   "text": "vs Clemson",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 10,
+   "ratio": 11.59,
+   "median_ratio": 12.56,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-num | #f6f8fa",
+   "text": "SR",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 32,
+   "ratio": 11.87,
+   "median_ratio": 13.68,
+   "where": [
+    "#/team/52/roster dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-facts > span | #f6f8fa",
+   "text": "Record 6-2",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 600,
+   "need": 4.5,
+   "n": 5,
+   "ratio": 11.92,
+   "median_ratio": 11.97,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-pname | #f6f8fa",
+   "text": "Jackson Harris",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 12,
+   "ratio": 12.15,
+   "median_ratio": 13.76,
+   "where": [
+    "#/team/52/roster dark 1280",
+    "#/team/52/roster dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-vs-side > b | #f6f8fa",
+   "text": "LSU",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 12.51,
+   "median_ratio": 12.81,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-bar > b.m-bar-val | #f6f8fa",
+   "text": "94",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 22,
+   "wt": 700,
+   "need": 3,
+   "n": 5,
+   "ratio": 12.64,
+   "median_ratio": 13.31,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-subnav > button.m-subbtn | #12161c",
+   "text": "Overview",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 800,
+   "need": 4.5,
+   "n": 14,
+   "ratio": 12.96,
+   "median_ratio": 13.07,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52/roster light 1280",
+    "#/team/52/depth light 1280",
+    "#/team/52/schedule light 1280",
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-pname | #12161c",
+   "text": "Jackson Harris",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 12,
+   "ratio": 12.98,
+   "median_ratio": 14.49,
+   "where": [
+    "#/team/52/roster light 1280",
+    "#/team/52/roster light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--roster > span.m-num | #12161c",
+   "text": "SR",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 32,
+   "ratio": 13.04,
+   "median_ratio": 14.59,
+   "where": [
+    "#/team/52/roster light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-drow > span.m-pname | #12161c",
+   "text": "Landen Clark",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 25,
+   "ratio": 13.07,
+   "median_ratio": 14.31,
+   "where": [
+    "#/team/52/depth light 1280",
+    "#/team/52/depth light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-head | #12161c",
+   "text": "gains more in 2026 than any other team n",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 600,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 13.41,
+   "median_ratio": 14.61,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-head > b | #12161c",
+   "text": "Oklahoma State",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 900,
+   "need": 4.5,
+   "n": 9,
+   "ratio": 13.42,
+   "median_ratio": 14.65,
+   "where": [
+    "#/home light 1280",
+    "#/home light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-evidence | #12161c",
+   "text": "→   ",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 13.73,
+   "median_ratio": 13.85,
+   "where": [
+    "#/home light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-num | #12161c",
+   "text": "★★★★★",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 50,
+   "ratio": 13.82,
+   "median_ratio": 15.33,
+   "where": [
+    "#/team/52/recruiting light 1280",
+    "#/team/52/recruiting light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--prospect > span.m-pname | #12161c",
+   "text": "Richard Anderson",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 13,
+   "ratio": 13.82,
+   "median_ratio": 15.28,
+   "where": [
+    "#/team/52/recruiting light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-num | #12161c",
+   "text": "5-3",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 17,
+   "ratio": 13.85,
+   "median_ratio": 15.35,
+   "where": [
+    "#/team/52/schedule light 1280",
+    "#/team/52/schedule light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pname | #12161c",
+   "text": "vs Clemson",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 10,
+   "ratio": 13.85,
+   "median_ratio": 15.27,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-bar > b.m-bar-val | #12161c",
+   "text": "94",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 22,
+   "wt": 700,
+   "need": 3,
+   "n": 5,
+   "ratio": 14.08,
+   "median_ratio": 14.46,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--hist > span.m-num | #12161c",
+   "text": "6-2",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 55,
+   "ratio": 14.1,
+   "median_ratio": 15.75,
+   "where": [
+    "#/team/52/history light 1280",
+    "#/team/52/history light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--story > span.m-story-evidence | #f6f8fa",
+   "text": "→   ",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "ratio": 14.46,
+   "median_ratio": 14.46,
+   "where": [
+    "#/home dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-vs-side > b | #12161c",
+   "text": "LSU",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 15,
+   "wt": 700,
+   "need": 4.5,
+   "n": 2,
+   "ratio": 14.66,
+   "median_ratio": 14.78,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pname | #12161c",
+   "text": "Ty Benefield",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 14.82,
+   "median_ratio": 15.89,
+   "where": [
+    "#/team/52/transfers light 1280",
+    "#/team/52/transfers light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-rating | #12161c",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 15,
+   "wt": 400,
+   "need": 4.5,
+   "n": 22,
+   "ratio": 14.96,
+   "median_ratio": 16.07,
+   "where": [
+    "#/team/52/transfers light 1280",
+    "#/team/52/transfers light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-facts > span | #12161c",
+   "text": "Record 6-2",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 600,
+   "need": 4.5,
+   "n": 5,
+   "ratio": 15.1,
+   "median_ratio": 15.3,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--portal > span.m-pos | #12161c",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 15,
+   "wt": 400,
+   "need": 4.5,
+   "n": 4,
+   "ratio": 15.23,
+   "median_ratio": 15.5,
+   "where": [
+    "#/team/52/transfers light 1280",
+    "#/team/52/transfers light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-subnav > button.m-subbtn | #f6f8fa",
+   "text": "Overview",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 800,
+   "need": 4.5,
+   "n": 14,
+   "ratio": 15.83,
+   "median_ratio": 15.84,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/depth dark 1280",
+    "#/team/52/schedule dark 1280",
+    "#/team/52/recruiting dark 1280",
+    "#/team/52/transfers dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-detail > h2.m-detail-name | #12161c",
+   "text": "LSU · 2026 class",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 30.4,
+   "wt": 900,
+   "need": 3,
+   "n": 2,
+   "ratio": 16.23,
+   "median_ratio": 16.38,
+   "where": [
+    "#/team/52/recruiting light 1280",
+    "#/team/52/transfers light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-backdrop > a.m-bd-credit | #ffffff",
+   "text": "Photo: Joe Shlabotnik · CC BY 2.0",
+   "why": "text over a photograph",
+   "fg": "#ffffff",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 32,
+   "where": [
+    "#/home dark 1280",
+    "#/team/52 dark 1280",
+    "#/team/52/roster dark 1280",
+    "#/team/52/depth dark 1280",
+    "#/team/52/schedule dark 1280",
+    "#/team/52/recruiting dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-rating > span.trio-na | #b7c0cb",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 6,
+   "where": [
+    "#/team/52/depth dark 1280",
+    "#/team/52/schedule dark 1280",
+    "#/team/52/schedule dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-rating > span.trio-na | #4a525d",
+   "text": "—",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 6,
+   "where": [
+    "#/team/52/depth light 1280",
+    "#/team/52/schedule light 1280",
+    "#/team/52/schedule light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--pl > span.m-pname | #f6f8fa",
+   "text": "Sam Leavitt",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 4,
+   "where": [
+    "#/team/52 dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--pl > span.m-pname | #12161c",
+   "text": "Sam Leavitt",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 4,
+   "where": [
+    "#/team/52 light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": "h2 | #f6f8fa",
+   "text": "LSU",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 33.6,
+   "wt": 900,
+   "need": 3,
+   "n": 2,
+   "where": [
+    "#/team/52 dark 1280",
+    "#/team/52 dark 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": "h2 | #12161c",
+   "text": "LSU",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 33.6,
+   "wt": 900,
+   "need": 3,
+   "n": 2,
+   "where": [
+    "#/team/52 light 1280",
+    "#/team/52 light 375"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > b | #f6f8fa",
+   "text": "75.0%",
+   "why": "text over a photograph",
+   "fg": "#f6f8fa",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/home dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-hp > p.m-note | #b7c0cb",
+   "text": "19 seasons (2008–2026) · 139 programs · ",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/home dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pname | #b7c0cb",
+   "text": "BYE WEEK",
+   "why": "text over a photograph",
+   "fg": "#b7c0cb",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/team/52/schedule dark 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-story-evidence > b | #12161c",
+   "text": "75.0%",
+   "why": "text over a photograph",
+   "fg": "#12161c",
+   "px": 14,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/home light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-panel.m-hp > p.m-note | #4a525d",
+   "text": "19 seasons (2008–2026) · 139 programs · ",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 14,
+   "wt": 400,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/home light 1280"
+   ]
+  },
+  {
+   "bucket": "review",
+   "key": ".m-row.m-row--sched > span.m-pname | #4a525d",
+   "text": "BYE WEEK",
+   "why": "text over a photograph",
+   "fg": "#4a525d",
+   "px": 16,
+   "wt": 700,
+   "need": 4.5,
+   "n": 1,
+   "where": [
+    "#/team/52/schedule light 1280"
+   ]
+  }
+ ]
+}

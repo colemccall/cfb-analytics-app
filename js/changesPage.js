@@ -125,16 +125,45 @@ function _files(list) {
     </div>`;
 }
 
+// v4.26: work Claude did that the owner did not ask for carries origin "claude-initiative" and an
+// `initiative` block (docs/BUILD_LOG_SPEC.md). Everything else was requested.
+function _isInitiative(c) {
+  return c && c.origin === "claude-initiative";
+}
+
+// The initiative panel: what was done unasked, why, how (steps and files), the evidence or "untested",
+// how to reverse it and the open questions, in a frame of its own so it cannot be read as requested work.
+function _initiative(c) {
+  if (!_isInitiative(c)) return "";
+  const i = c.initiative || {};
+  const how = i.how || {};
+  const evidence = i.evidence && i.evidence !== "untested" ? prose(i.evidence) : '<p class="text-muted">Untested.</p>';
+  return `
+    <section class="method-block change-initiative" aria-label="Done on Claude's initiative">
+      <div class="modal-subsection-title">Done on Claude's initiative: not requested</div>
+      <dl class="change-initiative-list">
+        <dt>What</dt><dd>${prose(i.what || "Not recorded.")}</dd>
+        <dt>Why</dt><dd>${prose(i.why || "Not recorded.")}</dd>
+        <dt>How</dt><dd>${how.steps && how.steps.length ? `<ol>${how.steps.map(st => `<li>${_esc(st)}</li>`).join("")}</ol>` : ""}
+          ${how.files && how.files.length ? `<p class="method-source">${how.files.map(f => `<code>${_esc(f)}</code>`).join(" · ")}</p>` : ""}</dd>
+        <dt>Evidence</dt><dd>${evidence}</dd>
+        <dt>How to reverse it</dt><dd>${prose(i.reverse || "Not recorded.")}</dd>
+        <dt>Open questions</dt><dd>${i.questions && i.questions.length ? `<ul>${i.questions.map(q => `<li>${_esc(q)}</li>`).join("")}</ul>` : "None recorded."}</dd>
+      </dl>
+    </section>`;
+}
+
 // One CHANGES entry as an <article>, in the order the build-log spec fixes:
-// summary → motivation → did → tried → measured → gates → did-not-fix →
+// summary → (initiative panel) → motivation → did → tried → measured → gates → did-not-fix →
 // linked METHODS entries → files. "Did not fix" always renders, even when
 // the entry is missing it, because an absent answer is itself the finding.
 function _changeEntry(c) {
   return `
-    <article class="method-entry animate-up" id="${_esc(c.id)}">
-      <div class="eyebrow">${_esc(c.version)} · ${_esc(c.date)}</div>
+    <article class="method-entry animate-up${_isInitiative(c) ? " change-entry--initiative" : ""}" id="${_esc(c.id)}">
+      <div class="eyebrow">${_esc(c.version)} · ${_esc(c.date)}${_isInitiative(c) ? ' <span class="origin-chip">Claude initiative</span>' : ""}</div>
       <h3 class="method-title">${_esc(c.title)}</h3>
       <p class="method-summary">${_esc(c.summary)}</p>
+      ${_initiative(c)}
       ${c.motivation ? `
         <div class="method-block">
           <div class="modal-subsection-title">What prompted it</div>

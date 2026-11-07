@@ -33,6 +33,201 @@
 
 const CHANGES = [
   {
+    id: "v4.26-accessibility-snapshots-initiative-log-ideas-export",
+    version: "v4.26",
+    date: "2026-11-06",
+    title: "Readability measured and fixed, frozen weekly snapshots, initiative entries in the Build Log, an ideas parking lot, and an export contract for sibling apps",
+    summary: `Two requests in one session.
+
+      **The brief.** Groundwork, with no ratings logic changed: frozen weekly snapshots that are never regenerated, with a proposal for a week-over-week view that separates "games were played" from "the model changed"; Build Log entries for any work Claude does unasked, flagged and filterable; an ideas parking lot; a versioned, documented export for two planned sibling apps (a play-calling sim and a controller-playable prototype) in which a missing value is null with a reason, never a default number.
+
+      **Then the owner wrote:** "I also want to address the UI accessibility. I think we are breaking guidelines and certain components are really hard to read."
+
+      They were right, and the existing check could not see it. tools/contrast-check.mjs passed, because it checks the token pairs the stylesheets name. The pages compose other things: translucent panels over team photos, muted labels on a warm glow, data colours on grounds they were never paired with. A rendered audit found text at 1.1 to 1.7:1 on screens the token check called green.`,
+    motivation: `The owner's session brief (snapshots, initiative breadcrumbs, IDEAS.md, an export contract), then: "I also want to address the UI accessibility. I think we are breaking guidelines and certain components are really hard to read."`,
+    did: [
+      { what: "A rendered accessibility audit (tools/ui-smoke/a11y.mjs), report-only",
+        why: `Headless Chrome loads 28 screens in both modes at 1280px and 375px (112 views) and reads every visible text element. It works out what each element's text actually sits on, painting background layers bottom-up the way the browser does: alpha, opacity, gradients scored at their worst stop. It then scores the result against WCAG 2.2 AA (4.5:1, or 3:1 for large text). Text over a photograph cannot be scored from styles, so the audit hides every glyph, takes a screenshot, decodes it with a small PNG reader written for the purpose (no new package), and scores each text colour against the lightest tenth of the pixels behind it. The same pass flags text under 12px, 12px text that is not an uppercase label (the project's rule), targets under 24 x 24px, controls with no name and images with no alt.
+          The tool was corrected five times before its numbers were trusted: gradient stops with alpha had been composited over white; colours from color-mix() serialize as color(srgb …), which it did not parse; stacked background layers had been pooled instead of painted in order; text over a photo had been grouped by component alone, so a selected row's white rank was scored against a grey rank's colour; and it had sampled each element's whole box, picking up row borders and rows scrolled out of view, until it sampled only the pixels behind the text's own visible line boxes. Before and after were measured by the same final version: the "before" run used the committed stylesheets, stashed in for the run.`,
+        cost: "It cannot judge focus indicators, colour used as the only carrier of meaning, or what a screen reader announces. Text over a photograph is scored on the photo showing at the time, and the slideshow changes photos. It is report-only: a gate would ship in its own release." },
+      { what: "Readability fixes, all through tokens: no colour literal added, no frozen constant touched (css/menu.css, css/styles.css)",
+        why: `Glass panels over the home and team photos were 62% to 78% opaque and are now 92% to 96%; the photo had decided whether a row could be read. The section bar has a backing band at 96%: its labels had sat straight on the photo, at 1.3 to 1.7:1 at the worst tenth. The warm glow behind the stage went from 62% to 40% (muted text had been 3.9:1 where it peaks, an accent link 3.2:1). Light-mode --positive went from #15803d to #166534 (3.6 to 3.9:1 on the menu's light grounds), and dark-mode --negative from #ff7771 to #ff8a85 (3.8 to 4.2:1 on its dark panels). The recruiting heat map in light mode mixes heat into slate, not the pale page (white on pink had been 2.5:1). Muted or red text inside a selected red row or bracket slot takes the on-red colour (1.3 to 3.2:1). A bye week is drawn in the muted colour instead of faded with opacity (2.4:1). The team preview's conference line uses the text colour on its team tint (3.2:1). Stage footnotes on a photo screen sit on a panel-coloured chip. The photo credit sits on a veil chip above the stage: in the prompt bar's empty right side on a wide screen, and beside the season stepper on a narrow one. It had been white text straight on the photo (1.3:1 at the median), and on the home screen it lay under the panels at rest, so the licence's attribution was not visible. The ticker's links and the sortable headings are at least 24px tall (they were 22 and 19). Four 12px labels became uppercase labels, the project's rule, and one 12px sentence became 14px.`,
+        cost: "The home and team photos are dimmer behind panels: they show at the edges and through 4 to 8% of each panel instead of 22 to 38%. A deliberate trade of atmosphere for legibility, and reversible in one line." },
+      { what: "Frozen weekly snapshots (cfb-analytics-pipeline/scripts/22_freeze_snapshot.py, utils/model_version.py; data/snapshots/)",
+        why: `Each completed week's published numbers go into data/snapshots/{season}-wk{NN}-{release}/: a manifest, a slim team table and a slim player table. The manifest stamps the release (CONFIG.VERSION), a model fingerprint, the pipeline commit, the run date, the source file's hash and the games-played state.
+          The fingerprint is a sha256 over the syntax trees of the rating code, with docstrings removed. Editing a comment or a docstring leaves it alone; editing code changes it.
+          The writer enforces four rules: a snapshot is never overwritten; every listed snapshot is re-hashed before a new one is written; each step is classified against the season's previous snapshot as first, data (new games, same model), model (same games, new code) or data+model; a run that changes neither is refused, as is a model change without a new release label.
+          The first snapshot is 2026-wk09-v4.26, frozen after the fact from the live file generated 2026-11-02; its note says so. docs/SNAPSHOTS.md sketches the week-over-week change view. It splits each move into a model step and a data step, using the replay the pipeline already rebuilds every week, with a mock. It is not built: it is page code.`,
+        cost: "About 0.3 MB a week in the app repository. Weeks 1 to 8 of 2026 cannot be frozen honestly now; recovering them from git history is in IDEAS.md." },
+      { what: "Build Log entries for work nobody asked for (js/changes.js, js/changesPage.js, js/menuScreensPages.js, css/components.css, css/menu.css)",
+        why: `An entry flagged origin: "claude-initiative" carries an initiative block: what, why, how (steps and files), the evidence or "untested", how to reverse it, and open questions. It is drawn in its own frame with a "Claude initiative" chip. The Build Log's list has filter buttons (All, Requested, Claude initiative) with counts, and rows chipped the same way; a reader filter is a small generic addition to the reader, so other registries could use it.
+          The contract is in docs/BUILD_LOG_SPEC.md, and tools/registry-check.mjs fails an initiative entry that lacks any part. Two entries were backfilled from v4.25.1, the work that was off its plan: the season-in-progress change in script 10, and the playoff format's rule in the marker test.
+          This is page code, which the working agreement says to name. The owner asked for it, in the words "visually distinct and filterable".`,
+        cost: "A second kind of entry to keep honest. The check enforces its shape, not its truth." },
+      { what: "An ideas parking lot (cfb-analytics-pipeline/docs/IDEAS.md)",
+        why: `Each idea is one paragraph, with why it is interesting, what must be true first, and who raised it. It starts with nine, each from this session or already on record: the change view, recovering weeks 1 to 8 from git, making the audit a gate, badge text chosen by contrast (a frozen constant, so the owner's), an ideas page, a machine-checkable schema, contract v1.1 candidates, a harvest-time check for games stored in the wrong week, and the per-game coverage gap. There is no site page: a page beside the file would be a second copy, which is the two-histories problem.`,
+        cost: "None." },
+      { what: "An export contract for the sibling apps (cfb-analytics-pipeline/scripts/21_export_contract.py; data/exports/v1/)",
+        why: `exports/v1 holds four files: schema.json, manifest.json, teams.json (139 rows) and players.json (16,882 rows, every player on a 2026 roster). The data comes from the files the site already publishes, so the export cannot disagree with the site. schema.json gives every field's type, meaning, source file and field, and range.
+          A null always carries a reason from a vocabulary of nine codes, in the row's nulls map: withheld_ol, no_prev_season, prev_not_rated, not_projected, no_box_score_rows, no_rating_this_season, no_recruiting_record, class_year_unknown and not_in_source. A lineman is null with withheld_ol, not 50. A player with no box-score row has null games, not 0. A source "0 stars" is null with no_recruiting_record.
+          The three player ratings are kept apart: last season, the projection, and to date. Within v1 nothing is removed, renamed or redefined.
+          Nothing game-related is built.`,
+        cost: "players.json is 5.9 MB, most of it the explicit null reasons; GitHub Pages serves it gzipped." },
+      { what: "Docs and mirrors",
+        why: `New: docs/SNAPSHOTS.md, docs/IDEAS.md, data/exports/v1/README.md and schema.json. Updated: docs/BUILD_LOG_SPEC.md (the initiative contract), docs/DATA_FLOW.md and the Methods entry data-flow (the two new outputs and their place in the weekly run), and the scripts, tests and docs READMEs.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Trust tools/contrast-check.mjs, which was green",
+        result: "It checks the token pairs the stylesheets name, not what a page composes. Rendered, the same screens had 60 components below AA, including a section bar at 1.7:1 over a team photo. A token check cannot see a translucent surface over a photograph.",
+        verdict: "rejected" },
+      { what: "Darken the backdrop photo's veil instead of making panels more opaque",
+        result: "Muted text needs the veil at 75% or more over a white photo pixel, which darkens the photo everywhere, including the margins where nothing is written. Making the surfaces that carry text opaque fixes the text and keeps the photo where it is only decoration.",
+        verdict: "rejected" },
+      { what: "Fix the badge text by changing ratingTextColor()'s threshold",
+        result: "The threshold is a frozen constant (CLAUDE.md §3), and the brief says a standing decision means stop and ask. Not changed; the written case is in what this pass did not fix.",
+        verdict: "blocked" },
+      { what: "An ideas page on the site beside IDEAS.md",
+        result: "Two hand-kept copies of one list is the two-histories problem CLAUDE.md §6 already carries. The file is the one source; a generated page is itself an idea in it.",
+        verdict: "rejected" },
+      { what: "Freeze weeks 1 to 8 of 2026 by re-running them now",
+        result: "That is regeneration, which a frozen snapshot exists to rule out: it would stamp today's model on numbers the site showed under older ones. Recovering the published files from git history is logged as an idea instead.",
+        verdict: "rejected" },
+      { what: "Export players as named-key objects",
+        result: "About 2.5 times the size of {fields, rows} for 16,882 rows with explicit nulls. The README shows the one-line zip back to records.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Text below WCAG AA on solid or gradient grounds (28 screens x 2 modes x 2 widths)", before: "60 components, 1,387 elements", after: "11 components, 713 elements; every one a position or rating badge, held by a frozen constant (see what this pass did not fix)" },
+      { label: "Text on a photograph below AA, scored against the lightest (or darkest) tenth of the pixels behind its own text", before: "34 colour groups, 473 elements; the worst, the section bar, at 1.26:1 in light mode and 1.66:1 in dark", after: "0" },
+      { label: "12px text with lowercase letters (the project's 12px rule)", before: "5 components, 148 elements", after: "0" },
+      { label: "Targets under 24 x 24px", before: "4 components, 2,850 elements: the ticker's links (22px), the sortable headings (19px), the photo credit (22px)", after: "0" },
+      { label: "Controls with no name; images with no alt", before: "0; 0", after: "0; 0" },
+      { label: "Export contract v1, 2026", before: "-", after: "139 teams and 16,882 players; 9 reason codes, every null carrying one; 0 contract problems" },
+      { label: "Frozen snapshots", before: "none", after: "1: 2026-wk09-v4.26 (first of the season; 138 teams, 7,708 players), and it verifies" },
+      { label: "Build Log", before: "29 entries, none marked by origin", after: "32 entries. The filter reads All 32, Requested 30, Claude initiative 2 (both backfilled from v4.25.1)" },
+      { label: "tools/contrast-check.mjs pairs", before: "data colours held to 4.5:1 on --surface only", after: "also on the menu's four grounds in both modes; it fails the old light-mode green at 3.82 and 3.89:1. Widened in its own commit (CLAUDE.md §3)" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "633 passed, 1 failed, 2 skipped. The failure is the recruiting-basis contract test (4.7% against a 5% floor), failing before this release and unchanged. The 2 skips are the frozen-record tests, which skip until a snapshot exists. After the first snapshot, test_snapshots, test_export_contract_v1 and test_frontend_config: 30 passed, 0 skipped" },
+      { check: "scripts/22_freeze_snapshot.py --verify; a second run at the same week and model", result: "1 snapshot, all files verify. The second run is refused: 2026-wk09-v4.26 already exists" },
+      { check: "scripts/21_export_contract.py --check", result: "0 contract problems; 139 teams, 16,882 players; every null carries a reason from the vocabulary" },
+      { check: "node --check js/*.js; tools/doc-check, prose-check, theme-check, contrast-check, registry-check", result: "29 files, 0 failures; 126 of 126 functions documented; prose renders clean; 0 colour literals outside token blocks; every contrast floor green; registries 0 failures and 36 warnings, all older than this release" },
+      { check: "UI smoke suite (tools/ui-smoke), with a new check that the Build Log marks initiative entries and filters to them", result: "78 of 79 in the full run. The one failure was a check that matched the units matrix's labels as 'Offense' and 'Roster', which this pass made uppercase labels; the labels are present. Made case-insensitive, it passes, and so does the new Build Log check" },
+      { check: "tools/ui-smoke/a11y.mjs: the same final version before and after, 112 views each", result: "Before is the committed stylesheets (tools/ui-smoke/a11y-v4.26-before.json), after is this pass (a11y-v4.26-after.json); the numbers are under measured. 13 photo groups are unscored after (11 before): their text was clipped or scrolled out of view when the screenshot was taken" },
+      { check: "Screenshots: the Build Log (both modes, 1440px and 500px), a team roster (both modes, and 500px), the light-mode home and recruiting screens", result: "They found what the numbers could not: the photo credit sitting on a roster's footnote, then covering a recruiting panel's footnote and a History row. The credit now sits where it covers nothing, in the prompt bar on a wide screen and the top row on a narrow one" },
+    ],
+    unfixed: `**The position and rating badges are held by a frozen constant: 713 elements, the largest readability failure left.** ratingTextColor() picks text by perceived luminance, with a cut at 140. For mid-tone fills it picks white where white fails AA for their 12 to 14px bold text, and near-black would pass. Each pair below is white against near-black: K #039be5 3.08:1 against 6.8; EDGE #ff5722 3.16 against 6.6; RB #43a047 3.30 against 6.4; the low-rating red #f0574a 3.41 against 6.2; WR #1e88e5 3.68 against 5.7; LB #e65100 3.79 against 5.5; P #0288d1 3.86 against 5.4; DL #e53935 4.23 against 5.0. tools/contrast-check.mjs passes them because its floor for badge text is 3.0, the large-text floor, and these badges are not large text. Choosing whichever of the two text colours has the higher contrast would fix all eight without touching a palette, but the threshold is frozen (CLAUDE.md §3), so the owner decides.
+      **Text over a photograph is measured on the photo showing at the time.** The slideshow rotates, and a brighter photo could still push text that has no panel behind it under AA.
+      **The audit is report-only, and blind in places.** It cannot judge focus indicators, colour used as the only carrier of meaning, or what a screen reader announces. Making it a gate is an idea (docs/IDEAS.md), for a release of its own.
+      **The History screen shows LSU's 2019 record as "15-null".** A missing loss count is printed as text. It is the stored-missing-zero class of bug, in the team history export. Found by this pass's screenshots, not fixed.
+      **The week-over-week change view is a sketch, not a page** (docs/SNAPSHOTS.md). It waits for a second snapshot and the owner's go-ahead.
+      **Weeks 1 to 8 of 2026 have no frozen snapshot, and cannot honestly have one.** Recovering the published files from git history is an idea.
+      **The export contract has no consumer yet.** Fields for v1.1 wait for the sim to name what it is missing.
+      **Carried over:** the projection entry's stale accuracy, the four mislabelled 2025 games, the per-game coverage gap, the failing recruiting-basis contract test, and the owner's three questions from v4.25.1.`,
+    methods: ["data-flow", "weekly-progression"],
+    files: ["tools/ui-smoke/a11y.mjs", "tools/ui-smoke/smoke.mjs", "tools/registry-check.mjs", "css/menu.css", "css/styles.css", "css/components.css",
+            "js/changes.js", "js/changesPage.js", "js/menuScreensPages.js", "js/methods.js", "js/config.js", "data/exports/v1/", "data/snapshots/",
+            "cfb-analytics-pipeline/scripts/21_export_contract.py", "cfb-analytics-pipeline/scripts/22_freeze_snapshot.py", "cfb-analytics-pipeline/utils/model_version.py",
+            "cfb-analytics-pipeline/tests/test_snapshots.py", "cfb-analytics-pipeline/tests/test_export_contract_v1.py", "cfb-analytics-pipeline/docs/SNAPSHOTS.md",
+            "cfb-analytics-pipeline/docs/IDEAS.md", "cfb-analytics-pipeline/docs/BUILD_LOG_SPEC.md", "cfb-analytics-pipeline/docs/DATA_FLOW.md"],
+  },
+  {
+    id: "v4.25.1-initiative-season-in-progress",
+    version: "v4.25.1",
+    date: "2026-11-06",
+    origin: "claude-initiative",
+    title: "Claude initiative: a season counts as in progress by its FBS games, so 2025's replay stopped looking finished",
+    summary: `While rebuilding the 2024 and 2025 replays for the marker test (requested), the rebuilt files showed something wrong. 2025's power ranking had its rating part on in every week; 2024's did not. The cause was four lower-division games stored as regular-season week 1 and dated December 13: they made every 2025 snapshot look like a played season. The plan for that pass said no scoring changes. This changed script 10's season-in-progress test anyway, because it moved no published rating and made the replays do what the Methods entry already claimed they did. Recorded after the fact, under the rule that came in with v4.26.`,
+    motivation: `Found in the rebuilt replays, not asked for.`,
+    initiative: {
+      what: "season_in_progress (scripts/10_compute_team_ratings.py) counts only regular-season games with an FBS team in them, and needs at least 5 still to come (IN_PROGRESS_MIN_FBS). Counting every game, it still needs 20.",
+      why: "A week-N snapshot never blanks a week-1 score, so in 2025 the season's last scored game always looked like its last game. Every 2025 replay week was therefore rated as a finished season, with two effects. Power carried its rating part (0.98 x the play rating's distance from the mean) instead of ranking on games alone (v4.22), and the part-season shrink of the stats reading was off. 2024 had neither, so the two replays were different objects, and only one of them matched its description.",
+      how: {
+        steps: [
+          "Measured which seasons and weeks change verdict under an FBS-only count: no season of 2008 to 2026 on the production file.",
+          "Tried a minimum of 20 FBS games first. Championship week (10 to 12 FBS games left) then read as finished, so the minimum became 5.",
+          "Added two tests to test_schedule_adjust.py: December lower-division games no longer end a season; a championship week is still in progress, and Army-Navy alone is not.",
+          "Rebuilt both replays offline (0 requests) and compared them field by field with the build that had only the postseason fix.",
+        ],
+        files: ["cfb-analytics-pipeline/scripts/10_compute_team_ratings.py", "cfb-analytics-pipeline/tests/test_schedule_adjust.py", "cfb-analytics-pipeline/scripts/spec_constants.py",
+                "data/weekly_teams_2025.json", "data/weekly_players_2025.json"],
+      },
+      evidence: `**No finished season's verdict changed** (2008 to 2026 on the production file).
+        **2024 rebuilt is identical field for field** to 2024 rebuilt without this change: 0 of 35,971 fields differ.
+        **2025 now ranks on games alone, like 2024.** Its power correlates with the headline, holding the record fixed, at 0.35 at week 1, down from 0.85 (2024: 0.37).
+        **2026 is unaffected:** it is in progress at every week either way.
+        **The markers did not move:** the week-15 snapshot they read is a played season under either rule.`,
+      reverse: "Revert three things in scripts/10_compute_team_ratings.py: the season_in_progress hunk, the IN_PROGRESS_MIN_FBS and IN_PROGRESS_MIN_ALL constants, and the fbs argument at its one call site. Drop the two tests, and the constants row in scripts/spec_constants.py (then run spec_constants.py --update-spec). Rebuild the 2025 replay: python scripts/17b_weekly_progression.py --season 2025 --through-week 15 (about 22 minutes, offline). 2025's replay then rates every week as a finished season again.",
+      questions: [
+        "Should the four mislabelled games be corrected at harvest time instead (docs/IDEAS.md: a harvest-time check for games stored in the wrong week)?",
+        "In a live season, conference title games may not be on file until their matchups are set. Is a minimum of 5 FBS games still right for the week before them?",
+      ],
+    },
+    tried: [
+      { what: "Count FBS games only but keep the minimum at 20",
+        result: "A conference-championship week has 10 to 12 FBS games left, so it read as a finished season. 2024's week 14 changed verdict, and a live season would switch to the finished-season method a week early.",
+        verdict: "rejected" },
+      { what: "Special-case 2025, or relabel the four rows",
+        result: "A special case needs another for the next mislabelled game, and games.json is a gitignored raw file the next harvest would rewrite.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "2025 power against the headline, holding the record fixed, week 1 / week 5", before: "0.85 / 0.89 (the rating part was on)", after: "0.35 / 0.80 (2024: 0.37 / 0.65)" },
+      { label: "Finished seasons whose verdict changed, 2008 to 2026", before: "-", after: "0" },
+    ],
+    gates: [
+      { check: "pytest tests -q, at the end of v4.25.1", result: "615 passed, 1 failed (the known recruiting-basis contract test, unchanged)" },
+      { check: "validate_snapshot_invariance.py --season 2025 --postseason-weeks 5 15, final code", result: "(a), (b) and (c) all pass" },
+    ],
+    unfixed: `**The four rows are still mislabelled in games.json.**
+      **This was a scoring-script change in a pass whose plan said there would be none.** It moved no published rating, which is why it was kept, but the owner had not approved it in advance. This entry exists so the owner can approve it now or reverse it.`,
+    methods: ["weekly-progression", "power-rating"],
+    files: ["cfb-analytics-pipeline/scripts/10_compute_team_ratings.py", "cfb-analytics-pipeline/tests/test_schedule_adjust.py"],
+  },
+  {
+    id: "v4.25.1-initiative-format-selection",
+    version: "v4.25.1",
+    date: "2026-11-06",
+    origin: "claude-initiative",
+    title: "Claude initiative: the marker test also scores selection under the playoff format's own rule",
+    summary: `The requested marker test scored selection as "how many of the committee's 12 are in the reading's top 12". That marks a reading down for conference champions the format admits however anyone rates them, and in 2024 every reading missed exactly those teams: Boise State, Arizona State and Clemson. A second count was added that applies the format's rule with the reading as the ranking. Recorded after the fact, under the v4.26 rule.`,
+    motivation: `Found while reading the marker test's misses, not asked for.`,
+    initiative: {
+      what: "validate_playoff_markers.py derives each season's conference champions from the week-15 title games and scores a second selection count: the reading's five best champions, then its seven best other teams.",
+      why: "The plain top-12 count mixes two different things: a reading rating a team lower, and the format admitting a champion whatever its rating. Separating them shows where the readings actually disagree with the committee. For example, in 2025 every reading put Notre Dame in its field, and the committee did not select it.",
+      how: {
+        steps: [
+          "Added conference_champions() (the winners of week-15 games between two teams of one conference) and format_selection().",
+          "Added a report section, and a note on ties: a top 12 widened by ties flatters a reading, and the record's held 15 and 16 teams.",
+          "Added tests. Low-rated champions get in and push out the lowest at-large teams; and every automatic bid won a title game, in both seasons.",
+        ],
+        files: ["cfb-analytics-pipeline/scripts/validate_playoff_markers.py", "cfb-analytics-pipeline/tests/test_playoff_markers.py", "cfb-analytics-pipeline/docs/PLAYOFF_MARKERS_2024_2025.md",
+                "cfb-analytics-pipeline/docs/RATINGS_SPEC.md"],
+      },
+      evidence: `**Every automatic bid is among the title-game winners** (5 of 9 champions in each season; tested).
+        **Committee's 12 held, 2024 / 2025, plain top 12 against the format's rule:** headline: 8 / 8 against 10 / 8; power: 8 / 8 against 9 / 9; results: 7 / 8 against 10 / 8; stats: 7 / 8 against 10 / 8; roster: 4 / 8 against 7 / 8.
+        **The record is left out of the format count,** because its values tie.`,
+      reverse: "Delete conference_champions(), format_selection(), AUTO_BIDS, the format block in run() and report(), and the three tests. Regenerate the doc with python scripts/validate_playoff_markers.py --write-doc docs/PLAYOFF_MARKERS_2024_2025.md, and take the format column out of RATINGS_SPEC.md §8.2.",
+      questions: ["When the spec reports selection, which count should lead: the plain top 12 or the format's rule?"],
+    },
+    tried: [
+      { what: "Score the record under the format too",
+        result: "Its values tie often, so which team falls inside the cut is arbitrary. It is left out, and the report says so.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "The committee's 12 held by the headline, 2024 / 2025", before: "8 / 8 in a plain top 12", after: "10 / 8 under the format's rule" },
+    ],
+    gates: [
+      { check: "tests/test_playoff_markers.py", result: "23 passed: 13 on made-up leagues, 10 on the data" },
+    ],
+    unfixed: `**Two seasons only:** the format count moves by one or two teams and means as little as the plain one.
+      **Champions come from week-15 title games:** true for 2024 and 2025, and has to be checked for any season added.`,
+    methods: ["system-spec"],
+    files: ["cfb-analytics-pipeline/scripts/validate_playoff_markers.py", "cfb-analytics-pipeline/tests/test_playoff_markers.py"],
+  },
+  {
     id: "v4.25.1-spec-markers-and-log-audit",
     version: "v4.25.1",
     date: "2026-11-06",
@@ -42,28 +237,12 @@ const CHANGES = [
     motivation: `The owner: "draft detailed specs explaining what has been completed in these sessions, all updates pushed to the log, and any outstanding issues; then ask me any questions." Answers before the plan: the markers are pre-playoff ratings only; whether the postseason should count in a rating is to be examined, with evidence and no change; the 2026 disagreement is about individual players and about how the rating and the ranking differ; "the log" is the site's Build Log.`,
     did: [
       { what: "The ratings spec (cfb-analytics-pipeline/docs/RATINGS_SPEC.md; Methods entry system-spec; pointers from How It Works)",
-        why: `One document for the whole system, in thirteen parts:
-          - principles;
-          - the two repositories and the data path;
-          - player ratings and ratings for a season in progress;
-          - team ratings, and how the rating and the ranking differ;
-          - projections and the app;
-          - every validation with its number;
-          - the marker test and the postseason question;
-          - a change index for v4.16 to v4.25.1;
-          - the outstanding issues and the player cases, as before and after;
-          - a decisions log saying who set what;
-          - the constants and the validator commands;
-          - the three questions for the owner.
+        why: `One document for the whole system, in thirteen parts: principles; the two repositories and the data path; player ratings and ratings for a season in progress; team ratings, and how the rating and the ranking differ; projections and the app; every validation with its number; the marker test and the postseason question; a change index for v4.16 to v4.25.1; the outstanding issues and the player cases, as before and after; a decisions log saying who set what; the constants and the validator commands; the three questions for the owner.
           Every number in it is copied from a validator's output or a Build Log entry. The constants table is generated from the code (scripts/spec_constants.py reads the live modules) and tests/test_ratings_spec.py fails when the two differ: a hand-typed table is how the Methods entry opponent-strength came to give the cross-conference weight as 1.0 while the code had 1.5. The site carries the same content as the Methods entry system-spec (group "How much of a rating is signal"); How It Works links it from "What this site measures" and from "The short version".`,
         cost: "Prose drifts and only the constants table is guarded; the spec's player cases and team ranks are 2026 through week 9 and will age." },
       { what: "The Build Log audit, now a check (cfb-analytics-app/tools/registry-check.mjs)",
         why: `A read-only script loads CHANGES, METHODS, GUIDE and FINDINGS and checks each entry's contract. Failures: unique ids, ISO dates, CHANGES tried and unfixed present, the did / measured / gates shapes, every methods id exists, METHODS limits present, groups exist, GUIDE limits present, FINDINGS page files exist, and CONFIG.VERSION equals the newest Build Log version. Warnings: verdicts outside the chip vocabulary, evidence with no number, and unbreakable words that overflow a phone.
-          What it and the read-through found:
-          - two entries (v4.17, v4.19) linked a Methods id that does not exist ("player-rating", now "edge-core");
-          - How It Works said team ratings blend SP+ (not true since v4.11) and that 2026 has not been played (it has been live since v4.8);
-          - the weekly-progression entry said 2024 and 2025 were not rebuilt by week and listed that backfill as an experiment (v4.24 built it);
-          - the projection entry quotes MAE 8.22 against 9.10 where the file now says 8.11 against 9.02, which is listed and not fixed.
+          What it and the read-through found: two entries (v4.17, v4.19) linked a Methods id that does not exist ("player-rating", now "edge-core"); How It Works said team ratings blend SP+ (not true since v4.11) and that 2026 has not been played (it has been live since v4.8); the weekly-progression entry said 2024 and 2025 were not rebuilt by week and listed that backfill as an experiment (v4.24 built it); the projection entry quotes MAE 8.22 against 9.10 where the file now says 8.11 against 9.02, which is listed and not fixed.
           The 36 warnings are reported and left alone: 21 are verdicts or statuses outside the chip vocabulary ("dropped", "replaced", "shipped (v4.24)"; 13 in the Build Log, 8 in Methods) and 15 are evidence rows that carry no number (14 in Methods, 1 in the Build Log), in entries that are history as written.`,
         cost: "It checks shape, not truth: an entry can hold its contract and still be wrong, as the projection entry is." },
       { what: "The pre-playoff marker test (scripts/validate_playoff_markers.py; docs/PLAYOFF_MARKERS_2024_2025.md; tests/test_playoff_markers.py)",

@@ -64,7 +64,7 @@
   /* Data colors — all >= 4.5:1 on --surface */
   --stars:     #ffd75e;
   --positive:  #52e08c;
-  --negative:  #ff7771;
+  --negative:  #ff8a85;   /* v4.26: #ff7771 was 3.8 to 4.2:1 on the menu's dark panels */
   --info:      #7fc7ff;
   --projected:     #b9acff;
   --projected-dim: rgba(185,172,255,0.18);
@@ -112,7 +112,7 @@
   --border-accent: rgba(168,15,23,0.45);
 
   --stars:     #946200;
-  --positive:  #15803d;
+  --positive:  #166534;   /* v4.26: #15803d was 3.6 to 3.9:1 on the menu's light grounds */
   --negative:  #b91c1c;
   --info:      #155fa8;
   --projected:     #5b4bc4;

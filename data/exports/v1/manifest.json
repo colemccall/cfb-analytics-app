@@ -1,0 +1,22 @@
+{
+ "contract": "cfb-analytics export",
+ "version": "1.0.0",
+ "season": 2026,
+ "prev_season": 2025,
+ "through_week": 9,
+ "games_completed": 2843,
+ "games_scheduled": 3681,
+ "source_generated_at": "2026-11-02T23:11:01+00:00",
+ "exported_at": "2026-11-07T00:14:36+00:00",
+ "release": "v4.26",
+ "model_fingerprint": "85182634430227d21904b9197295fca5bd968bdc696310d9f0a442d97deaf9ee",
+ "rows": {
+  "teams.json": 139,
+  "players.json": 16882
+ },
+ "sha256": {
+  "teams.json": "df611efd875883ca4f4983879afa80868dfb0630e2fb2e2f0c8917ba0df27b2c",
+  "players.json": "314486ef2db91c941a60d3d3011a1ff3f6bfd7ae164bb8a913ffdea5a7b02540",
+  "schema.json": "95515e8135b255184724fe530ec45b2de1bf436ae1c0b32fa8ccdcb690a3bee1"
+ }
+}

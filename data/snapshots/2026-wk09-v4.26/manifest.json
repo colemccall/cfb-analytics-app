@@ -1,0 +1,33 @@
+{
+ "id": "2026-wk09-v4.26",
+ "season": 2026,
+ "week": 9,
+ "kind": "first",
+ "previous": null,
+ "release": "v4.26",
+ "model_fingerprint": "85182634430227d21904b9197295fca5bd968bdc696310d9f0a442d97deaf9ee",
+ "pipeline": {
+  "commit": "e0552f2835678c86e60e55844f6412c29b3de276",
+  "dirty": false
+ },
+ "frozen_at": "2026-11-07T00:14:37+00:00",
+ "source": {
+  "file": "live_2026.json",
+  "generated_at": "2026-11-02T23:11:01+00:00",
+  "sha256": "fb24749b3d5f3ceafcaa7078a1451fa4e035ac0fce8b9994fe6fbd9f71a47f00"
+ },
+ "games": {
+  "completed": 2843,
+  "scheduled": 3681,
+  "after_through_week": 0
+ },
+ "counts": {
+  "teams": 138,
+  "players": 7708
+ },
+ "files": {
+  "teams.json": "b7f8db9c997a357c46c54fbf5cbfa3146208d8035a435e242f772ef604f06585",
+  "players.json": "ed9812514dcd981daaf36fdbb9e90cdd115217264b731fc989cedf2754a3ac19"
+ },
+ "note": "Frozen after the fact on 2026-11-06 from the live file generated 2026-11-02 by the v4.24 code. The stamp names the code at freeze; between the two, v4.25 changed only the app and v4.25.1's two pipeline changes give the same output for a season in progress (no 2026 postseason exists, and season_in_progress gives 2026 the same verdict at every week), so these are the numbers the site has shown since 2026-11-02."
+}

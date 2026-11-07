@@ -4,7 +4,8 @@
 // FAILURES (exit code = their number):
 //   CHANGES   unique id; a version and an ISO date; a summary; `tried` and `unfixed` non-empty (the contract's two REQUIRED
 //             fields); each `tried` item has a verdict; each `did` item has what and why; each `measured` item has a label and
-//             both values; each `gates` item has a check and a result; `methods` ids exist in METHODS.
+//             both values; each `gates` item has a check and a result; `methods` ids exist in METHODS; `origin` is absent or
+//             "claude-initiative", and an initiative entry has what, why, how.steps, how.files, evidence, reverse and a question.
 //   METHODS   unique id; a group that exists; a title, a summary and a non-empty `limits` ("an entry with an empty limits field
 //             is not finished"); every alternative has a label and a status; every evidence row has a label and a value.
 //   GUIDE     unique id; a title, a summary and `limits`; `methods` ids exist.
@@ -65,6 +66,16 @@ for (const c of CHANGES) {
   if (!text(c.summary)) fail(w, "no summary");
   if (!Array.isArray(c.tried) || !c.tried.length) fail(w, "`tried` is empty: every entry names something that did not work (REQUIRED)");
   if (!text(c.unfixed)) fail(w, "`unfixed` is empty (REQUIRED, never empty)");
+  // v4.26: work done unasked (docs/BUILD_LOG_SPEC.md): origin is absent (requested) or "claude-initiative", and an initiative
+  // entry says what, why, how (steps and files), the evidence or "untested", how to reverse it, and at least one open question.
+  if (c.origin !== undefined && c.origin !== "claude-initiative") fail(w, `origin "${c.origin}" is not "claude-initiative" (absent means requested)`);
+  if (c.origin === "claude-initiative") {
+    const i = c.initiative || {};
+    for (const f of ["what", "why", "evidence", "reverse"]) if (!text(i[f])) fail(`${w}.initiative`, `no ${f}`);
+    if (!i.how || !Array.isArray(i.how.steps) || !i.how.steps.length) fail(`${w}.initiative`, "no how.steps");
+    if (!i.how || !Array.isArray(i.how.files) || !i.how.files.length) fail(`${w}.initiative`, "no how.files");
+    if (!Array.isArray(i.questions) || !i.questions.length || !i.questions.every(text)) fail(`${w}.initiative`, "no open question (write \"None.\" if there is none)");
+  } else if (c.initiative) fail(w, "an initiative block on an entry that is not origin \"claude-initiative\"");
   (c.did || []).forEach((d, i) => { if (!text(d.what) || !text(d.why)) fail(`${w}.did[${i}]`, "needs what and why"); });
   (c.tried || []).forEach((t, i) => {
     if (!text(t.what) || !text(t.result)) fail(`${w}.tried[${i}]`, "needs what and result");

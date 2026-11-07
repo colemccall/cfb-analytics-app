@@ -1897,7 +1897,8 @@ place, and removing the data fixed a contradiction as well as a dependency.`,
       { name: "The app's JSON", source: "cfb-analytics-app/data/*.json written by script 12 (and 18), the only seam between the two repositories", coverage: "about 1,320 files, 600 MB" },
     ],
     formula: `API -> .cache -> data/raw -> 06 EDGE -> 07 player ratings -> 10 team ratings -> (11, 15, 16, 13, 14) -> data/computed -> 12 export -> cfb-analytics-app/data -> js/dataLoader.js -> menu.html
-a season being played:  01b (newest week + season totals) -> 17 (live_{season}) and 17b (weekly_*_{season}), both in a private copy of the data`,
+a season being played:  01b (newest week + season totals) -> 17 (live_{season}) and 17b (weekly_*_{season}), both in a private copy of the data
+after the export:       21 -> data/exports/v1 (the sibling apps' contract)   22 -> data/snapshots/{season}-wk{NN}-{release} (write-once)`,
     reality: `Two rules hold the path together. Only utils/store.py reads and writes data/raw and data/computed, and only js/dataLoader.js fetches in the app. A season being played is rated in a private copy (CFB_DATA_DIR), so a part-season row can never reach the files the projection model trains on.
       The week-by-week files were, until v4.24, not strictly "as of week N": the season totals the rating script reads came from the whole season (see the Build Log, v4.24). Until v4.25.1 a finished season's postseason was also in every week, because postseason games are numbered weeks 1 to 5 again and later games were blanked by week number (see weekly-progression).`,
     why: `The site asserts numbers; a reader should be able to ask where one came from and get an answer that names a file. The path is also the list of places a number can be wrong, and each has one check: a staged refresh is validated before it is merged (validate_week_ingest.py), a week-N snapshot is checked to see nothing after week N (validate_snapshot_invariance.py), the export is checked at the seam (tests/test_export_contract.py), and a missing number is drawn as a dash, never a zero.`,
@@ -1905,18 +1906,21 @@ a season being played:  01b (newest week + season totals) -> 17 (live_{season}) 
       { label: "Requests to add the newest week (v4.24)", value: "12, against about 400 for a season re-harvest; merged twice with identical file hashes" },
       { label: "Where the path leaked (v4.24)", value: "a week-N snapshot read full-season totals: 4,283 of 8,170 week-3 ratings moved when later data was scrambled; the games-played counts themselves were right in every week checked (weeks 3, 6, 9)" },
       { label: "Where the path leaked again (v4.25.1)", value: "a finished season's postseason in every week-N snapshot: scrambling the 2025 postseason moved the headline of 136 of 136 teams at week 5 (largest 6.10 points) and 135 at week 15 (4.22); after the fix 0 of 136 at both (validate_snapshot_invariance.py check (c))" },
+      { label: "Two outputs after the export (v4.26)", value: "data/exports/v1: 139 teams and 16,882 players, every null carrying one of 9 reason codes (tests/test_export_contract_v1.py); data/snapshots: one write-once snapshot per completed week, re-hashed before every new one, a run that changes nothing refused (tests/test_snapshots.py)" },
     ],
     limits: `**This is the intended path, not a proof of it.** The checks above cover the seams measured so far; the persistence layer is bypassed by several scripts that write their own files, and no merge in the pipeline asserts its keys are unique.
-      **Raw data and the cache are not in version control** (only the app's JSON is), so a bad refresh cannot be undone by git; copy data/raw and data/computed aside first.`,
+      **Raw data and the cache are not in version control** (only the app's JSON is), so a bad refresh cannot be undone by git; copy data/raw and data/computed aside first.
+      **Frozen snapshots begin at 2026 week 9** (v4.26); what the site showed before that is only in the app repository's git history. **The export contract is a view of the published files,** so it is exactly as right as they are, and nothing on this site reads it.`,
     alternatives: [
       { label: "A database", basis: "the project ran on Supabase until August 2026", status: "rejected", note: "Local JSON is enough for one author and removes the only credential other than the API key." },
       { label: "Generate this entry from the code", basis: "keep docs from drifting", status: "experiment", note: "Not attempted; the entry and docs/DATA_FLOW.md are two copies to keep in step." },
     ],
     changelog: [
+      { version: "v4.26", change: "Added: the export contract for sibling apps (script 21, data/exports/v1) and frozen weekly snapshots (script 22, data/snapshots, docs/SNAPSHOTS.md)." },
       { version: "v4.25.1", change: "The snapshot check gained (c), a finished season's postseason scrambled; the leak it found is fixed." },
       { version: "v4.24", change: "Added: this entry and docs/DATA_FLOW.md; the staged in-season refresh (script 01b) and its two validators." },
     ],
-    source: "cfb-analytics-pipeline/docs/DATA_FLOW.md · utils/store.py · utils/api_client.py · scripts/01b_refresh_in_season.py · scripts/12_export_frontend_json.py · js/dataLoader.js",
+    source: "cfb-analytics-pipeline/docs/DATA_FLOW.md · docs/SNAPSHOTS.md · utils/store.py · utils/api_client.py · scripts/01b_refresh_in_season.py · scripts/12_export_frontend_json.py · scripts/21_export_contract.py · scripts/22_freeze_snapshot.py · js/dataLoader.js",
   },
   {
     id: "supplemental-data",

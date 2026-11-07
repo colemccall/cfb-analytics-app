@@ -2,3 +2,4 @@ node_modules/
 last-run.json
 shots/
 *.log
+a11y-report.json
