@@ -670,7 +670,13 @@ check("menu: the defensive depth chart groups CB and S inside DB and lists up to
 });
 
 check("menu: a player rated on two games says so on his card", async ctx => {
-  const page = await openMenu(ctx, "#/player/62241/111");   // a UCLA defensive back with 2 games in 2026
+  // any player the live file has on two games: a named fixture ages out when he plays a third
+  const probe = await openMenu(ctx, "#/home");
+  const two = await probe.evaluate(async y => (await (await fetch(`data/live_${y}.json`)).json()).players
+    .find(p => p.games_played === 2 && p.rating_basis === "blended" && !["K", "P"].includes(p.position_group)), CURRENT);
+  await probe.close();
+  assert(two, "the live file has no player on two games");
+  const page = await openMenu(ctx, `#/player/${two.player_id}/${two.team_id}`);
   await waitCount(page, ".m-why li", 1);
   const why = await page.locator(".m-why").first().innerText();
   assert(/2 games/i.test(why) && /the two games/i.test(why), `the card does not state the game count: ${why.slice(0, 200)}`);
@@ -1072,7 +1078,8 @@ check("menu: Rankings shows the top 25 and, on the All FBS view, every ranked te
   assert(/\/all(\/|$)/.test(await page.evaluate(() => location.hash)), "the All FBS view is not in the address");
   assert(/all fbs/i.test(await page.locator(".m-viewbar .m-chip[aria-current='true']").first().innerText()), "the All FBS chip is not marked as the view");
   const ranks = await page.locator("button.m-row--rank .m-rank").allInnerTexts();
-  assert(ranks[0] === "1" && Number(ranks[ranks.length - 1]) === all, "the ranks do not run 1..n");
+  // the rank cell also carries the movement arrow ("1▲3", "138▼1"), so read its leading number
+  assert(ranks.every((r, i) => parseInt(r, 10) === i + 1) && ranks.length === all, "the ranks do not run 1..n");
   return page;
 });
 
