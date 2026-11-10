@@ -673,7 +673,7 @@ check("menu: a player rated on two games says so on his card", async ctx => {
   // any player the live file has on two games: a named fixture ages out when he plays a third
   const probe = await openMenu(ctx, "#/home");
   const two = await probe.evaluate(async y => (await (await fetch(`data/live_${y}.json`)).json()).players
-    .find(p => p.games_played === 2 && p.rating_basis === "blended" && !["K", "P"].includes(p.position_group)), CURRENT);
+    .find(p => p.games_played === 2 && p.rating_basis === "production" && !["K", "P"].includes(p.position_group)), CURRENT);
   await probe.close();
   assert(two, "the live file has no player on two games");
   const page = await openMenu(ctx, `#/player/${two.player_id}/${two.team_id}`);
@@ -1056,7 +1056,7 @@ check("menu: The Season and Team History screens render", async ctx => {
 });
 
 check("menu: a ranking explains itself: power in two parts and the games behind it", async ctx => {
-  const page = await openMenu(ctx, "#/rankings");
+  const page = await openMenu(ctx, "#/rankings/live/top/games");
   await waitCount(page, ".m-row--rank", 10);
   await page.locator(".m-row--rank").nth(2).hover();
   await page.waitForSelector(".m-pparts", { timeout: 20000 });
@@ -1215,7 +1215,11 @@ check("menu: a player card has a Games tab with a row per game and the full box 
 check("menu: Rankings flips the method and shows any completed week, with movement", async ctx => {
   const page = await openMenu(ctx, "#/rankings/live/top");
   await waitCount(page, "button.m-row--rank", 20);
-  assert(await page.locator('[aria-label="Rank by"] .m-chip').count() === 3, "the three ranking methods are not offered");
+  assert(await page.locator('[aria-label="Rank by"] .m-chip').count() === 4, "the four ranking methods are not offered");
+  assert(/earned/i.test(await page.locator('[aria-label="Rank by"] .m-chip[aria-current="true"]').innerText()), "Rankings does not open on the earned order");
+  assert(await page.locator(".m-rowhead.m-row--rank").innerText().then(t => /EARNED/.test(t)), "the last column is not headed EARNED");
+  await page.locator("button.m-row--rank").nth(2).hover();
+  await page.waitForFunction(() => /points a game above/.test(document.querySelector("#m-detail")?.innerText || "") && document.querySelectorAll("#m-detail .m-ptable tbody tr").length >= 4, null, { timeout: 20000 });
   const weeks = await page.locator('[aria-label="Week"] .m-chip').count();
   assert(weeks >= 5, `${weeks} week chips`);
   assert(await page.locator('[aria-label="Week"] .m-chip', { hasText: /^CURRENT$/ }).count() === 1, "the newest week is not labelled CURRENT");
