@@ -1334,7 +1334,7 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       team they call strong costs little. The Rankings screen shows the two parts and every game behind the second.`,
     inputs: [
       { name: "Team rating", source: "script 10 (the season's own roster ratings and team stats)", coverage: "every rated team-season; for a season in progress, the rating to date" },
-      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 9" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 10" },
     ],
     formula: `rating part  = 0.98 * (team rating - mean team rating)     [0 for every team while the season is being played, v4.22]
 value(game)  = clip(margin, +-28) + 8 if won, - 8 if lost            (from the team's side)
@@ -1415,10 +1415,10 @@ power        = rating part + results part                              (points p
       rating (the headline for a team, the earned rating for a player) and the one game played that week, as a grade. The running number is the one the rest of the site shows, at an earlier date;
       the grade is a separate, noisier reading of a single game. Both are provisional in the same way live ratings are, and neither uses last season, the preseason, or any outside number.`,
     inputs: [
-      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026, weeks 1 to 9 on file; 2024 and 2025 replayed, weeks 1 to 15" },
+      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026, weeks 1 to 10 on file; 2024 and 2025 replayed, weeks 1 to 15" },
       { name: "Per-game player stats up to week N", source: "data/raw/stats.json game_aggregate rows (script 06 --through-week)", coverage: "2024, 2025, 2026" },
-      { name: "Per-game player box scores, every game", source: "data/raw/stats.json game_aggregate rows, exported by script 12 as gamelog_{season}_{team_id}.json", coverage: "2026: 138 team files, 8,079 players, 35,520 player-games" },
-      { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 9, 138 FBS teams" },
+      { name: "Per-game player box scores, every game", source: "data/raw/stats.json game_aggregate rows, exported by script 12 as gamelog_{season}_{team_id}.json", coverage: "2026 through week 10: 138 team files, 8,327 players, 43,025 player-games" },
+      { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 10, 138 FBS teams" },
     ],
     formula: `after week N:   run 06 (in progress, through N) -> 07 -> 10 (through N) on the games of weeks 1..N
 team rating   = 1/6 roster + 1/6 stats + 2/3 results                     (the live headline, built from weeks 1..N)
@@ -1429,7 +1429,7 @@ player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position 
       **v4.24: a week's snapshot now sees only its own weeks, and 2024 and 2025 are replayed.** Until then the builder removed the scores of later games and left the stats whole, so script 07 read full-season totals into every earlier week (at week 1, 595 players held a production-basis rating with no game through that week; now 10, all kickers and punters). A week now holds only games through it; season totals keep only usage, PPA and award fields; the season's finished ratings are cleared from the working copy; and only weeks at least 90% complete are built. A placebo that scrambles everything after week 3 moves 0 of 6,553 earned ratings (scripts/validate_snapshot_invariance.py). 2024 and 2025 are replayed with today's method, weeks 1 to 15, labelled so: week 16 holds only the service-academy game and has no cached team box score. A replayed week's power is games-only, as for any season in progress.
       The stats half for week N is the sum of the per-game box scores of weeks 1 to N, which equals /stats/season exactly (55 of 55 statistics shared by the two sources, all 138 FBS teams, 0 mismatches).
       The offensive-line unit is NOT in the weekly team numbers: it comes from /stats/season/advanced, which has no weekly version, so the roster reading of every weekly team number leaves it out and renormalises.
-      For the latest week this is the only difference from the live headline: mean 0.26 and largest 0.88 rating points over 138 teams. Players have no such difference: all 7,587 rated players match the live file exactly.
+      For the latest week this is the only difference from the live headline: mean 0.31 and largest 1.06 rating points over 138 teams (week 10; Old Dominion, whose line unit pulls its roster reading down 6.3 points). Players have no such difference: all 7,794 rated players match the live file exactly.
       A game's grade uses the opponent strengths as they stood after that week's games (the same ridge solve as the results reading) and is not revised later.
       The units are the position-group scores the roster reading is made of (starters plus depth, player scale), published by script 10 as roster_groups; offense and defense are the rating's two halves. The game log keeps each game's stat blob as stored: a stat the box score does not list is absent, a listed 0 is a 0.
       Rankings by week read the weekly file for an earlier week and the live file for the current one; the method (games only, rating + games, rating) picks which number sorts the list.`,
@@ -1437,7 +1437,7 @@ player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position 
       "what the model said then": the pace scale, the opponent map, the pool averages and the results solve all depend on how many games were played. The grade is kept apart from the running number because one game is a different kind of evidence.`,
     evidence: [
       { label: "Summed box scores against /stats/season, 2026 through week 9", value: "55 of 55 shared statistics, 138 teams: 0 differences above 0.5 (tests/test_weekly_progression.py)" },
-      { label: "Latest week against the live file", value: "7,587 players compared, largest rating difference 0.0; 138 teams, headline difference mean 0.26, largest 0.88 (the line unit)" },
+      { label: "Latest week against the live file (week 10)", value: "7,794 players compared, largest rating difference 0.0; 138 teams, headline difference mean 0.31, largest 1.06 (the line unit)" },
       { label: "How fast the ranking settles: headline rank after week N against after week 9, 138 teams (Spearman)", value: "week 1 0.838, week 2 0.912, week 3 0.930, week 4 0.965, week 5 0.979, week 6 0.987, week 7 0.994, week 8 0.998" },
       { label: "Winner of every later FBS game (home edge added), by the rating after week N, 2026 weeks 2 to 9, 1,645 picks pooled (a game is counted once for each earlier week)", value: "headline 62.2%, power 60.5%, home team always 58.7%, placebo with the ratings dealt to the wrong teams 54.3%. Real, small and thin: this season has too few later games to support more." },
       { label: "Does a single game's grade carry signal into the next game?", value: "player: correlation between a grade and the same player's next grade 0.366 over 24,405 consecutive pairs, placebo 0.001; team: 0.317 over 829 pairs, placebo 0.087" },
@@ -1446,7 +1446,7 @@ player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position 
       { label: "Replay: winner of every FBS-vs-FBS game in weeks 6 to 15 by the power after the week before, 2024 / 2025 (rebuilt replays, v4.25.1)", value: "69.9% of 495 / 70.2% of 503 (2025 was 70.0% with the rating part on); placebo with powers dealt to other teams 48.7% / 44.5%; always the home team 57.8% / 57.1%; better record so far 63.9% / 66.4%" },
       { label: "Rebuilding the weekly line unit from per-game advanced rates (2025 as a test)", value: "correlation with the season values 0.98 (line yards), 0.98 (stuff rate), 0.98 (second level) and 0.78 (power success): close, not equal, so it was not used" },
     ],
-    limits: `**The weekly team numbers leave out the offensive-line unit** (up to 0.9 rating points at the latest week), so the last point of a team's line can differ slightly from the number shown elsewhere.
+    limits: `**The weekly team numbers leave out the offensive-line unit** (up to about 1.1 rating points at the latest week), so the last point of a team's line can differ slightly from the number shown elsewhere.
 
       **A game grade is one game.** It swings far more than the running number (18.2 against 5.3 points for players) and a team's grade is capped at a 28-point margin, so a 60-point win grades like a 28-point one. The home edge used is power's (5.7 points in 2026), not a separate estimate for the headline scale.
 

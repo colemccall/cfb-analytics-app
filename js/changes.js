@@ -33,6 +33,72 @@
 
 const CHANGES = [
   {
+    id: "v4.26.2-week-ten",
+    version: "v4.26.2",
+    date: "2026-11-09",
+    title: "Week 10 added and 2026 recalculated: Georgia leads the rating, Alabama the ranking, and the table is settling",
+    summary: `The owner asked for the newest week and a recalculation. Week 10 ran November 4 to 8 and is complete: 64 of 64 FBS-involved games scored. Nothing about how a number is computed changed: the fingerprint of the rating code is the one week 9 was frozen under, so the second frozen snapshot is a pure data step. 3,164 of 3,686 games are now in, and 7,794 players are rated (up 86). Georgia moved to first on the headline rating and Alabama to first on power; LSU, first on the rating last week, lost and fell from 2nd to 7th on power.`,
+    motivation: `The owner: "please bring in the most recent week of data and recalculate ratings for 2026. I think the picture became a lot clearer after this week."`,
+    did: [
+      { what: "Week 10 fetched, checked, then merged (scripts/01b_refresh_in_season.py, scripts/validate_week_ingest.py)",
+        why: `The ten responses a week needs (the season's results, the week's player and team box scores, and the season totals the API cannot slice by week) went to data/staging first. Nothing reached the cache or data/raw until the validator passed. The merge was run twice and left games.json and stats.json byte-identical (sha256 fa392677… and 7520ce5a…). The gitignored inputs were copied aside first, with hashes, in _snapshots/v4.26.1-pre-week10/.`,
+        cost: "12 requests rather than 10. /stats/season/advanced timed out at the client's fixed 30 seconds and then dropped a connection; the three unfetched responses were requested again with a longer timeout for that one run, and the seven already staged were kept." },
+      { what: "2026 recalculated offline: scripts 09, 17, 17b, 12 (live ratings, every week's replay, the app's files, game logs, player cards)",
+        why: `A dead proxy makes any cache miss a failure, and the log shows 0 requests. The rating code was not touched. Script 17b rebuilt all ten weeks.
+          The first pass left the player cards behind: a single-season export rewrites cards/ only with --cards, and docs/DATA_FLOW.md did not list that flag. The contract test caught it (14,555 grid rows differed from their card shard). The cards were rebuilt and DATA_FLOW.md and SNAPSHOTS.md now say --cards.`,
+        cost: "None beyond the run: about 18 minutes, and 2 more for the cards. The week-10 step list in the docs had been wrong since the cards were split out." },
+      { what: "The export contract and the second frozen snapshot (scripts 21 and 22; data/exports/v1, data/snapshots/2026-wk10-v4.26.2)",
+        why: `The weekly run now ends with both, as docs/SNAPSHOTS.md lays out. The snapshot classifies as a data step against 2026-wk09-v4.26: new week, same model fingerprint (85182634…). Two snapshots now exist, which is the first thing the proposed week-over-week view needed.`,
+        cost: "About 0.3 MB in the app repository." },
+      { what: "Methods coverage lines say week 10 (power-rating, weekly-progression), and one idea logged (docs/IDEAS.md)",
+        why: `Four inputs stated current coverage as week 9. Measurements labelled with their own week are left as they were: they remain true of that week. The idea is the coverage-credit rank cliff described under what this pass did not fix.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Run the whole stage again after the timeout",
+        result: "Seven of the ten responses had arrived and were sound. Repeating them would have spent seven requests for nothing; only the three missing were fetched.",
+        verdict: "rejected" },
+      { what: "Re-fetch weeks 1 to 9 for their coverage gaps",
+        result: "The audit's only gap is Idaho's games, in every week: Idaho has no 2026 roster on file, so a re-fetch of box scores would link nothing.",
+        verdict: "rejected" },
+      { what: "Change the coverage-credit rule this pass",
+        result: "A rating-rule change was not asked for, and needs its own measurement and placebo. Logged in docs/IDEAS.md with the numbers.",
+        verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Games complete, 2026", before: "2,843 of 3,681, through week 9", after: "3,164 of 3,686, through week 10 (the 5 new schedule rows are unplayed lower-division games in week 11)" },
+      { label: "Ingest validation, week 10", before: "-", after: "14 checks: 13 pass, 1 warning (Idaho's conference, known), 0 fail. 64 of 64 FBS-involved games scored; player rows for 63 of 64 (Idaho); 0 earlier scores changed" },
+      { label: "Players rated", before: "7,708 of 16,882 on rosters", after: "7,794; 86 newly rated, none lost; 5,648 of 7,708 moved, mean 1.41 points" },
+      { label: "Teams, headline rating", before: "#1 LSU 93.6, #2 Georgia 91.9, #3 Notre Dame 91.0", after: "#1 Georgia 94.1, #2 LSU 93.0, #3 Alabama 92.2. 130 of 138 moved; largest +2.4 (Tulsa) and -3.1 (Tulane)" },
+      { label: "Teams, power (the ranking)", before: "#1 Miami, #2 LSU, #3 Notre Dame, #4 Alabama", after: "#1 Alabama +22.8, #2 Miami +22.7, #3 Georgia +22.5, #4 Notre Dame +21.4; LSU #7. Boise State 12th to 9th" },
+      { label: "How much the order moved from the week before (Spearman, 138 teams), week 8 to 9 and week 9 to 10", before: "power 0.978, headline 0.994", after: "power 0.981, headline 0.994: the steadiest power week so far, by a small margin. Teams moving 10 or more places on power: 31 and 31; new teams in the power top 12: 2 and 2" },
+      { label: "Did earlier weeks hold still in the replay?", before: "-", after: "No game or score in weeks 1 to 9 changed. Weeks 1 to 8: 25 to 332 defenders moved by at most 0.10 (a rounding step), offense 0. Week 9: 3,878 defenders moved, mean 0.4, largest 4.1, offense 0, because only the newest week can read the season's advanced stats (the defenders' opportunity index) and week 9 no longer is" },
+      { label: "Players who did not play in week 10 (kickers and punters aside)", before: "-", after: "3,847: mean move 0.17, 95th percentile 0.90. 32 moved 2 points or more, every one a defensive back" },
+      { label: "The replay's newest week against the live file", before: "week 9: 7,708 players identical; teams mean 0.29, largest 0.99 (the line unit)", after: "week 10: 7,794 players identical (largest gap 0.00); teams mean 0.31, largest 1.06 (Old Dominion: its line unit pulls the roster reading down 6.3 points)" },
+    ],
+    gates: [
+      { check: "scripts/validate_week_ingest.py --season 2026 --weeks 10", result: "14 checks: 13 pass, 1 warning (Idaho's conference), 0 fail" },
+      { check: "scripts/01b --merge, run twice", result: "games.json and stats.json identical after the second run (sha256 fa392677…, 7520ce5a…)" },
+      { check: "scripts/validate_snapshot_invariance.py --season 2026 --weeks 3 6 9 10 --placebo-week 6", result: "(a) weeks 3, 6, 9 and 10: 0 rows not cut at their week, 0 wrong game counts. (b) week 6: 0 of 7,364 earned ratings moved with later stats scrambled, 0 with advanced stats dealt to other teams" },
+      { check: "scripts/22_freeze_snapshot.py --verify; scripts/21_export_contract.py --check", result: "2 snapshots, all files verify, the new one a data step on the same model fingerprint; export 139 teams, 16,882 players, 0 contract problems" },
+      { check: "pytest tests -q (pipeline)", result: "634 passed, 2 failed, 0 skipped. Failing: the recruiting-basis contract test (4.7% against a 5% floor, unchanged), and test_the_last_week_matches_the_live_file (largest team gap 1.06 against the test's 1.0: the line unit at Old Dominion, the team it flagged at 1.01 in v4.24). Neither test was edited; players in that test match exactly. tests/test_weekly_progression.py had a literal nine weeks and turned into a skip when week 10 arrived; it now follows the live file's newest week, and summed box scores equal /stats/season through week 10" },
+      { check: "scripts/validate_ratings.py --season 2025", result: "11,321 rated, unchanged: no finished season moved. team_ratings.json and team_history.json differ from the last commit only in their 2026 rows" },
+      { check: "node --check js/*.js; tools/prose-check, registry-check, contrast-check", result: "29 files, 0 failures; prose renders clean; registries 0 failures and 36 warnings, all older than this release; every contrast floor green" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "79 of 79, after two check corrections in the next commit, not this one. The Rankings check read the rank cell's whole text and broke when the first and last teams both moved (\"1▲3\"); the page was right, 1 to 138. The two-game card check named one player, who has since played a third game" },
+    ],
+    unfixed: `**A defensive back can lose rating for a game he sat out.** The coverage credit, applied to every game he played, scales with his rank in his team's secondary by cumulative tackles (top five all of it, 6th 60%, 7th 30%, 8th none). Brycen Scott (Louisville) kept his 17 tackles, went from 6th to 8th when teammates passed him, and fell 7.5 points without playing. 32 of 979 defensive backs who did not play moved 2 points or more this week, some on this rank cliff and the rest with their team's pass defense. It is a rating rule, not a data error; changing it needs its own measurement (docs/IDEAS.md).
+      **The rounding-size moves on defenders in weeks 1 to 8 are not traced to a source.** The placebo rules out later games reaching back (0 of 7,364 earned ratings moved with everything after week 6 scrambled), and the size is one rounding step, but the channel is unidentified.
+      **A week's defenders change when it stops being the newest** (week 9 this time): the newest week alone has the opportunity index, so a defender's line in the weekly chart can step by a few tenths at its last point.
+      **Idaho still has no 2026 roster,** so none of its players are rated and its 272 box-score entries this week link to nothing.
+      **The transfers open since v4.24 are still dropped:** a roster de-duplication keeps the older team, so Baylor's quarterback DJ Lagway, Utah State's McCae Hillstead, Old Dominion's Jaxon Potter and others have no 2026 rating, and those teams' roster readings are short a starter.
+      **Rosters are read from the 10-27 harvest,** not refreshed.
+      **Client timeout:** /stats/season/advanced can exceed the 30 seconds utils/api_client.py allows, and --stage has no resume.
+      **test_the_last_week_matches_the_live_file fails at 1.06 against 1.0.** The gap is the documented line-unit difference, at one team; a gate is not moved in the release it judges, so whether to widen it or add a weekly line unit is left open.`,
+    methods: ["weekly-progression", "power-rating", "live-season"],
+    files: ["data/live_2026.json", "data/weekly_teams_2026.json", "data/weekly_players_2026.json", "data/players_2026.json", "data/rosters_2026.json", "data/gamelog_2026_*.json", "data/cards/",
+            "data/exports/v1/", "data/snapshots/2026-wk10-v4.26.2/", "js/methods.js", "js/config.js", "js/changes.js", "cfb-analytics-pipeline/docs/IDEAS.md"],
+  },
+  {
     id: "v4.26.1-badge-text-by-contrast",
     version: "v4.26.1",
     date: "2026-11-06",
