@@ -162,12 +162,12 @@ const MENU_PLAYOFF_FORMATS = {
 };
 const MENU_POWER4 = ["ACC", "Big 12", "Big Ten", "SEC"];
 
-// Picks and seeds the field for a format, best power first. Conference champions are the current
+// Picks and seeds the field for a format, best rank first (the site's one ranked order, menuTeamRankValue). Conference champions are the current
 // conference leaders (the Standings screen's order). Returns [{ team, seed, why }] where `why` is
 // how the team got in: "champion", "top G6", "Notre Dame" or "" for an at-large place.
 function menuPlayoffField(d, key) {
   const fmt = MENU_PLAYOFF_FORMATS[key];
-  const val = t => menuTeamPower(t, d);
+  const val = t => menuTeamRankValue(t, d);
   const ranked = d.teams.filter(t => val(t) != null).sort((a, b) => val(b) - val(a));
   const rankOf = new Map(ranked.map((t, i) => [t.id, i + 1]));
   const isG6 = t => t.conference && !MENU_POWER4.includes(t.conference) && t.conference !== "FBS Independents";
@@ -276,25 +276,25 @@ menuRouter.register("playoff", {
     const field = menuPlayoffField(d, key);
     if (field.length < fmt.field) return '<section class="m-panel"><p class="m-empty">Not enough ranked teams for this season.</p></section>';
     const mineIn = field.find(f => f.team.id === MENU.teamId);
-    const next = d.teams.filter(t => menuTeamPower(t, d) != null && !field.some(f => f.team.id === t.id))
-      .sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d))[0];
+    const next = d.teams.filter(t => menuTeamRankValue(t, d) != null && !field.some(f => f.team.id === t.id))
+      .sort((a, b) => menuTeamRankValue(b, d) - menuTeamRankValue(a, d))[0];
     const seedRow = f => `
       <button class="m-row m-row--seed${f.team.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="seeds" data-to="${menuTeamPath(f.team.id)}">
         <span class="m-rank">${f.seed}</span>
         <span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}${f.seed <= fmt.byes ? ' <span class="m-tag">BYE</span>' : ""}${f.why ? ` <span class="m-tag m-tag--c">${_esc(f.why.toUpperCase())}</span>` : ""}</span>
         <span class="m-pmeta">${_esc(f.team.conference || "")}</span>
         <span class="m-num">${d.standings[f.team.id] ? `${d.standings[f.team.id].w}-${d.standings[f.team.id].l}` : "—"}</span>
-        <span class="m-num">${menuPowerText(menuTeamPower(f.team, d))}</span>
+        <span class="m-num">${menuPowerText(menuTeamRankValue(f.team, d))}</span>
       </button>`;
     const label = CONFIG.LIVE_SEASONS.includes(MENU.season) ? `to date, through week ${d.live?.through_week}` : isProjectedSeason(MENU.season) ? "preseason projection" : "final";
     return `<section class="m-panel m-bracketpanel" aria-label="Bracket">${menuBracketHtml(field)}</section>
       <p class="m-note m-bnote">${_esc(fmt.note)} ${mineIn ? `<b>${_esc(mineIn.team.school)}</b> is in, seed ${mineIn.seed}.` : ctx.team ? `<b>${_esc(ctx.team.school)}</b> is out.` : ""}
         ${next ? `First team out: ${_esc(next.school)}.` : ""}</p>
       <section class="m-panel m-list" aria-label="Seeds">
-        <div class="m-rowhead m-row--seed"><span>SEED</span><span>TEAM</span><span>CONF</span><span>REC</span><span>POWER</span></div>
+        <div class="m-rowhead m-row--seed"><span>SEED</span><span>TEAM</span><span>CONF</span><span>REC</span><span>${menuRanksByEarned(d) ? "EARNED" : "POWER"}</span></div>
         ${field.map(seedRow).join("")}
       </section>
-      <p class="m-foot">Who would be in by our power ranking (${label}), not a prediction of any game: no playoff model has been backtested, so no winners or win probabilities are shown.
+      <p class="m-foot">Who would be in by our ${menuRanksByEarned(d) ? "earned order" : "power ranking"} (${label}), not a prediction of any game: no playoff model has been backtested, so no winners or win probabilities are shown.
         Conference champions are the current conference leaders.</p>`;
   },
 });

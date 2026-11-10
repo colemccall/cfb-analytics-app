@@ -33,6 +33,173 @@
 
 const CHANGES = [
   {
+    id: "v4.27-earned-order-and-two-game-players",
+    version: "v4.27",
+    date: "2026-11-09",
+    title: "The earned order: wins and losses first, beside power; and two games are enough for a rating from a player's own play",
+    summary: `Two owner objections after week 10. First, the ranking read wrong: two-loss Alabama was first on power, ahead of the Georgia team that beat it, and three-loss LSU was seventh. Measured, neither team was overrated as a prediction, and losses and head-to-head results add almost nothing beyond points, so the objection is about what a ranking is for. The answer is a second number, earned, beside power: wins and losses count first, margin up to 7. The site's rank now reads it. No rating moved, and power did not move. Second, Boise State's Max Cutforth went 24 of 32 for 448 yards and 7 touchdowns in two games and published at 43.8, because the rule for one or two games starts from a recruiting grade and he has none. The owner's rule: two games are enough. In a season being played a two-game player is now rated like a three-game one, on his own play, and he is 83.0.`,
+    motivation: `The owner: "LSU and alabama are way too overrated", then "something is very flawed if 2 loss alabama (who lost to georgia head to head and tennesse head to head) is top 5, and if 3 loss LSU is top 15", then, on seeing the options, "is there a way to drop alabama out of top 5 and LSU out of top 15, without moving liberty or new mexico into the top 15" and "i love the proposed ranking changes". On Cutforth: "max cutforth rating is broken for boise state" and "i think the way to address max cutforth is recognize that players with 2 games have enough of a sample to get a rating based on their performance".`,
+    did: [
+      { what: "The earned number (utils/results_rating.py earned_ratings, EARNED_CAP 7, EARNED_BONUS 12; scripts 10, 17, 17b, 12, 22)",
+        why: `The same solve as power, with every rating part 0, the margin capped at 7 and a win or loss worth 12. Every season with results has one; a team with no FBS game has no number rather than a zero. Script 10 was rerun for 2008-2025 in a private copy and diffed against the published file before it was swapped in.`,
+        cost: "If it replaced power it would cost 2.7 points of later winners after week 10 (72.0% to 69.3%). It replaces nothing, so power keeps them." },
+      { what: "Rankings opens on Earned, with a game-by-game panel (js/menuWeekly.js, js/menuScreensLeague.js menuEarnedPanel)",
+        why: `Earned is first among the Rank by chips on every list that has results; a preseason list has none, so it does not offer the chip. The panel shows what each game was worth and where the opponent stands in the same order, because a win is worth what the team beaten has done.`,
+        cost: "One new panel, built from existing classes. The owner approved it." },
+      { what: "Two games rated on his own play in a season being played (scripts/07_compute_player_ratings.py two_game_rating)",
+        why: `His per-game level through the frozen anchors, then the three-game line of the part-season curve, basis production. One game, and two games in a finished season, stay on the low-game rule. The replays of 2024, 2025 and 2026 were rebuilt because they are seasons being played at every week.`,
+        cost: "The line was fitted on players who kept playing, so one who never plays again publishes about 14 points higher than before, and nothing can score that. Rated 80 or more on it, a player then plays 4.8 lower." },
+      { what: "Copy that described the old rule (js/menuCard.js, js/guide.js, js/menuScreensTeam.js, js/menuWeekly.js, js/methods.js)",
+        why: `Sentences that said one or two games move a player only a little, and three stale notes on the weekly screens that said a rating needs three games, which has not been true since v4.19.`,
+        cost: "None." },
+      { what: "Validators (scripts/validate_earned_ranking.py, validate_two_game_rating.py, the no-recruiting-grade section of validate_low_game_weights.py) and tests (test_earned_ranking.py, test_two_game_rating.py)",
+        why: `Every number above and in the two Methods entries can be reproduced from the repository, including the ones first measured in throwaway scripts.`,
+        cost: "None. About 8 and 10 minutes to run, 0 requests." },
+    ],
+    tried: [
+      { what: "Does the loss column predict later games beyond points?", result: "At equal power a team with an extra loss did 1.54 to 1.83 points better afterwards (shuffled -0.01, sd 0.16). Power already counts a loss for more than it predicts.", verdict: "rejected" },
+      { what: "Top-5 teams with two losses, top-15 teams with three, at week 10, 2016-2025", result: "Two losses, power top 5: 0.7 better than rated afterwards (4 teams, 11 games, s.e. 4.8). Three or more, top 15: 5.9 better (13 teams, 39 games, s.e. 2.6). History did not mark these teams down.", verdict: "experiment" },
+      { what: "A head-to-head tie-break", result: "62 pairs after week 10: the winner did 2.34 worse afterwards than the team ranked above it (s.e. 1.76, placebo p 0.21). No predictive case. Not built; it may still be wanted as a presentation rule.", verdict: "rejected" },
+      { what: "A top-25 team with no win over a top-30 team", result: "Those that played one and beat none finished 2.59 below their rating (38 team-seasons, 120 games, s.e. 1.46), 3.23 below the rest, shuffled p 0.030. LSU fits and Alabama does not. The label was chosen after seeing LSU's schedule, so it is suggestive only, and it is why LSU's case was stronger than Alabama's.", verdict: "experiment" },
+      { what: "Change power's own constants", result: "Winners 72.0% to 69.3% after week 10, and 46 teams move 10 or more places. A separate number costs power nothing.", verdict: "rejected" },
+      { what: "Win bonus 14; cap 14 with bonus 14", result: "71.5%, Alabama 3rd and LSU 9th; 70.0%, Alabama 4th and LSU 15th. Neither meets the owner's conditions.", verdict: "rejected" },
+      { what: "Wins and losses only, opponents kept", result: "68.6%, Alabama 6th and LSU 20th. It meets them but throws away margin for 0.7 fewer points of winners than the setting shipped.", verdict: "rejected" },
+      { what: "Fewest losses first, power within", result: "69.7%, Alabama 12th and LSU 33rd, with 8-1 Liberty and New Mexico above Alabama: exactly what the owner said not to do.", verdict: "rejected" },
+      { what: "Capping blowouts in the results reading at 21 or 28", result: "Mean miss 13.07 rises to 13.21 and 13.13 after week 10. LSU stays 2nd on the headline.", verdict: "rejected" },
+      { what: "Conference level off in the results reading", result: "LSU 4th and Alabama 5th on the headline at no measured cost (72.2% against 71.8%, miss 13.09 against 13.07). Already declined in v4.21 as too large; SEC teams beat their number by 1.55 in bowls (s.e. 1.82) and are 28-2 outside the league in 2026.", verdict: "blocked" },
+      { what: "A line fitted for two games", result: "9.91 against 9.86 for the three-game line: equal. Better bias (-0.25 against +0.99) and no heat at the top, but a slope of 0.17 to 0.45, so how he played counts for less, and six more constants. A judgement: the owner asked for a rating based on performance. Cutforth would be about 75.6 rather than 83.0.", verdict: "rejected" },
+      { what: "His own level, believed entirely", result: "12.95, bias -4.78: 7 more points of miss below a level of 60, 7.9 hot at 75 and up.", verdict: "rejected" },
+      { what: "Keep the rule and treat a missing recruiting grade as unknown", result: "1,197 players with no grade were rated 35.5 and earned 66.7 the next year (recruited 54.4 to 63.9; gap 21.71, shuffled 0.41). Correcting the level cuts their miss from 31.18 to 6.22. I recommended this first; the owner chose the performance rating for two games, so it now stands only for one game and finished seasons.", verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Higher-ranked team won, later games, after week 8 and week 10", before: "power 69.99% and 72.01%; miss 13.49 and 13.21", after: "earned 68.27% and 69.30%; miss 13.99 and 13.76. Always the home team 57.35% and 58.01%; better record with a fitted home edge 67.17% and 68.94%" },
+      { label: "2026 through week 10, power order to earned order", before: "Alabama 1, LSU 7, Liberty 13, New Mexico 15, Boise State 9", after: "Alabama 6, LSU 19, Liberty 25, New Mexico 17, Boise State 8. Top five: Utah 9-0, Miami 8-1, UCLA 9-0, Notre Dame 8-1, Georgia 8-1. 46 of 138 teams move 10 or more places; 21 of the top 25 are shared" },
+      { label: "How the order behaves, per season at week 10 (9 seasons)", before: "two-loss teams in the top 5: 0.4; three-loss in the top 15: 1.4; outside the big conferences in the top 15: 1.6; head-to-head inversions in the top 25: 6.9", after: "0.0; 0.2; 2.3; 5.8" },
+      { label: "The committee's 12 in the top 12, 2024 and 2025 (reference only)", before: "power 8 and 8", after: "earned 10 and 9" },
+      { label: "Did the earned number move anything else? Script 10 rerun on 2008-2025 in a private copy, every field compared", before: "2,585 team-season rows", after: "0 rows changed in any field other than earned_rating; 2,303 rows gain one (2026's are written by the live run)" },
+      { label: "Max Cutforth", before: "43.8, blended, on game grades of 83.6 and 90.3", after: "83.0, production. He is now 0.1 above Maddux Madsen (82.9, 8 games) at Boise State" },
+      { label: "Two-game players, 2026 through week 10", before: "806 players, 805 on the low-game rule", after: "803 moved, mean +13.82, median +12.50, range -10.2 to +39.2; 112 are 72 or more, 6 are 80 or more. 0 players with any other game count moved" },
+      { label: "Two games, against how he went on to play (2024-2025, 3,115 player-cuts): mean error and bias", before: "the low-game rule 17.49 (-14.56); no recruiting grade 27.13 (-27.09)", after: "the three-game line 9.86 (+0.99); no recruiting grade 9.94. Placebo 11.27; position mean 10.92" },
+      { label: "The jump at a player's third game (5,672 player-cuts)", before: "mean size 15.75, largest 45.3", after: "2.29, largest 22.8" },
+      { label: "Teams, 2026", before: "power as published", after: "power: 0 of 138 moved. Headline: 73 of 138 moved, mean +0.08, largest +0.43 (Army); its order at the top is unchanged, Georgia, LSU, Alabama, Notre Dame, Miami. Roster reading: 130 of 138, mean +0.47, largest +2.52 (Army). Boise State 78.72 to 79.02, 43rd to 42nd, QB group 77.0 to 83.0" },
+      { label: "The replays", before: "weekly_{teams,players}_{2024,2025,2026}", after: "Rebuilt for all three seasons, 0 requests. Only rows on two games moved (2026: 11,898; 2024: 14,573; 2025: 15,973; mean +14.9 to +16.0), plus rows on one game by at most 0.10 in 2024 and 2025 only (2,049 and 1,906): those replays were last built before week 10 of 2026 entered the pool the recruiting prior averages over, and 2026's replay shows 0 such moves, but this is inferred, not traced. Power did not move in any week of 2026, nor in any week of 2024 or 2025 before week 15, where a finished season's rating part reads the roster (118 and 125 teams)" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "663 passed, 2 failed, 0 skipped. Failing, unedited: the recruiting-basis contract test (392 of 8,369 rated rows, 4.7% against a 5% floor) and test_the_last_week_matches_the_live_file (largest team gap 1.10 against the test's 1.0, was 1.06; the weekly file leaves out the line unit, and players match exactly). New: tests/test_earned_ranking.py and tests/test_two_game_rating.py" },
+      { check: "scripts/validate_earned_ranking.py; validate_two_game_rating.py; validate_low_game_weights.py", result: "all exit 0. Every number in this entry and in the two Methods entries is printed by one of them; the low-game weights stay within 0.011 of a refit" },
+      { check: "scripts/validate_snapshot_invariance.py --season 2026 --weeks 2 3 6 10 --placebo-week 6", result: "(a) weeks 2, 3, 6 and 10: 0 rows not cut at their week, 0 wrong game counts. (b) week 6: 0 of 7,364 earned ratings moved with later stats scrambled, 0 with advanced stats dealt to other teams" },
+      { check: "Script 10 on 2008-2025 in a private copy, every field compared with the published file", result: "0 of 2,585 rows changed in any field other than earned_rating" },
+      { check: "The full export against the last commit", result: "Finished seasons: team_ratings gains earned_rating on 2,303 rows and nothing else; power_games gains earned_value and nothing else; every players, roster and schedule file is unchanged. Player cards change only in their 2026 rows; team_history in 24 of its 2026 rows" },
+      { check: "scripts/validate_ratings.py --season 2025", result: "11,321 rated, unchanged: no finished season moved" },
+      { check: "The projection gates, validate_vs_draft.py, validate_reliability.py", result: "Not run. They read finished-season player ratings, and those files are unchanged, so both hard gates stand as they were" },
+      { check: "scripts/22_freeze_snapshot.py --verify; scripts/21_export_contract.py --check", result: "3 snapshots, all verify; the new one a model step on week 10 (2026-wk10-v4.27, fingerprint e8c08ee4…). Export: 139 teams, 16,882 players, 0 contract problems" },
+      { check: "node --check js/*.js; tools/prose-check, registry-check, contrast-check, theme-check, doc-check", result: "29 files, 0 failures; prose renders clean; registries 0 failures and 36 warnings, all older than this release; every contrast floor green; 0 colour literals" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "79 of 79, after three check corrections in the next commit, not this one: Rankings now opens on four methods with Earned first; the check of power's two parts opens the games-only list; and the two-game card check looks for a production basis, which is the change this release makes" },
+      { check: "tools/ui-smoke/a11y.mjs (rendered readability, report-only)", result: "28 routes, both modes, 1280 and 375 pixels: 0 text failures, 0 under 12px, 0 small targets, 0 unnamed controls" },
+    ],
+    unfixed: `**The headline rating still has LSU 2nd and Alabama 3rd.** The earned order is what the site ranks by, but the rating beside it is untouched. Nothing tested took LSU below 4th on it.
+      **The earned constants were searched for an answer.** 43 of 108 settings meet the owner's conditions and all of them have a cap of 7 or lower, so the fit to 2026 is evidence of nothing; the backtest is what can be read. Alabama is 6th by 0.05 points, one result can flip it, and through week 9 the same constants had Alabama 12th and LSU 9th. Oregon, 6-3, is 15th.
+      **Head-to-head is not a rule.** Alabama is still above Tennessee; 9 pairs in the 2026 top 25 are ranked against their head-to-head result, against 11 on power.
+      **A two-game rating ends with the season.** A finished season keeps the low-game rule, so a player who stops at two games falls back to it at the end of the year. Whether the owner's rule reaches finished seasons is in docs/IDEAS.md.
+      **A player with no recruiting grade still starts near 40** on the low-game rule, for one game and for two in a finished season: "missing means unknown" is still broken on that path. Listed in v4.24, measured here, in docs/IDEAS.md.
+      **A two-game rating for a player who never plays again cannot be checked,** and it is about 14 points higher than it was. 63% of the two-game player-cuts of 2021-2025 have no later games to score against.
+      **Two games can now outrank eight.** Cutforth is 0.1 above Madsen at Boise State, which makes him the starter in the roster reading.
+      **Compare still measures distance from power,** the sibling-app export contract (v1) does not carry earned, and the postseason still does not count in either order.
+      **Known test failures, unedited:** the recruiting-basis contract test (4.7% against a 5% floor) and test_the_last_week_matches_the_live_file (1.10 against the test's 1.0, the line unit the weekly file leaves out).`,
+    methods: ["earned-ranking", "power-rating", "low-game-players", "live-season", "weekly-progression"],
+    files: ["utils/results_rating.py", "scripts/07_compute_player_ratings.py", "scripts/10_compute_team_ratings.py", "scripts/12_export_frontend_json.py", "scripts/17_live_season.py", "scripts/17b_weekly_progression.py", "scripts/22_freeze_snapshot.py",
+            "scripts/validate_earned_ranking.py", "scripts/validate_two_game_rating.py", "scripts/validate_low_game_weights.py", "tests/test_earned_ranking.py", "tests/test_two_game_rating.py",
+            "js/menuWeekly.js", "js/menuScreensLeague.js", "js/menuScreens.js", "js/menuScreensClass.js", "js/menuHome.js", "js/menuCard.js", "js/methods.js", "js/guide.js", "js/dataLoader.js", "js/config.js", "js/changes.js",
+            "data/live_2026.json", "data/team_ratings.json", "data/power_games_*.json", "data/weekly_*_{2024,2025,2026}.json", "data/snapshots/2026-wk10-v4.27/"],
+  },
+  {
+    id: "v4.27-initiative-one-ranked-order",
+    version: "v4.27",
+    date: "2026-11-09",
+    origin: "claude-initiative",
+    title: "Claude initiative: every rank on the site reads the earned order, not only the Rankings screen",
+    summary: `The owner approved the earned order as the first view on Rankings. Wiring it in showed that the Home top 10, the Rank chips on team and game screens, the quick menu's top 25 and the playoff picture all read one shared function, still on power. Left alone, Home would have listed Alabama first with a Full rankings link to a screen that has them sixth. The function now reads earned where a number exists and power otherwise, and that changes three of the twelve teams in the playoff picture.`,
+    motivation: `Found while building the earned order; not asked for.`,
+    initiative: {
+      what: "menuTeamRankValue (js/menuScreens.js, renamed from menuTeamPower) returns the earned number where one exists and power otherwise. Home, the Rank chips, the quick menu and the playoff picture follow it. The playoff picture's heading and note say which order they used (menuRanksByEarned).",
+      why: "One site, one rank. The alternative was a team page saying Rank #1 under a Rankings screen saying #6, on the release whose purpose was to stop that order being shown.",
+      how: {
+        steps: [
+          "Listed every reader of the shared function: Home, the Rank chips on team and game screens, the quick menu and the playoff picture.",
+          "Changed the one function and renamed it, since it no longer returns power.",
+          "Relabelled the one column that named power (the playoff seeds) and its note.",
+          "Compared the 12-team picture under each order by running the page's own menuPlayoffField against both.",
+        ],
+        files: ["js/menuScreens.js", "js/menuScreensClass.js", "js/menuHome.js", "js/menuChrome.js"],
+      },
+      evidence: `**The 12-team picture, 2026 through week 10, changes by three teams.** In on earned: Houston, BYU, Kentucky. Out: LSU, Tennessee, Wake Forest.
+        **Earned:** Utah, Miami, UCLA, Notre Dame, Georgia, Alabama, Texas, Boise State, Houston, Indiana, BYU, Kentucky.
+        **Power:** Alabama, Miami, Georgia, Notre Dame, Utah, UCLA, LSU, Texas, Boise State, Tennessee, Indiana, Wake Forest.
+        **As a reference only,** the earned top 12 held 10 and 9 of the committee's 12 in 2024 and 2025, against 8 and 8 for power. No playoff model has been backtested, and the screen says so.`,
+      reverse: "In js/menuScreens.js return lv?.power_rating ?? t.live_power_rating ?? t.power_rating ?? null from menuTeamRankValue, and false from menuRanksByEarned. To reverse the playoff picture alone, read power directly in menuPlayoffField and at the two other uses in js/menuScreensClass.js.",
+      questions: [
+        "Should the playoff picture follow the earned order, or stay on power while everything else moves?",
+        "Tennessee beat Alabama and is out of the picture while Alabama is seeded sixth. Does that bother you enough to want a head-to-head rule?",
+      ],
+    },
+    tried: [
+      { what: "Leave Home, the Rank chips and the quick menu on power", result: "Two rankings on one site, disagreeing by five places on the most visible team, with a link from one to the other.", verdict: "rejected" },
+      { what: "Move everything except the playoff picture", result: "Its note says it seeds straight by rank, and it is the one screen where the two orders pick different teams. The closest call of the three: it is reversible alone, and asked below.", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "The site's rank, Alabama and LSU, 2026 through week 10", before: "1st and 7th", after: "6th and 19th, on every screen" },
+      { label: "Teams in the 12-team picture", before: "the power list above", after: "3 of 12 change" },
+    ],
+    gates: [
+      { check: "UI smoke suite", result: "79 of 79 (three check corrections in the next commit; see the requested entry)" },
+    ],
+    unfixed: `**The owner has not approved this,** and it reaches further than what they were shown: they approved the order on the Rankings screen. This entry exists so it can be approved or reversed.
+      **Compare still measures distance from power,** and the Compare screen's heading says so.`,
+    methods: ["earned-ranking"],
+    files: ["js/menuScreens.js", "js/menuScreensClass.js", "js/menuHome.js", "js/menuChrome.js"],
+  },
+  {
+    id: "v4.27-initiative-rankings-on-a-phone",
+    version: "v4.27",
+    date: "2026-11-09",
+    origin: "claude-initiative",
+    title: "Claude initiative: Rankings rows keep the team's name on a phone, and the movement arrow can be read on the highlighted row",
+    summary: `Looking at the screen this release leads with turned up two faults, one older than the release. At phone width the desktop columns left the team's name no width at all, so a row read "1, 9-0, 87" with no team. The movement arrow on the highlighted row measured 1.3:1 in light mode and 3.2:1 in dark.`,
+    motivation: `Found by taking a screenshot of the new default view; not asked for.`,
+    initiative: {
+      what: "A phone layout for the Rankings rows in the existing @media block of css/menu.css: four columns (rank, team, record, the ranked number). The movement arrow takes the on-accent colour on a highlighted row.",
+      why: "A ranking with no team names is not a ranking, and Rankings is now the first thing this release sends people to. The owner has asked for readability before (v4.26).",
+      how: {
+        steps: [
+          "Screenshot of the new default view at 390 pixels: no names, and the header columns on top of one another.",
+          "Added the phone rule, first keeping the rating column. Names were cut to three or four letters, so the rating column came out too.",
+          "Added the arrow to the existing highlighted-row rule, using the token already there.",
+          "Reran the rendered audit and the smoke suite.",
+        ],
+        files: ["css/menu.css"],
+      },
+      evidence: `**Readability audit:** 2 distinct failures on 4 elements (1.32:1 and 3.18:1), both this arrow, to 0 on every screen in both modes and at both widths.
+        **At 390 pixels** every row now shows its name; a long one such as Mississippi State can still shorten. Before, none did.
+        **Smoke:** 79 of 79, including the check that nothing scrolls sideways on a phone.`,
+      reverse: "Delete the three .m-row--rank rules from the max-width block of css/menu.css, and remove .m-row.is-selected .m-mv from the selector beside .m-cmp-rank.",
+      questions: [
+        "On a phone the list drops the conference and rating columns (the rating is on the team's panel). Is that the right pair to drop?",
+      ],
+    },
+    tried: [
+      { what: "Keep the rating column and drop only the conference", result: "Names were cut to three or four letters at 390 pixels (Mia..., Not...).", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Text failures in the rendered audit", before: "2 distinct, 4 elements", after: "0" },
+    ],
+    gates: [
+      { check: "tools/ui-smoke/a11y.mjs; UI smoke suite; tools/contrast-check.mjs", result: "0 text failures; 79 of 79; every contrast floor green" },
+    ],
+    unfixed: `**A phone still has no rating column on this list.** **The fault was older than this release** and was not caught by the smoke suite, which only checks that nothing scrolls sideways.`,
+    methods: ["earned-ranking"],
+    files: ["css/menu.css"],
+  },
+  {
     id: "v4.26.2-week-ten",
     version: "v4.26.2",
     date: "2026-11-09",

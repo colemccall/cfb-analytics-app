@@ -144,7 +144,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
         const subRatings = typeof teamRating.sub_ratings === "string"
           ? JSON.parse(teamRating.sub_ratings)
           : (teamRating.sub_ratings || {});
-        teamRatingsMap[teamRating.team_id] = { sp: teamRating.sp_overall, recruit: teamRating.recruiting_score, live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, ratingPart: teamRating.rating_part, resultsGames: teamRating.results_games, power: teamRating.power_rating, livePower: teamRating.live_power_rating, results: teamRating.results_rating, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
+        teamRatingsMap[teamRating.team_id] = { sp: teamRating.sp_overall, recruit: teamRating.recruiting_score, live: teamRating.live_overall_rating, liveWeek: teamRating.live_through_week, ratingPart: teamRating.rating_part, resultsGames: teamRating.results_games, power: teamRating.power_rating, livePower: teamRating.live_power_rating, earned: teamRating.earned_rating, results: teamRating.results_rating, ovr: teamRating.overall_rating, off: teamRating.offense_rating, def: teamRating.defense_rating, sub: subRatings };
       }
     }
   }
@@ -168,6 +168,7 @@ async function fetchTeams(season = CONFIG.CURRENT_SEASON) {
       recruiting_score:    teamRating.recruit ?? null,
       power_rating:        teamRating.power ?? null,       // ranks teams: quality plus results, points per game above average
       live_power_rating:   teamRating.livePower ?? null,
+      earned_rating:       teamRating.earned ?? null,      // the earned order: wins and losses first, against the opponents played (null without results)
       results_rating:      teamRating.results ?? null,
       rating_part:         teamRating.ratingPart ?? null,
       results_games:       teamRating.resultsGames ?? null,

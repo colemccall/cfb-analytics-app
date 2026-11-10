@@ -19,6 +19,16 @@
    "model_fingerprint": "85182634430227d2",
    "frozen_at": "2026-11-10T00:43:29+00:00",
    "previous": "2026-wk09-v4.26"
+  },
+  {
+   "id": "2026-wk10-v4.27",
+   "season": 2026,
+   "week": 10,
+   "kind": "model",
+   "release": "v4.27",
+   "model_fingerprint": "e8c08ee412f2b197",
+   "frozen_at": "2026-11-10T15:38:03+00:00",
+   "previous": "2026-wk10-v4.26.2"
   }
  ]
 }

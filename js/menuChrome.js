@@ -241,7 +241,7 @@ menuChrome.loadTicker = async function () {
   this.tickerSeason = season;          // the router redraws the ticker when the season it shows is not the season being viewed
   try {
     const d = await menuTeams(season);
-    const top = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).slice(0, 25);
+    const top = d.teams.filter(t => menuTeamRankValue(t, d) != null).sort((a, b) => menuTeamRankValue(b, d) - menuTeamRankValue(a, d)).slice(0, 25);
     const one = top.map((t, i) => {
       const s = d.standings[t.id];
       return `<a href="${menuTeamPath(t.id)}">#${i + 1} <b>${_esc(t.school)}</b>${s ? ` (${s.w}-${s.l})` : ""}</a>`;

@@ -65,7 +65,7 @@ function menuWeeklyUnitsHtml(rows) {
   }).join("");
   return `<h3 class="m-h3">How the units changed</h3>
     <div class="m-twrap"><table class="m-ptable m-ptable--units"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-    <p class="m-note">Offense and defense are the team's two halves of the rating. Roster, stats and results are the three readings the rating is made of. Each position group is its starters plus depth on the player scale: a group changes when its players play better or worse, when the depth chart moves, or when a player is hurt or leaves. The first weeks of the roster reading are held down by the low-game rule (a player with one or two games is capped at 72), so part of an early rise is that cap lifting as games accumulate. The offensive line is not here (the line unit has no weekly version).</p>`;
+    <p class="m-note">Offense and defense are the team's two halves of the rating. Roster, stats and results are the three readings the rating is made of. Each position group is its starters plus depth on the player scale: a group changes when its players play better or worse, when the depth chart moves, or when a player is hurt or leaves. The first weeks of the roster reading are held down by the low-game rule (a player with one game is capped at 72), so part of an early rise is that cap lifting as games accumulate. The offensive line is not here (the line unit has no weekly version).</p>`;
 }
 
 // The weekly section for a team: the summary, a chart with the rating on it, a table of the weeks and the units matrix. `rows` are the
@@ -133,7 +133,7 @@ function menuWeeklyPlayerHtml(p, rows, sched) {
     <div class="m-twrap"><table class="m-ptable m-ptable--weeks"><thead><tr><th>WK</th><th title="His rating after that week's games">RATING</th><th title="Change from the week before">CHANGE</th><th>GAMES</th>
       <th title="Production: from his stats alone. Blended: stats with his recruiting profile, while the sample is small.">BASIS</th><th class="m-wk-game">GAME</th><th title="That one game, on the rating scale">GRADE</th></tr></thead>
       <tbody>${body}</tbody></table></div>
-    <p class="m-note">Rating is his earned rating to date after that week, rescaled to full-season pace: a scale, not a shrink. A week he held no rating (fewer than three games with a counted stat, or no game) is missing from the table. Grade is that one game's adjusted score read as if every game of a 12-game season looked like it, so a single game swings far more than the running rating does. His box score for each game is on the Games tab.</p>`;
+    <p class="m-note">Rating is his earned rating to date after that week, rescaled to full-season pace: a scale, not a shrink. A week he held no rating (no game with a counted stat yet) is missing from the table. Grade is that one game's adjusted score read as if every game of a 12-game season looked like it, so a single game swings far more than the running rating does. His box score for each game is on the Games tab.</p>`;
 }
 
 // Fills a player card's Week by week panel after the card is drawn.
@@ -144,7 +144,7 @@ async function menuFillWeeklyPlayer(el, p, team, pid) {
     if (!el.isConnected) return;
     if (!wk) { el.innerHTML = `${head}<p class="m-empty">${dataFailed(`weekly_players_${MENU.season}.json`) ? "The weekly file did not load. Use Retry." : "No week-by-week file for this season."}</p>`; return; }
     const rows = wk.players[String(pid)] || [];
-    if (!rows.length) { el.innerHTML = `${head}<p class="m-empty">He has not held a rating after any completed week: he needs three games with a counted stat. Offensive linemen are not rated.</p>`; return; }
+    if (!rows.length) { el.innerHTML = `${head}<p class="m-empty">He has not held a rating after any completed week: he needs a game with a counted stat. Offensive linemen are not rated.</p>`; return; }
     el.innerHTML = head + menuWeeklyPlayerHtml(p, rows, sched);
   } catch (e) {
     if (el.isConnected) el.innerHTML = `${head}<p class="m-empty" role="alert">The weekly view did not draw: ${_esc(e && e.message ? e.message : e)}.</p>`;
@@ -214,7 +214,7 @@ function menuGamesTabHtml(p, games, sched, weeks, pg) {
   }).join("");
   return `<div class="m-twrap"><table class="m-ptable m-ptable--glog"><thead><tr><th>WK</th><th class="m-wk-game">GAME</th><th>LINE</th><th title="That one game, on the rating scale">GRADE</th><th title="His rating after that week's games">RATING</th></tr></thead><tbody>${summary}</tbody></table></div>
     ${groups}
-    <p class="m-foot">Every game he is on record in this season, from the box scores: a stat the box score does not list for him is a dash, not a zero. Grade is that game read as a 12-game season; rating is his earned rating to date after the week. A game with no rating beside it came before he had three games with a counted stat.</p>`;
+    <p class="m-foot">Every game he is on record in this season, from the box scores: a stat the box score does not list for him is a dash, not a zero. Grade is that game read as a 12-game season; rating is his earned rating to date after the week. A game with no rating beside it came before he had a counted stat.</p>`;
 }
 
 // Fills a player card's Games tab: the team's game log, the schedule and his weekly rows, then the tables.
@@ -233,10 +233,13 @@ async function menuFillGames(el, p, team, pid, pg) {
 
 // ── Rankings at any week, by method ─────────────────────────────────────────────────────────────────────────────────
 
-// The ways to rank, in the order the chips show them: [id, label, what it is]. A season being played offers all three; a played season
-// has the games-only version only inside its power (rating part plus results part), so it offers power and the rating.
+// The ways to rank, in the order the chips show them: [id, label, what it is]. The first is the default. A season being played offers all four; a
+// played season has the games-only version only inside its power (rating part plus results part), so it offers earned, power and the rating. A
+// list with no results yet (a preseason list) has no earned number, so it does not offer it.
+const MENU_RANK_EARNED = ["earned", "Earned", "What the team has done: wins and losses first. Each game is worth 12 for a win or minus 12 for a loss, plus the margin up to 7, against the opponents it played, in points per game above an average team."];
 const MENU_RANK_LIVE = [
-  ["games", "Games only", "Power from the results alone: margin (capped at 28) and win or loss against the opponents played, in points per game above an average team. The default while a season is played."],
+  MENU_RANK_EARNED,
+  ["games", "Games only", "Power from the results alone: margin (capped at 28) and win or loss against the opponents played, in points per game above an average team."],
   ["blend", "Rating + games", "Power with a rating part added: the roster-and-stats rating in points, plus the results part solved against it. The roster and stats come from the same games, so this counts them twice."],
   ["rating", "Rating", "The team rating: roster 1/6, stats 1/6 and results 2/3. It does look at the results, once, inside the headline."],
 ];
@@ -246,7 +249,10 @@ const MENU_RANK_PLAYED = [
 ];
 
 // The methods for a list ("live" is the season being played), and a method id made valid: an unknown or missing one is the list's first.
-function menuRankMethods(list) { return list === "live" || list === "weeks" ? MENU_RANK_LIVE : MENU_RANK_PLAYED; }
+function menuRankMethods(list) {
+  if (list === "live" || list === "weeks") return MENU_RANK_LIVE;
+  return isProjectedSeason(MENU.season) ? MENU_RANK_PLAYED : [MENU_RANK_EARNED, ...MENU_RANK_PLAYED];
+}
 function menuRankMethod(list, id) { const ms = menuRankMethods(list); return (ms.find(m => m[0] === id) || ms[0])[0]; }
 
 // The week a route asks for ("w5"): a number among the weeks on file, or null for the current numbers (no week, the latest week, or one
@@ -256,7 +262,7 @@ function menuRankWeek(param, wk, latest) {
   return n != null && wk && wk.weeks.includes(n) && n !== latest ? n : null;
 }
 
-// Every team's three numbers as they stood after `week` of the season being played: Map(team_id -> { head, games, blend }). A null week
+// Every team's numbers as they stood after `week` of the season being played: Map(team_id -> { head, games, blend, earned }). A null week
 // is the current numbers, read from the live file the rest of the site shows; otherwise the weekly file's row for that week. A team with
 // no row that week is absent.
 function menuRankSnapshot(d, wk, week) {
@@ -264,19 +270,19 @@ function menuRankSnapshot(d, wk, week) {
   if (week == null) {
     for (const t of d.teams) {
       const lv = d.liveById[t.id];
-      if (lv && lv.power_rating != null) out.set(t.id, { head: lv.overall_rating, games: lv.power_rating, blend: lv.power_blend ?? null });
+      if (lv && lv.power_rating != null) out.set(t.id, { head: lv.overall_rating, games: lv.power_rating, blend: lv.power_blend ?? null, earned: lv.earned_rating ?? null });
     }
     return out;
   }
   for (const [tid, doc] of Object.entries((wk && wk.teams) || {})) {
     const r = doc.weeks.find(x => x.week === week);
-    if (r && r.power != null) out.set(Number(tid), { head: r.head, games: r.power, blend: r.blend ?? null, w: r.w, l: r.l });
+    if (r && r.power != null) out.set(Number(tid), { head: r.head, games: r.power, blend: r.blend ?? null, earned: r.earned ?? null, w: r.w, l: r.l });
   }
   return out;
 }
 
 // The number a method sorts by, from a snapshot entry.
-function menuRankKey(method, e) { return e == null ? null : method === "rating" ? e.head : method === "games" ? e.games : e.blend; }
+function menuRankKey(method, e) { return e == null ? null : method === "rating" ? e.head : method === "games" ? e.games : method === "earned" ? e.earned : e.blend; }
 
 // Team ids in order, best first, by one method; a team with no number for it is left out.
 function menuRankOrder(snap, method) {

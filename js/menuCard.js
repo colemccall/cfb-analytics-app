@@ -193,7 +193,8 @@ function menuWhyBlock(p, rows = []) {
     }
     if (p.live_rating != null) {
       const low = p.live_basis === "blended" ? menuLowGameLine(p.live_games) : "";
-      lines.push(low || `<li><b>To date:</b> the same production score over his ${p.live_games ?? "counted"} games so far this season, scaled to a full-season pace.</li>`);
+      const two = !low && _menuNum(p.live_games) === 2 ? "<li><b>2 games:</b> rated on how he played in the two games he has had, pulled toward an average player's number because two games is a small sample. The pull eases with each game he plays.</li>" : "";
+      lines.push(low || two || `<li><b>To date:</b> the same production score over his ${p.live_games ?? "counted"} games so far this season, scaled to a full-season pace.</li>`);
     }
   }
   const edge = _menuNum(p.edge_score);

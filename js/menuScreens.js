@@ -41,19 +41,24 @@ function menuTeamOvr(t, d) {
   return lv?.overall_rating ?? t.overall_rating ?? null;
 }
 
-// The number teams are RANKED by: power, in points per game above an average team. It combines the
-// team rating (how good its players and stats are) with a results rating (what it has done against
-// its schedule), so a team cannot sit above one that has beaten it on the field. Earned to date
-// when the season is being played, else the season's own (a projected season has quality only).
-function menuTeamPower(t, d) {
-  return d.liveById[t.id]?.power_rating ?? t.live_power_rating ?? t.power_rating ?? null;
+// The number teams are RANKED by, everywhere a rank is shown: the earned order (v4.27), wins and losses counted first, in points per game
+// above an average team. A season with no results yet has no earned number, so it falls back to power, which for a projected season
+// is quality alone. To date when the season is being played, else the season's own.
+function menuTeamRankValue(t, d) {
+  const lv = d.liveById[t.id];
+  return lv?.earned_rating ?? t.earned_rating ?? lv?.power_rating ?? t.live_power_rating ?? t.power_rating ?? null;
 }
 
-// A team's national rank by menuTeamPower, 1-based, or null if it has none.
+// True when the list a screen is showing is in the earned order (false for a season with no results, which ranks on power).
+function menuRanksByEarned(d) {
+  return d.teams.some(t => (d.liveById[t.id]?.earned_rating ?? t.earned_rating) != null);
+}
+
+// A team's national rank by menuTeamRankValue, 1-based, or null if it has none.
 function menuTeamRank(team, d) {
-  const mine = menuTeamPower(team, d);
+  const mine = menuTeamRankValue(team, d);
   if (mine == null) return null;
-  return 1 + d.teams.filter(t => (menuTeamPower(t, d) ?? -1e9) > mine).length;
+  return 1 + d.teams.filter(t => (menuTeamRankValue(t, d) ?? -1e9) > mine).length;
 }
 
 // Power as shown: a signed number of points, one decimal.

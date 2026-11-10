@@ -157,7 +157,7 @@ const GUIDE = [
         meaning: "Marks the odd one out where projected and earned numbers sit side by side — a career chart, a transfer table. On a wholly projected season the page says it once at the top instead of badging every number." },
       { term: "To-date rating",
         sample: () => livePill({ live_rating: 88, live_games: 6, live_through_week: 8 }),
-        meaning: "What a player has earned so far in a season being played, rescaled to full-season pace. The solid underline is what tells it from a plain earned pill and a hatched projection. It is provisional: on one or two games it moves only a little from a recruiting-based start, and it will move as the season does. Never averaged with the projection." },
+        meaning: "What a player has earned so far in a season being played, rescaled to full-season pace. The solid underline is what tells it from a plain earned pill and a hatched projection. It is provisional: on one game it moves only a little from a recruiting-based start, on two it is how he played pulled toward an average player, and it will move as the season does. Never averaged with the projection." },
       { term: "The three ratings",
         sample: () => ratingTrioCells({ rating_prev: 80, overall_rating: 84, projection_low: 78, projection_high: 90, live_rating: 88, live_games: 6, live_through_week: 8, live_status: "rated", rating_prev_status: "rated", position_group: "WR" }, CONFIG.CURRENT_SEASON).join(" "),
         meaning: `On a ${CONFIG.CURRENT_SEASON} player: last season earned, the preseason projection, and earned so far. Three different questions with three different numbers. A missing one is a dash with the reason on hover: a player with 1 or 2 games shows "(2 gm)", an offensive lineman is not rated, a newcomer has no last season.` },
@@ -291,14 +291,15 @@ const GUIDE = [
     id: "page-rankings",
     group: "pages",
     title: "Rankings and Compare: the top 25, every FBS team, and the readings side by side",
-    summary: `**Rankings** lists teams by power, our own measure of quality plus results, in points per game above an average team. It
+    summary: `**Rankings** opens on the **Earned** order: what a team has done, with wins and losses counted first, in points per game above an
+      average team. The Rank by chips swap it for power, our measure of how good a team is, or for the team rating. It
       opens on the **Top 25**; the **All FBS** chip beside it lists every ranked team, with the same row, the same panel and your own
       team highlighted. The tabs choose the list: to date for a season being played, the preseason projection or the final for a
-      played one. Select a team to see how its power is made and every game behind it.
+      played one. Select a team to see how its number is made and every game behind it.
 
-      **Compare** puts the numbers a team is rated from beside the ranking: power (our ranking), the headline team rating, and the
+      **Compare** puts the numbers a team is rated from beside power: power, the headline team rating, and the
       results, roster and stats readings it is made of, each with its own rank. The tabs sort the list by any of the five. An arrow
-      marks a reading that sits 20 or more places from our ranking: up means that reading likes the team more than our ranking does,
+      marks a reading that sits 20 or more places from power: up means that reading likes the team more than power does,
       down means less. It is how you see a team whose box score and roster look better than its results, or the other way round.
       Select a team for its five numbers with what each one is and how much of the headline it carries.`,
     controls: [

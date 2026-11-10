@@ -504,7 +504,7 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: va
 .m-cmp-pw { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); }
 .m-cmp-rank { font-size: var(--fs-label); color: var(--m-muted); white-space: nowrap; }
 .m-cmp-rank.is-gap { color: var(--m-text); font-weight: 800; text-decoration: underline; }
-.m-row.is-selected .m-cmp-rank, button.m-bslot.is-selected i { color: var(--m-on-hot); }   /* v4.26: muted or red-on-red was 1.3 to 3.2:1 */
+.m-row.is-selected .m-cmp-rank, .m-row.is-selected .m-mv, button.m-bslot.is-selected i { color: var(--m-on-hot); }   /* v4.26: muted or red-on-red was 1.3 to 3.2:1 */
 .m-cmp-table th, .m-cmp-table td { vertical-align: top; text-align: left; padding: 0.25rem 0.5rem; }
 .m-viewbar { margin: 0 0 0.6rem; }
 .m-chip.is-view { box-shadow: inset 0 -3px 0 var(--m-hot); }
@@ -903,6 +903,9 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
   .m-rowhead.m-row--cmp, .m-row--cmp { grid-template-columns: 1.6rem minmax(0, 1fr) 3.6rem 3.4rem; }
   .m-row--cmp > :nth-child(n+5), .m-rowhead.m-row--cmp > :nth-child(n+5) { display: none; }
   .m-rowhead.m-row--cmp > span:nth-child(4) { display: block; }
+  .m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 3.4rem minmax(0, 1fr) 2.8rem 3.4rem; }   /* v4.27: the desktop columns left the team's name no width; the rating is on its panel */
+  .m-rowhead.m-row--rank > span:nth-child(3), .m-row--rank > :nth-child(5) { display: none; }
+  .m-rowhead.m-row--rank > span:nth-child(4) { display: block; }
   .m-tl-y, .m-tl-plot { height: 7rem; }
   .m-ptable--weeks .m-wk-power { display: none; }
   .m-ptable--weeks .m-wk-game { max-width: 7.5rem; }

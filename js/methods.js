@@ -496,7 +496,7 @@ it is what one expects when a third of a position is being rated as though it st
     ],
     formula: `player   EDGE = sum over games of (position composite x opponent multiplier) / sqrt(games)
          rating = EDGE_OVR_ANCHORS[position](EDGE)                     30-99, frozen, absolute
-         basis  = production | blended (role, reserve, one or two games) | recruiting (bench) | withheld (OL)
+         basis  = production | blended (role, reserve, one game, or two in a finished season) | recruiting (bench) | withheld (OL)
 in play  rating = a + b x anchored( EDGE_raw x sqrt(12 / his games) )   (a, b) per family and games played
 team     headline = 1/6 roster + 1/6 stats (schedule-adjusted) + 2/3 results
          power    = 0.98 x (rating - mean) + results part;  rating part = 0 while a season is being played
@@ -818,7 +818,7 @@ back-test does: provisional numbers must not be able to leak into anything that 
       damped to remove the overshoot, because tuning it to one season is how a constant goes stale.
 
       **A part-season is a small sample.** A player at three games clears the bar for a production rating on three
-      games. The rank agreements above are for players who clear it at week 8; the 17% who do not were absent, not rated low,
+      games (two since v4.27). The rank agreements above are for players who clear it at week 8; the 17% who do not were absent, not rated low,
       until v4.19 gave one- and two-game players a small, capped rating of their own (see the low-game entry).
 
       **Team ratings move on schedule as well as players.** A team's rating blends this season's SP+ with
@@ -1227,11 +1227,13 @@ a season with no team_records yet (one in progress): conferences from the teams 
   {
     id: "low-game-players",
     group: "ratings",
-    title: "Players with one or two games: a small, capped rating from what they did",
+    title: "Players with one game (two in a finished season): a small, capped rating; two games in a season being played: his own play",
     summary: `A production rating needs three productive games. A player with one or two (a rotation player, or one who was hurt) used to be
       rated from his recruiting grade alone, so a good stretch counted for nothing. He now gets a rating built from the recruiting grade
       and his stretch, weighted by how few games it was and how busy he was, and capped well below a star. Nothing is labelled provisional
-      on his card; the card says how many games the number is built on.`,
+      on his card; the card says how many games the number is built on.
+
+      **Since v4.27, in a season being played, two games are enough for a rating from his own play.** The owner's rule, after Boise State's Max Cutforth went 24 of 32 for 448 yards and 7 touchdowns in two games and published at 43.8. He is rated like a three-game player: his per-game level through the anchors, then the three-game line of the part-season curve. One game, and two games in a finished season, stay on the rule below.`,
     inputs: [
       { name: "EDGE score for the games he has", source: "player_edge.json, field edge_all (script 06 keeps it where edge_score is withheld)", coverage: "2008-2026, players with one or two productive games" },
       { name: "Recruiting-based starting rating", source: "position average plus a step for his stars (the existing fallback)", coverage: "every player" },
@@ -1239,7 +1241,11 @@ a season with no team_records yet (one in progress): conferences from the teams 
     formula: `R_edge = edge_to_ovr(edge_all)                      the full-season anchors on sum / sqrt(games): the game count is in the number
 rating = prior + w x (R_edge - mean R_edge of low-game players at his position and games), then 30 <= rating <= 72
 w = 0.115 (1 game, quiet)  0.175 (1 game, busy)  0.173 (2 games, quiet)  0.209 (2 games, busy)      busy = 4 or more counted events
-prior = position average + step for stars (unchanged); basis = blended`,
+prior = position average + step for stars (unchanged); basis = blended
+
+two games, season in progress (v4.27):
+level  = edge_to_ovr(edge_all x sqrt(12 / 2))              his per-game level, as for three games or more
+rating = a + b x level        (a, b) = PART_SEASON_CURVE[position family, 3 games]; basis = production`,
     reality: `A typical low-game player stays where he was, because the deviation is measured from his peers' mean. A stretch 20 points
       above them moves him 2.3 to 4.2 points; the largest move in the archive is 9.6. Players with three games or more are untouched (0 of 132,504 other
       player-seasons moved). The tier blend that used to follow (a bench-tier player went back to recruiting alone) is skipped for these players,
@@ -1257,20 +1263,36 @@ prior = position average + step for stars (unchanged); basis = blended`,
       { label: "Effect on team ratings, 2026", value: "111 of 138 teams moved, mean +0.05, largest 1.27; Kansas State 84.51 -> 84.46, Nebraska 85.23 -> 85.30" },
       { label: "Projection gates after the retrain", value: "offense 8.18 against naive 9.08, coverage 79.0%; defense 8.39 against 9.58, 76.8%: both as before" },
       { label: "Reproduction", value: "validate_low_game_weights.py prints the slopes, the cross-validation and the placebo; explore_low_game_players.py is the earlier survey" },
+      { label: "v4.27: two games, against how he went on to play (mean error and bias), 2024-2025, 3,115 player-cuts with 3 or more later games", value: "the low-game rule 17.49 (bias -14.56); the three-game line 9.86 (+0.99); a line fitted for two games 9.91 (-0.25); the position's mean 10.92; the levels dealt to other players 11.27" },
+      { label: "v4.27: the same, by recruiting grade", value: "no recruiting grade on file (817): the rule 27.13 (bias -27.09), the line 9.94. A grade on file (2,298): the rule 14.06 (-10.10), the line 9.83" },
+      { label: "v4.27: by position family, the rule against the line", value: "DB 18.64 / 11.70; DL and EDGE 17.22 / 10.25; LB 16.81 / 10.11; QB 15.83 / 10.52; RB 14.38 / 9.05; WR and TE 18.54 / 7.25" },
+      { label: "v4.27: the jump at his third game (5,672 player-cuts)", value: "mean size 15.75 under the rule, largest 45.3; 2.29 under the line, largest 22.8" },
+      { label: "v4.27: at the top end, every season 2021-2025", value: "rated 80 or more by the line: 145 of 6,890 (2.1%), and they then played 4.77 below it; rated 85 or more: 20, 4.37 below. For the fitted two-game line: 15 at 80 or more, 0.72 above" },
     ],
-    limits: `**A short stretch is weak evidence:** the slope is 0.15 to 0.21, so even a very good stretch moves a player a few points and the cap rarely binds.
+    limits: `**A two-game rating is scored only on players who kept playing.** 11,531 of the 18,421 two-game player-cuts of 2021-2025 have fewer than 3 games left, and nothing can say what they would have done. Under the v4.27 line they publish at a mean of 63.6 against 49.7 under the rule: about 14 points higher. That is the rule's cost, and it is the survivor problem the "Publish the next-season prediction" alternative below was rejected for, in a milder form: a player with a level under 50 goes from 47.1 to 56.8.
+
+      **It runs a little hot at the top:** a player the line rates 80 or more then plays 4.8 lower, against 3.6 for the curve at 3 games or more.
+
+      **A short stretch is weak evidence:** the slope is 0.15 to 0.21, so even a very good stretch moves a player a few points and the cap rarely binds.
       **The outcome is next season's earned rating, which only exists for the 34% who go on to earn one:** the weights come from survivors and may understate or overstate those who never play again.
       **The four weights are a monotone summary, not extra precision.** **Snaps are not used:** snap counts cover too few defenders (15 of 43,008 since 2016), so volume is counted events.
       **The level is still the recruiting grade,** which carries no information for these players once the stretch is known (coefficient -0.056); it is kept so a typical low-game player does not move.
+      **A player with no recruiting grade still starts near 40 on the rule:** a missing grade is read as zero stars, 33 points below the position average. Under the rule that now applies only to one game and to finished seasons, but it is the same defect, and "missing means unknown" says it should not be there. Listed in v4.24 and still not fixed.
       **Quality of the opponent is in the score, garbage time is not removed.** **Pre-2016 defenders have no per-game rows and are unchanged.**`,
     alternatives: [
+      { label: "v4.27: a line fitted for two games", basis: "validate_two_game_rating.py", status: "rejected", note: "9.91 against 9.86 for the three-game line, with a slope of 0.17 to 0.45 against 0.30 to 0.58, so how he played would count for less, and six more constants. Its bias is better (-0.25 against +0.99, and it does not run hot at the top), so this was a judgement: the owner asked for a rating based on performance. Max Cutforth would be about 75.6 instead of about 82.8." },
+      { label: "v4.27: his own level, believed entirely", basis: "validate_two_game_rating.py", status: "rejected", note: "12.95, bias -4.78; it misses by 7 more on a level under 60 and runs 7.9 hot at 75 and up." },
+      { label: "v4.27: keep the rule and replace a missing recruiting grade with a position average", basis: "next-season earned ratings, 1,197 players with no grade", status: "blocked", note: "Those players were rated 35.5 and earned 66.7 the next year; recruited players went 54.4 to 63.9 (the gap 21.7, shuffled 0.4). Correcting the level cuts their miss from 31.2 to 6.2. The owner chose the performance rating instead for two games, so this stands only for one game and finished seasons." },
       { label: "Rate a one- or two-game player by the full-season formula alone", basis: "R_edge", status: "rejected", note: "R_edge averages 39.6 against a recruiting prior of 48.2: the sqrt(games) in the score already counts a short stretch as small, and the formula alone is a worse level than the prior." },
       { label: "Predict next season's rating directly and publish that", basis: "the next-season calibration", status: "rejected", note: "Survivors average 64; publishing it would give a typical bench player a starter's number." },
       { label: "A hard ceiling at a lower value, or none", basis: "estimate distribution", status: "shipped at 72", note: "The top 5% by estimate went on to rate 67.6 on average (90th percentile 80.8): 72 is a cap that rarely binds and never makes a star of a few games." },
       { label: "Label the rating provisional", basis: "the owner", status: "rejected", note: "The owner asked that it not be labelled; the card states the game count instead." },
     ],
-    changelog: [{ version: "v4.19", change: "Added: players with one or two productive games are rated from their stretch and the recruiting prior, weighted by games and counted events, capped at 72." }],
-    source: "scripts/07_compute_player_ratings.py (low_game_rating) · scripts/06_compute_edge_scores.py (edge_all) · scripts/validate_low_game_weights.py · tests/test_low_game_ratings.py",
+    changelog: [
+      { version: "v4.27", change: "In a season being played, two games are rated on his own play through the three-game line. One game, and two in a finished season, stay on this rule." },
+      { version: "v4.19", change: "Added: players with one or two productive games are rated from their stretch and the recruiting prior, weighted by games and counted events, capped at 72." },
+    ],
+    source: "scripts/07_compute_player_ratings.py (low_game_rating, two_game_rating) · scripts/06_compute_edge_scores.py (edge_all) · scripts/validate_low_game_weights.py · scripts/validate_two_game_rating.py · tests/test_low_game_ratings.py · tests/test_two_game_rating.py",
   },
 
   {
@@ -1322,11 +1344,65 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
   },
 
   {
+    id: "earned-ranking",
+    group: "team",
+    title: "Earned: the order Rankings opens on, with wins and losses counted first",
+    summary: `Power says how good a team is, and it rewards margin, so in 2026 through week 10 it had two-loss Alabama first, ahead of the Georgia
+      team that beat it, and three-loss LSU seventh. The owner's objection was not that power predicts badly: it was that a ranking should not read
+      that way. Earned is a second number beside power that answers a different question, what the team has done. Every game is worth 12 for a win or minus 12
+      for a loss, plus the margin up to 7, and all games are solved at once against the opponents played. Nothing about a team's players or last season goes in.
+      Rankings opens on it. Power, the games-only method and the rating are one chip away, and no rating changed.`,
+    inputs: [
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed on the team's panel and not counted)", coverage: "2008-2026; 2026 through week 10" },
+    ],
+    formula: `value(game)  = clip(margin, +-7) + 12 if won, - 12 if lost            (from the team's side; a tie is 0)
+earned       = ridge solution over all teams and games at once, with a home edge        (lambda = 2)
+             = utils/results_rating.power_components with every rating part 0, cap 7, bonus 12
+a team with no FBS game has no number, not a zero`,
+    reality: `The solve is power's own solve with different constants and no rating part, in every season, finished or not. Script 10 writes earned_rating beside power_rating; script 17 carries it to the live file and script 17b to each replayed week; script 12 exports it and each game's earned_value for the panel. A preseason list has no results, so it does not offer the chip. The panel shows every game's value and where the opponent stands in this same order.`,
+    why: `A ranking is read as a verdict on what a team has done, and a number that predicts the next game well is not that verdict. Changing power to fit the verdict would have cost it accuracy and hidden the disagreement, so the two are published side by side. The constants are a judgement about what the order should reward, and they are labelled as that: see limits.`,
+    evidence: [
+      { label: "Higher-ranked team won, every later regular-season FBS game, 2016-2025 without 2020: after week 8 (2,912 games)", value: "power 69.99%, earned 68.27%; always the home team 57.35%; better record, with a fitted home edge, 67.17%" },
+      { label: "The same, after week 10 (1,922 games)", value: "power 72.01%, earned 69.30%; always the home team 58.01%; better record, with a fitted home edge, 68.94%" },
+      { label: "Mean miss of a margin fitted to the number, leave one season out", value: "after week 8 13.49 for power, 13.99 for earned; after week 10 13.21 and 13.76" },
+      { label: "How the order behaves, per season at week 10, 9 seasons", value: "two-loss teams in the top 5: power 0.4, earned 0.0. Three-loss teams in the top 15: 1.4 and 0.2. Teams from outside the big conferences in the top 15: 1.6 and 2.3. Pairs in the top 25 ranked against their own head-to-head result: 6.9 and 5.8" },
+      { label: "2026 through week 10, power to earned", value: "Alabama 1 to 6, LSU 7 to 19, Liberty 13 to 25, New Mexico 15 to 17, Boise State 9 to 8; 46 of 138 teams move 10 or more places; 21 of the top 25 are shared" },
+      { label: "The committee's 12 in each order's top 12 (a reference, never an input)", value: "2024 and 2025: power 8 and 8, earned 10 and 9" },
+      { label: "Does the loss column predict later games beyond points? Margin on the power gap, home and the loss difference", value: "each extra loss is worth +1.83 points after week 8 and +1.54 after week 10 (shuffled -0.01, sd 0.16): at equal power, the team with more losses did better afterwards, so power already counts a loss for more than it predicts" },
+      { label: "A team ranked above one that beat it, top 25: the later error of the winner minus the loser's", value: "after week 8, 43 pairs, -0.86 (s.e. 1.66, sign-flip placebo p = 0.61); after week 10, 62 pairs, -2.34 (s.e. 1.76, p = 0.21). No sign the head-to-head winner was underrated; too few pairs to rule out a small effect" },
+      { label: "Reproduction", value: "python scripts/validate_earned_ranking.py prints every number above and the 108-setting sweep" },
+    ],
+    limits: `**The two constants were searched for an answer.** The owner set four conditions on 2026 through week 10: Alabama outside the top 5, LSU outside the top 15, Liberty and New Mexico outside the top 15. 43 of 108 settings of cap and bonus meet them, every one with a cap of 7 or lower, and cap 7, bonus 12 has the lowest average miss among the settings near the best hit rate. So its fit to 2026 is evidence of nothing. What can be read is the backtest above and how the order behaves in other seasons.
+
+      **It predicts worse than power, by 2.7 points of winners after week 10.** That is why it does not replace power.
+
+      **It is close and it moves.** Alabama is 6th by 0.05 points behind Georgia, so one result can flip it, and under the same constants through week 9 Alabama was 12th and LSU 9th. Oregon, 6-3, is 15th.
+
+      **Head-to-head is not a rule here.** A win over a team counts through the solve, not as a tie-break, so a team can still sit above one that beat it: 5.8 pairs a season in the top 25 (9 in 2026 through week 10, against 11 on power), and Alabama sits above Tennessee.
+
+      **Teams from outside the big conferences rise a little** (2.3 in the top 15 a season against 1.6), because a margin that counts less gives a strong schedule less room to show itself.
+
+      **Only regular-season games between two FBS teams count,** as with power, so a finished season's order leaves out its bowls and playoff.`,
+    alternatives: [
+      { label: "Change power's own constants to these", basis: "the same backtest", status: "rejected", note: "Winners 72.0% to 69.3% after week 10 and 46 teams moved 10 or more places. A separate number gives the order the owner wanted and costs power nothing." },
+      { label: "Win bonus 14, cap 28", basis: "the sweep", status: "rejected", note: "71.5% after week 10; Alabama 3rd and LSU 9th: does not meet the conditions." },
+      { label: "Cap 14, bonus 14", basis: "the sweep", status: "rejected", note: "70.0%; Alabama 4th and LSU 15th: does not meet them." },
+      { label: "Wins and losses only (cap 0), opponents kept", basis: "the sweep", status: "rejected", note: "68.6%, Alabama 6th and LSU 20th. It meets the conditions but throws away margin altogether for 0.7 points fewer winners than cap 7, bonus 12." },
+      { label: "Fewest losses first, power within", basis: "the same backtest", status: "rejected", note: "69.7%, Alabama 12th and LSU 33rd, with 8-1 Liberty and New Mexico above Alabama: it ignores who the losses and wins came against." },
+      { label: "Cap blowouts in the results reading at 21 or 28", basis: "scored on later games", status: "rejected", note: "Mean miss 13.07 rises to 13.13 and 13.21 after week 10, and LSU stays 2nd on the headline." },
+      { label: "Turn the conference level off in the results reading", basis: "scored on later games and on 366 postseason cross-conference games", status: "rejected", note: "Moves LSU to 4th and Alabama to 5th on the headline at no measured cost (72.2% against 71.8%, miss 13.09 against 13.07), but it was declined in v4.21 as too large a change, and the league level holds up: SEC teams beat their number by 1.6 in bowls (s.e. 1.8) and the league is 28-2 outside conference in 2026." },
+      { label: "A head-to-head tie-break", basis: "the later-game test above", status: "rejected", note: "No predictive signal to justify it (-2.34, p = 0.21). Not built; the owner may want it as a presentation rule regardless." },
+    ],
+    changelog: [{ version: "v4.27", change: "Added: the earned order, the default on Rankings, beside power. No rating moved." }],
+    source: "utils/results_rating.py (earned_ratings, EARNED_CAP, EARNED_BONUS) · scripts/10_compute_team_ratings.py (attach_power) · scripts/17_live_season.py · scripts/17b_weekly_progression.py · scripts/12_export_frontend_json.py · js/menuWeekly.js · js/menuScreensLeague.js (menuEarnedPanel) · scripts/validate_earned_ranking.py · tests/test_earned_ranking.py",
+  },
+
+  {
     id: "power-rating",
     group: "team",
-    title: "Power: the number teams are ranked by (our rating, then what the team has done)",
+    title: "Power: how good a team is (our rating, then what the team has done)",
     summary: `The team rating says how good a team's players and stats are. It never looks at a scoreboard, so
-      ranked alone it put LSU first with two losses and Kansas State eighth at 3-3. Rankings use power, which has
+      ranked alone it put LSU first with two losses and Kansas State eighth at 3-3. Power, one chip over on Rankings since v4.27 (the screen opens on the earned order), has
       two parts that add: a RATING part (what the rating says the team should do) and a RESULTS part (how much better or
       worse it has actually played than that). Both are in points per game above an average FBS team. Nothing
       external goes in: no SP+, no strength of schedule, no strength of record. The schedule enters only through
@@ -1367,7 +1443,7 @@ power        = rating part + results part                              (points p
     ],
     limits: `**Not a resume.** Power credits margin as well as winning, so a team that wins big can rank above an
       unbeaten team that wins close. The win bonus makes every win and loss count; it does not put an unbeaten
-      record first.
+      record first. The earned order (v4.27) is the number for that question.
 
       **The rating under-separates competition levels** (3.7 against 7.7 points a game, above). The player ratings'
       opponent adjustment scales each game by how good the opponent's defense or offense is (script 06, still using SP+), and
@@ -1398,6 +1474,7 @@ power        = rating part + results part                              (points p
       { label: "Rank by win-loss record", basis: "wins first", status: "rejected", note: "Not built or backtested. A near win/loss margin cap of 7 scored 69.1% against 70.0% at a cap of 28." },
     ],
     changelog: [
+      { version: "v4.27", change: "No change to power. Rankings now opens on the earned order and offers power one chip over." },
       { version: "v4.23", change: "Rankings gains a method button (games only, rating + games, rating) and a week selector; script 10 publishes power_blend for a season in progress." },
       { version: "v4.22", change: "A season being played ranks on its games alone: the rating part is 0 for every team. Finished seasons unchanged." },
       { version: "v4.14", change: "Postseason games listed apart in the per-game table, shown and not counted." },
@@ -1452,11 +1529,11 @@ player game grade = edge_to_ovr( sqrt(12) x the game's adjusted score, position 
 
       **Grades use that week's opponent strengths and are never revised,** so the same game graded today with nine weeks of data could differ.
 
-      **Early weeks are thin.** After week 1 the ranking agrees with week 9 at Spearman 0.84; a player's first one or two games are rated by the low-game rule (capped at 72). Players with no rating that week have no row, and a grade exists only for a player who holds a rating that week.
+      **Early weeks are thin.** After week 1 the ranking agrees with week 9 at Spearman 0.84; a player's first game is rated by the low-game rule (capped at 72) and his second by the three-game line (v4.27). Players with no rating that week have no row, and a grade exists only for a player who holds a rating that week.
 
       **The accuracy evidence is one season and in-sample.** The picks above beat the home-team baseline by 3.5 points and the placebo by 7.9, on overlapping games from one year; the validated claim for rating-based prediction is the 2016 to 2025 backtest under Power.
 
-      **The early roster readings are held down by the low-game cap** (a player with one or two games is capped at 72), so a unit rising over the first weeks is partly that cap lifting; a position group also moves when a player is hurt or leaves.
+      **The early roster readings are held down by the low-game cap** (a player with one game is capped at 72), so a unit rising over the first weeks is partly that cap lifting; a position group also moves when a player is hurt or leaves.
 
       **The rating + games ranking method is not validated** with the play rating as its prior; only the last-season-prior version is (see Power).
 
@@ -1774,7 +1851,7 @@ change chips = proj - prev, live - proj                               (shown onl
       A fall from PROJ to TO DATE is not by itself evidence the projection was wrong.
 
       **No number for players without the underlying data.** A player new to FBS in 2026 has no 2025 rating; a
-      player with no productive game has no to-date rating (one or two games earn a small, capped one since v4.19); offensive linemen have none of the three,
+      player with no productive game has no to-date rating (one game earns a small, capped one since v4.19; two games a rating from his own play since v4.27); offensive linemen have none of the three,
       because the OL player rating is withdrawn. The cell states which.
 
       **259 rated players have no known game count.** The card shows "unknown", not a number.

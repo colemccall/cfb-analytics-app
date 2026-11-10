@@ -26,12 +26,12 @@ function menuHomePanel(title, rows, more) {
       ${more ? `<button class="m-chip m-chip--more" type="button" data-nav data-nav-group="links" data-to="${more[1]}">${_esc(more[0])} →</button>` : ""}</section>`;
 }
 
-// A team row: rank, mark and name, record, power. The whole row opens the team's page.
+// A team row: rank, mark and name, record, the ranked number. The whole row opens the team's page.
 function menuHomeTeamRow(t, i, d) {
   const st = d.standings[t.id];
   return `<button class="m-row m-row--mini" type="button" data-nav data-nav-group="hp-teams" data-to="${menuTeamPath(t.id)}">
       <span class="m-rank">${i}</span><span class="m-pname">${teamMark(t, "m-row-mark")} ${_esc(t.school)}</span>
-      <span class="m-num">${st ? `${st.w}-${st.l}` : "—"}</span><span class="m-num">${menuPowerText(menuTeamPower(t, d))}</span></button>`;
+      <span class="m-num">${st ? `${st.w}-${st.l}` : "—"}</span><span class="m-num">${menuPowerText(menuTeamRankValue(t, d))}</span></button>`;
 }
 
 // A player row: position, name, his team, rating. The whole row opens his card.
@@ -78,7 +78,7 @@ function menuHomeGameRow(g, d) {
 // The two game panels: for a season in progress, last week's results and the coming week's games, the ones
 // involving the best-ranked teams first; for a played season, its bowls and the playoff; before a season, its first week.
 function menuHomeGamePanels(d) {
-  const rank = new Map(d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d)).map((t, i) => [t.id, i + 1]));
+  const rank = new Map(d.teams.filter(t => menuTeamRankValue(t, d) != null).sort((a, b) => menuTeamRankValue(b, d) - menuTeamRankValue(a, d)).map((t, i) => [t.id, i + 1]));
   const best = g => Math.min(rank.get(g.home.id) ?? 999, rank.get(g.away.id) ?? 999);
   const pick = (list, n) => list.sort((a, b) => best(a) - best(b)).slice(0, n).map(g => menuHomeGameRow(g, d)).join("");
   const all = menuHomeGames(d);
@@ -120,14 +120,14 @@ menuRouter.register("home", {
     const [players, recruiting, transfers] = await Promise.all([fetchTopPlayers(season), fetchRecruiting(season), fetchLeagueTransfers(season)]);
     const hs = await fetchHeadshots();
     ctx.d = d; ctx.team = null;
-    const ranked = d.teams.filter(t => menuTeamPower(t, d) != null).sort((a, b) => menuTeamPower(b, d) - menuTeamPower(a, d));
+    const ranked = d.teams.filter(t => menuTeamRankValue(t, d) != null).sort((a, b) => menuTeamRankValue(b, d) - menuTeamRankValue(a, d));
     const topTeams = menuHomePanel(`Top 10 · ${season}`, ranked.slice(0, 10).map((t, i) => menuHomeTeamRow(t, i + 1, d)).join(""), ["Full rankings", "#/rankings"]);
     const topPlayers = menuHomePanel("Top players", [...players].sort((a, b) => b.rating - a.rating).slice(0, 10).map(p => menuHomePlayerRow(p, d, hs)).join(""), ["All players", "#/players"]);
     const field = menuPlayoffField(d, "12");
     const playoff = menuHomePanel("Playoff picture · 12 teams", field.slice(0, 8).map(f => `
       <button class="m-row m-row--mini" type="button" data-nav data-nav-group="hp-po" data-to="${menuTeamPath(f.team.id)}">
         <span class="m-rank">${f.seed}</span><span class="m-pname">${teamMark(f.team, "m-row-mark")} ${_esc(f.team.school)}${f.why ? ` <span class="m-tag m-tag--c">${_esc(f.why.toUpperCase())}</span>` : ""}</span>
-        <span class="m-num">${menuPowerText(menuTeamPower(f.team, d))}</span></button>`).join(""), ["Full bracket", "#/playoff"]);
+        <span class="m-num">${menuPowerText(menuTeamRankValue(f.team, d))}</span></button>`).join(""), ["Full bracket", "#/playoff"]);
     const movers = d.live ? [...d.live.teams].filter(t => t.change != null).sort((a, b) => b.change - a.change) : [];
     const moverRow = t => {
       const team = d.teams.find(x => x.id === t.team_id);

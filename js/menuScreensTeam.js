@@ -63,7 +63,7 @@ function menuRatingCells(p, season) {
 function menuNoRatingWhy(p, season) {
   if (p.overall_rating != null) return "";
   if (p.rating_status === "not_rated" || p.position_group === "OL") return p.not_rated_reason || "Offensive linemen are not rated: no individual blocking data exists.";
-  return `No earned rating for ${season}: no counted game on file (three games give a production rating; one or two give a small, capped adjustment to a recruiting-based start).`;
+  return `No earned rating for ${season}: no counted game on file. (In a season being played, two games give a rating from his own play and one a small, capped adjustment to a recruiting-based start. A finished season needs three for a production rating.)`;
 }
 
 // ── Roster ────────────────────────────────────────────────────────────────
@@ -342,7 +342,7 @@ menuRouter.register("player", {
           <section class="m-panel"><h3 class="m-h3">How this rating is built</h3>
             ${menuWhyBlock(p, rows)}${menuEdgeStrip(edgePct, p, season)}
             <p class="m-note">${trio
-              ? `<b>${season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional, and on one or two games it moves only a little from a recruiting-based start.`
+              ? `<b>${season - 1}</b> is what he earned over a full season. <b>Projection</b> is a model's guess made before a game was played${p.projection_low != null ? `, with an 80% range of ${Math.round(p.projection_low)}–${Math.round(p.projection_high)}` : ""}. <b>To date</b> is what he has earned so far, scaled to a full season; it is provisional, and on a single game it moves only a little from a recruiting-based start.`
               : "The rating is an earned one for the season shown: production, not talent."}</p></section>
         </div>
         ${CONFIG.WEEKLY_SEASONS.includes(season) && season === MENU.season ? '<section class="m-panel" id="m-weekly"><h3 class="m-h3">Week by week</h3><p class="m-empty">Loading…</p></section>' : ""}

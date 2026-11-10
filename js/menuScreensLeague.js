@@ -187,7 +187,7 @@ menuRouter.register("rankings", {
       return `<section class="m-panel"><p class="m-empty">Polls (AP, Coaches, CFP) are not shown: no poll data is on disk, and fetching it
         needs a CollegeFootballData /rankings harvest. The lists beside this one are our own team ratings.</p></section>`;
     }
-    // The list, by one of the methods the chips offer (menuRankMethods): power from the games alone, power with a rating part added, or the rating.
+    // The list, by one of the methods the chips offer (menuRankMethods): earned (the default), power from the games alone, power with a rating part added, or the rating.
     // A season being played can also be read as it stood after any completed week. The rating is shown beside the ranking either way, and the
     // detail panel explains the number.
     // "live" is the season being played (the current numbers are the live file's); "weeks" is a finished season replayed week by week,
@@ -203,8 +203,9 @@ menuRouter.register("rankings", {
     const prev = weekly ? menuRankPrev(d, wk, ctx.week, ctx.method) : null;
     ctx.snap = snap;
     const val = t => weekly ? snap.get(t.id)?.head : t.overall_rating;
-    const sortKey = t => weekly ? menuRankKey(ctx.method, snap.get(t.id)) : ctx.method === "rating" ? t.overall_rating : t.power_rating;
-    const pw = t => weekly ? (ctx.method === "blend" ? snap.get(t.id)?.blend : snap.get(t.id)?.games) : t.power_rating;
+    const earned = ctx.method === "earned";
+    const sortKey = t => weekly ? menuRankKey(ctx.method, snap.get(t.id)) : ctx.method === "rating" ? t.overall_rating : earned ? t.earned_rating : t.power_rating;
+    const pw = t => weekly ? (earned ? snap.get(t.id)?.earned : ctx.method === "blend" ? snap.get(t.id)?.blend : snap.get(t.id)?.games) : earned ? t.earned_rating : t.power_rating;
     const ranked = d.teams.filter(t => sortKey(t) != null).sort((a, b) => sortKey(b) - sortKey(a));
     ctx.ranked = ranked; ctx.pw = pw; ctx.val = val;
     const mineIdx = ranked.findIndex(t => t.id === MENU.teamId);
@@ -212,8 +213,8 @@ menuRouter.register("rankings", {
       const e = weekly && ctx.week != null ? snap.get(t.id) : null;
       return e && e.w != null ? `${e.w}-${e.l}` : d.standings[t.id] ? `${d.standings[t.id].w}-${d.standings[t.id].l}` : "—";
     };
-    const lastHead = weekly && ctx.method === "blend" ? "BLEND" : "POWER";
-    const lastTitle = ctx.method === "blend" && weekly ? "Points per game above an average team: the rating part plus the results part" : "Points per game above an average team";
+    const lastHead = earned ? "EARNED" : weekly && ctx.method === "blend" ? "BLEND" : "POWER";
+    const lastTitle = earned ? "Points per game above an average team, with wins and losses counted first" : ctx.method === "blend" && weekly ? "Points per game above an average team: the rating part plus the results part" : "Points per game above an average team";
     const row = (t, i) => `
       <button class="m-row m-row--rank${t.id === MENU.teamId ? " is-mine" : ""}" type="button" data-nav data-nav-group="rank" data-team="${t.id}" data-to="${menuTeamPath(t.id)}">
         <span class="m-rank">${i + 1}${weekly ? menuRankMove(i + 1, prev ? prev.get(t.id) ?? null : null) : ""}</span>
@@ -270,7 +271,7 @@ menuRouter.register("rankings", {
         if (ctx.method === "rating") { detail.innerHTML = menuRatingPanel(hit.t, hit.rank, ctx); return; }
         const games = (await fetchPowerGames(MENU.season))[String(hit.t.id)] || [];
         if (mine !== token) return;
-        detail.innerHTML = menuPowerPanel(hit.t, hit.rank, ctx, games);
+        detail.innerHTML = ctx.method === "earned" ? menuEarnedPanel(hit.t, hit.rank, ctx, games, byId) : menuPowerPanel(hit.t, hit.rank, ctx, games);
         // The games behind the results part come from their own file; if it failed, say so rather
         // than let an empty table read as "no games".
         if (dataFailed(`power_games_${MENU.season}.json`)) detail.insertAdjacentHTML("beforeend", '<p class="m-foot m-foot--warn" role="alert">The games behind this number did not load. Select the team again to retry.</p>');
@@ -321,6 +322,28 @@ function menuPowerPanel(t, rank, ctx, games) {
       <p class="m-note">Bowls and the playoff are not in the results part above. How much they should weigh is still being measured, so they are listed with the same value and expected columns and left out of the sum.</p>` : ""}`;
 }
 
+// The explanation of one team's earned number: every game with what it was worth and where the opponent stands in this same order, because
+// a win is worth what the team it beat has done. `byId` is the ranked list from the screen.
+function menuEarnedPanel(t, rank, ctx, games, byId) {
+  const d = ctx.d, st = d.standings[t.id];
+  const gameRow = g => {
+    const opp = g.opp_id != null ? byId.get(String(g.opp_id)) : null;
+    return `<tr class="${g.margin > 0 ? "is-win" : g.margin < 0 ? "is-loss" : ""}">
+      <td>${g.post ? "POST" : `W${g.week ?? "—"}`}</td><td>${g.home ? "vs" : g.neutral ? "n" : "@"} ${opp ? `<button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(g.opp_id)}">${_esc(g.opp || "—")}</button>` : _esc(g.opp || "—")}</td>
+      <td>${opp ? `#${opp.rank}` : "—"}</td><td>${g.margin > 0 ? "W" : g.margin < 0 ? "L" : "T"} ${g.score}–${g.opp_score}</td><td><b>${menuPowerText(g.earned_value)}</b></td></tr>`;
+  };
+  const rows = games.filter(g => !g.post).map(gameRow).join("");
+  const postRows = games.filter(g => g.post).map(gameRow).join("");
+  return `<h2 class="m-detail-name">${_esc(t.school)} · #${rank}</h2>
+    <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(t.conference || "")}</span>
+      <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(t.id)}">Open team page →</button></div>
+    <div class="m-pparts"><div class="is-total"><span>EARNED</span><b>${menuPowerText(ctx.pw(t))}</b><small>points a game above an average team</small></div></div>
+    ${rows ? `<table class="m-ptable"><thead><tr><th>WK</th><th>OPPONENT</th><th title="Where the opponent stands in this order">OPP</th><th>RESULT</th><th title="12 for a win or minus 12 for a loss, plus the margin up to 7">VALUE</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="m-note">Each game is worth 12 for a win or minus 12 for a loss, plus the margin up to 7. Every game is solved at once, so beating a team that has also won counts for more. Nothing about a team's players or last season goes in. Power, one chip over, is the better predictor of the next game; this is what the team has done.</p>`
+      : '<p class="m-note">No games on file for this list.</p>'}
+    ${postRows ? `<h3 class="m-h3">Postseason: shown, not counted</h3><table class="m-ptable"><tbody>${postRows}</tbody></table>` : ""}`;
+}
+
 // The detail panel when the rankings are by the rating itself: the three readings it is made of, their shares and the numbers.
 function menuRatingPanel(t, rank, ctx) {
   const d = ctx.d, live = ctx.list === "live";
@@ -341,10 +364,10 @@ function menuRatingPanel(t, rank, ctx) {
 
 // ── Compare the readings ──────────────────────────────────────────────────
 
-// The columns of the Compare screen: key, label, what it is. Power is our ranking (the Rankings screen sorts by it);
-// the others are the number the team is rated at and the three readings that number is made of.
+// The columns of the Compare screen: key, label, what it is. Power is what a reading's distance is measured from (the Rankings screen offers it beside
+// the earned order); the others are the number the team is rated at and the three readings that number is made of.
 const MENU_CMP = [
-  ["power", "Power", "Our ranking: how the team has played, margin and result against the opponents it met, in points per game above an average team. A finished season adds the team rating; a season being played uses the games alone."],
+  ["power", "Power", "How the team has played, margin and result against the opponents it met, in points per game above an average team. A finished season adds the team rating; a season being played uses the games alone. Rankings opens on the earned order; power is one chip over."],
   ["head", "Headline", "The team rating: roster, stats and results blended (the shares are below)."],
   ["results", "Results", "The points the team has scored and allowed against the opponents it played, adjusted for their strength."],
   ["roster", "Roster", "Its players' ratings, scored by starters and depth in every position group."],
@@ -392,21 +415,21 @@ function menuCmpPill(v, d, list, label) {
 }
 
 // One cell of a row: the value and, under it, its rank. A reading ranked MENU_CMP_GAP or more places away from power's is
-// marked with an arrow (up: the reading likes the team more than our ranking does) and says how far in its tooltip.
+// marked with an arrow (up: the reading likes the team more than power does) and says how far in its tooltip.
 function menuCmpCell(r, key, d, list) {
   const v = r.v[key];
   if (v == null) return `<span class="m-cmp"><span class="trio-na" title="${_esc(menuCmpWhy(key, list))}">—</span></span>`;
   const gap = key === "power" ? 0 : r.rank.power - r.rank[key];
   const flagged = Math.abs(gap) >= MENU_CMP_GAP;
   const mark = flagged ? (gap > 0 ? " ▲" : " ▼") : "";
-  const title = flagged ? ` title="${_esc(`Ranks ${Math.abs(gap)} places ${gap > 0 ? "higher" : "lower"} than our ranking`)}"` : "";
+  const title = flagged ? ` title="${_esc(`Ranks ${Math.abs(gap)} places ${gap > 0 ? "higher" : "lower"} than power`)}"` : "";
   const label = MENU_CMP.find(c => c[0] === key)[1];
   const body = key === "power" ? `<b class="m-cmp-pw">${menuPowerText(v)}</b>` : menuCmpPill(v, d, list, `${label} reading`);
   return `<span class="m-cmp">${body}<small class="m-cmp-rank${flagged ? " is-gap" : ""}"${title}>#${r.rank[key]}${mark}</small></span>`;
 }
 
 // The detail panel for the selected team: its five numbers with ranks, what each is, the headline's shares, and the
-// readings that disagree with our ranking by MENU_CMP_GAP places or more.
+// readings that disagree with power by MENU_CMP_GAP places or more.
 function menuCmpPanel(r, ctx) {
   const w = CONFIG.HEADLINE_WEIGHTS || {};
   const pct = x => (x == null ? "" : `${Math.round(x * 100)}% of the headline`);
@@ -422,7 +445,7 @@ function menuCmpPanel(r, ctx) {
     <div class="m-facts"><span title="Regular season, then the postseason">${recordText(st)}</span><span>${_esc(r.t.conference || "")}</span>
       <button class="m-chip" type="button" data-nav data-nav-group="links" data-to="${menuTeamPath(r.t.id)}">Open team page →</button></div>
     <table class="m-ptable m-cmp-table"><thead><tr><th>READING</th><th>VALUE</th><th>RANK</th><th>WHAT IT IS</th></tr></thead><tbody>${rows}</tbody></table>
-    <p class="m-note">${off.length ? `Against our ranking (power, #${r.rank.power}): ${off.join("; ")}.` : "No reading is 20 or more places from our ranking."}</p>`;
+    <p class="m-note">${off.length ? `Against power (#${r.rank.power}): ${off.join("; ")}.` : "No reading is 20 or more places from power."}</p>`;
 }
 
 menuRouter.register("compare", {
@@ -455,13 +478,13 @@ menuRouter.register("compare", {
       ${preNote}
       <div class="m-split m-split--roster">
         <section class="m-panel m-list" aria-label="All ${rows.length} teams, five readings">
-          <div class="m-rowhead m-row--cmp"><span>#</span><span>TEAM</span><span title="Our ranking">POWER</span><span>HEADLINE</span><span>RESULTS</span><span>ROSTER</span><span>STATS</span></div>
+          <div class="m-rowhead m-row--cmp"><span>#</span><span>TEAM</span><span title="How good the team is: what each reading is measured against">POWER</span><span>HEADLINE</span><span>RESULTS</span><span>ROSTER</span><span>STATS</span></div>
           ${body}
         </section>
         <aside class="m-panel m-detail" id="m-detail" aria-live="polite"><p class="m-empty">Select a team to see its five numbers side by side.</p></aside>
       </div>
       <p class="m-foot">Sorted by <b>${MENU_CMP.find(c => c[0] === ctx.key)[1]}</b>; the small number under each is that reading's own rank among the ${rows.length} teams. An arrow marks a reading that
-        sits ${MENU_CMP_GAP} or more places from our ranking, which is power: ▲ the reading likes the team more, ▼ less. The headline is ${w.roster != null ? `${Math.round(w.roster * 100)}% roster, ${Math.round(w.stats * 100)}% stats and ${Math.round(w.results * 100)}% results` : "the three readings blended"}.
+        sits ${MENU_CMP_GAP} or more places from power: ▲ the reading likes the team more, ▼ less. The headline is ${w.roster != null ? `${Math.round(w.roster * 100)}% roster, ${Math.round(w.stats * 100)}% stats and ${Math.round(w.results * 100)}% results` : "the three readings blended"}.
         Roster and stats are built from the same box scores, so they usually agree; results are the scoreboard. ${ctx.list === "live" ? "To date is provisional." : ""}</p>`;
   },
   mount(stage, ctx) {
