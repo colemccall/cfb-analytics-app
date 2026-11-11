@@ -580,6 +580,27 @@ check("menu: a section bar is on every screen and highlights where you are; a sc
   return null;
 });
 
+check("menu: the menu bar sits in the same place on a team page as on any other screen", async ctx => {
+  // v4.27.1: the team banner used to push the bar 92px right on every team page
+  const page = await openMenu(ctx, "#/rankings");
+  await waitCount(page, ".m-nav .m-navbtn", 5);
+  const a = await page.locator(".m-nav .m-navbtn").first().boundingBox();
+  await page.evaluate(() => { location.hash = "#/team/68/schedule"; });
+  await waitCount(page, "button.m-row--sched", 5);
+  const b = await page.locator(".m-nav .m-navbtn").first().boundingBox();
+  assert(Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5, `the menu bar moved from (${a.x}, ${a.y}) to (${b.x}, ${b.y}) on a team page`);
+  return page;
+});
+
+check("menu: a team's schedule shows where each opponent is ranked now", async ctx => {
+  const page = await openMenu(ctx, "#/team/68/schedule");
+  await waitCount(page, "button.m-row--sched", 5);
+  assert(/RANK NOW/i.test(await page.locator(".m-rowhead.m-row--sched").innerText()), "the schedule has no RANK NOW column");
+  const cells = (await page.locator("button.m-row--sched > :nth-child(3)").allInnerTexts()).map(c => c.trim());
+  assert(cells.filter(c => /^#\d+$/.test(c)).length >= 5, `too few opponent ranks: ${cells.slice(0, 6).join(", ")}`);
+  return page;
+});
+
 check("menu: each of the seven sections lists its own pages, and the page you are on is marked", async ctx => {
   const page = await openMenu(ctx, "#/home");
   await waitCount(page, ".m-nav .m-navbtn", 8);
