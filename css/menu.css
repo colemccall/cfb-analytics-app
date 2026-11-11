@@ -141,13 +141,15 @@ body.menu-body { display: block; margin: 0; background: var(--bg); }
 /* ── Header: banner · black title bar · red selector pill ────────────────── */
 .m-header {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
-  gap: 1.1rem; padding: 0.8rem 2rem 0.3rem;
+  gap: 1.1rem 0; padding: 0.8rem 2rem 0.3rem;
 }
-.m-banner { grid-column: 1; grid-row: 1 / 3; }
-.m-titles { grid-column: 2; }
-.m-nav { grid-column: 2 / 4; grid-row: 2; display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0 0 0.1rem; }
+/* v4.27.1: the banner sits beside the title only, and the menu bar spans the whole row, so a team page's banner no longer pushes the bar 92px right.
+   No column gap (the banner carries its own margin), so with no banner the title and the bar start where the rows below start. */
+.m-banner { grid-column: 1; grid-row: 1; margin-right: 1.1rem; }
+.m-titles { grid-column: 2; min-height: 64px; }
+.m-nav { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0 0 0.1rem; }
 .m-season { grid-row: 1; }
-.m-season { grid-column: 3; justify-self: end; }
+.m-season { grid-column: 3; justify-self: end; margin-left: 1.1rem; }
 .m-banner {
   --m-team: var(--m-line);
   width: 92px; height: 64px; display: none; place-items: center;
@@ -495,7 +497,7 @@ img.m-tile-mark { width: 48px; height: 48px; object-fit: contain; background: va
 .menu-app .trio-cap, .menu-app .trio-sub, .menu-app .trio-arrow { color: var(--m-muted); }
 
 /* ── Schedule, standings, rankings, portal, recruiting rows ──────────────── */
-.m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3.4rem minmax(0, 1fr) 6.4rem 4.6rem 4.6rem 6.4rem; }
+.m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3.4rem minmax(0, 1fr) 4.2rem 6.4rem 4.6rem 4.6rem 6.4rem; }
 .m-rowhead.m-row--stand, .m-row--stand { grid-template-columns: 2.2rem minmax(0, 1fr) 4.4rem 4.4rem 3.6rem 3.6rem 4.6rem; }
 .m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 4.6rem minmax(0, 1fr) 9rem 4rem 4.6rem 5.6rem; }
 /* Compare: rank, team, then five readings (power, headline, results, roster, stats), each a value over its own rank. */
@@ -860,10 +862,11 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 
 @media (max-width: 900px) {
   .m-bd-credit { top: 0.75rem; bottom: auto; max-width: 42vw; }   /* v4.26: the prompt bar is full here; the top row beside the season stepper is free */
-  .m-header { padding: 0.5rem 1rem 0.2rem; grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem 0.7rem; }
+  .m-header { padding: 0.5rem 1rem 0.2rem; grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem 0; }
   .m-season { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
-  .m-banner { grid-column: 1; grid-row: 2; width: 64px; height: 46px; }
-  .m-titles { grid-column: 2; grid-row: 2; padding: 0.2rem 1rem 0.3rem; }
+  .m-banner { grid-column: 1; grid-row: 2; width: 64px; height: 46px; margin-right: 0.7rem; }
+  .m-season { margin-left: 0; }
+  .m-titles { grid-column: 2; grid-row: 2; padding: 0.2rem 1rem 0.3rem; min-height: 0; }
   .m-title { font-size: 1.7rem; }
   .m-ticker { display: none; }
   .m-tabs, .m-stage { padding-left: 1rem; padding-right: 1rem; }
@@ -906,6 +909,8 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
   .m-rowhead.m-row--rank, .m-row--rank { grid-template-columns: 3.4rem minmax(0, 1fr) 2.8rem 3.4rem; }   /* v4.27: the desktop columns left the team's name no width; the rating is on its panel */
   .m-rowhead.m-row--rank > span:nth-child(3), .m-row--rank > :nth-child(5) { display: none; }
   .m-rowhead.m-row--rank > span:nth-child(4) { display: block; }
+  .m-rowhead.m-row--sched, .m-row--sched { grid-template-columns: 3rem minmax(0, 1fr) 3.4rem 5.6rem; }   /* v4.27.1: week, opponent, rank now, result */
+  .m-row--sched > :nth-child(n+5):nth-child(-n+6), .m-rowhead.m-row--sched > :nth-child(n+5):nth-child(-n+6) { display: none; }
   .m-tl-y, .m-tl-plot { height: 7rem; }
   .m-ptable--weeks .m-wk-power { display: none; }
   .m-ptable--weeks .m-wk-game { max-width: 7.5rem; }
@@ -944,3 +949,11 @@ button.m-vs-side.is-selected { background: linear-gradient(var(--m-hot-hi), var(
 }
 @media (min-width: 901px) and (max-width: 1100px) { .m-ovl-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .m-bd-img { transition: none; } .m-bd-img.is-on { animation: none; } }
+
+@media (max-width: 480px) {
+  /* v4.27.1: beside the season stepper the photo credit covered the stepper's next-season arrow below about 480px. It now takes
+     the width left of it (the stepper ends near 16rem) and wraps to two lines. */
+  .m-bd-credit { max-width: calc(100vw - 17.5rem); white-space: normal; line-height: 1.1rem; padding: 0.1rem 0.45rem;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }
+  .m-bd-credit[hidden] { display: none; }
+}

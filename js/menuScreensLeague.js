@@ -57,7 +57,7 @@ menuRouter.register("schedule", {
     const regWeeks = games.filter(g => g.season_type === "regular" && g.week).map(g => g.week);
     const firstWk = Math.min(...regWeeks), lastWk = Math.max(...regWeeks);
     const haveWk = new Set(regWeeks);
-    const byeRow = wk => `<div class="m-row m-row--sched is-bye"><span class="m-rank">W${wk}</span><span class="m-pname">BYE WEEK</span><span class="m-pmeta"></span><span></span><span class="m-result">—</span></div>`;
+    const byeRow = wk => `<div class="m-row m-row--sched is-bye"><span class="m-rank">W${wk}</span><span class="m-pname">BYE WEEK</span><span></span><span class="m-pmeta"></span><span></span><span></span><span class="m-result">—</span></div>`;
     let nextWk = firstWk;
     let postShown = false;
     const rows = games.map(g => {
@@ -72,9 +72,11 @@ menuRouter.register("schedule", {
       const oppId = String(g.home_team_id) === String(team.id) ? g.away_team_id : g.home_team_id;
       const opp = menuTeamById(d, oppId);
       const played = g.result === "W" || g.result === "L";
+      const rankNow = opp ? menuTeamRank(opp, d) : null;      // where the opponent stands today, not the week of the game
       return byes + `<button class="m-row m-row--sched${g === next ? " is-next" : ""}" type="button" data-nav data-nav-group="sched" data-gid="${g.game_id}" data-to="#/game/${g.game_id}/${team.id}">
         <span class="m-rank">${g.season_type === "postseason" ? "POST" : g.week ? `W${g.week}` : "—"}</span>
         <span class="m-pname">${g.is_home ? "vs" : "@"} ${_esc(g.opponent || "TBD")}${g.neutral_site ? " (N)" : ""}</span>
+        <span class="m-num">${rankNow != null ? `#${rankNow}` : `<span class="trio-na" title="${opp ? "No ranked number on file" : "Not ranked: not in our team list (non-FBS)"}">—</span>`}</span>
         <span class="m-pmeta">${_esc(String(g.game_date || "").slice(0, 10))}</span>
         <span class="m-rating">${opp ? menuTeamPill(opp, d, MENU.season) : '<span class="trio-na" title="Not in our team list (non-FBS)">—</span>'}</span>
         <span class="m-num">${opp && d.standings[opp.id] ? `${d.standings[opp.id].w}-${d.standings[opp.id].l}` : "—"}</span>
@@ -84,7 +86,7 @@ menuRouter.register("schedule", {
     return `<div class="m-split m-split--roster">
       <section class="m-panel m-list" aria-label="Schedule">
         ${team ? menuScheduleBand(d, team) : ""}
-        <div class="m-rowhead m-row--sched"><span>WK</span><span>OPPONENT</span><span>DATE</span><span>OPP OVR</span><span>OPP W-L</span><span>RESULT</span></div>
+        <div class="m-rowhead m-row--sched"><span>WK</span><span>OPPONENT</span><span title="Where the opponent is ranked now (the order Rankings opens on), not where it stood the week of the game">RANK NOW</span><span>DATE</span><span>OPP OVR</span><span>OPP W-L</span><span>RESULT</span></div>
         ${rows || '<p class="m-empty">No schedule for this season.</p>'}
       </section>
       <aside class="m-panel m-detail" id="m-detail" aria-live="polite"></aside>

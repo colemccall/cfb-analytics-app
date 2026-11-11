@@ -33,6 +33,51 @@
 
 const CHANGES = [
   {
+    id: "v4.27.1-menus-hold-still-schedule-rank-now",
+    version: "v4.27.1",
+    date: "2026-11-10",
+    title: "The menu bar stays put on every screen, and a team's schedule shows where each opponent is ranked now",
+    summary: `Two owner requests. The menu bar moved depending on the screen: on any team page it sat 92 pixels further right than everywhere else, and everywhere it sat 18 pixels right of the rows beneath it. The schedule now has a column for where each opponent is ranked today, not the week the game was played. Looking for the moving menu turned up three more layout faults on a phone, fixed in the same pass because each was a control or a column that sat in the wrong place.`,
+    motivation: `The owner: "several of the tabs/menus slightly off, where depending on the selection the location of the menu changes. lets fix this", and "on each teams schedule, it would be great to see where each opponeet is currently ranked as a column for each game - not the ranking that week, but now".`,
+    did: [
+      { what: "The header grid (css/menu.css .m-header, .m-banner, .m-nav, .m-titles)",
+        why: `The team banner took the header's first column across both rows, and the menu bar started in the second column, so a team page's banner pushed the bar sideways; with no banner the empty column and its gap still pushed it 18 pixels. The banner now sits beside the title only, the bar spans the whole row, and the column gap became the banner's own margin. The title keeps a 64-pixel floor so the bar does not drop 4 pixels when a banner appears.`,
+        cost: "None measured. The title box starts 18 pixels further left on screens with no team banner, level with the rows below." },
+      { what: "RANK NOW on the schedule (js/menuScreensLeague.js)",
+        why: `Each game's opponent with its rank in the order the site ranks by, today: a game played in week 2 shows where that opponent stands after week 10. A non-FBS opponent shows a dash with the reason in its tooltip. On a phone the row keeps the week, the opponent, the rank now and the result.`,
+        cost: "One more column on desktop (4.2rem)." },
+      { what: "Schedule rows on a phone, and the bye-week row",
+        why: `The same fault Rankings had in v4.27: the desktop columns were wider than a phone, so the opponent's name had no width. A bye-week row also had one cell too few, so its dash sat under the wrong column.`,
+        cost: "On a phone the date, the opponent's rating and its record are left to the game's panel." },
+      { what: "The photo credit beside the season stepper on narrow phones (css/menu.css, js/menuBackdrop.js)",
+        why: `Below about 480 pixels the credit lay over the stepper's next-season arrow. It now takes only the width left of the stepper and wraps to two lines, and its full text is in its tooltip.`,
+        cost: "A long credit is cut at two lines on the narrowest phones; it still links to the photo's page." },
+    ],
+    tried: [
+      { what: "Stop the page bar scrolling sideways on narrow screens", result: "Below about 1,000 pixels a team's nine pages do not fit, and the bar scrolls to keep the current page in view. Wrapping it instead would make the bar a different height on different screens, which is the movement the owner asked to remove. Kept as is.", verdict: "rejected" },
+      { what: "Show the opponent's rank in the week of the game", result: "Not what was asked, and a week-2 rank says little. The weekly file has it if the owner wants it beside this one.", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Menu bar position on 28 screens, 1,400 pixels wide", before: "x = 49.6 on 20 screens, 141.6 on the 8 team screens", after: "x = 32 on all 28, level with the page bar and tabs" },
+      { label: "The same at 1,000 and 390 pixels", before: "49.6 or 141.6 at 1,000; 16 at 390", after: "32 at 1,000 and 16 at 390 on every screen" },
+      { label: "Hovering any menu item, chip or tab on desktop", before: "0 pixels of movement", after: "0" },
+      { label: "Photo credit overlapping a control, 7 widths from 360 to 1,400 pixels", before: "over the next-season arrow below about 480", after: "0 square pixels at every width" },
+    ],
+    gates: [
+      { check: "Menu position on 28 screens at 1,400, 1,000 and 390 pixels, and a hover over every menu item, chip and tab (a scripted measurement)", result: "the bar at one position per width on every screen; 0 pixels of movement on hover at desktop width" },
+      { check: "Photo credit against every control, 7 widths, 5 screens", result: "0 square pixels of overlap" },
+      { check: "node --check js/*.js; tools/prose-check, registry-check, contrast-check, theme-check, doc-check", result: "29 files, 0 failures; prose clean; registries 0 failures and 36 warnings, all older than this release; every contrast floor green; 0 colour literals" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "79 of 79. Two new checks (the bar holds its place on a team page; the schedule shows RANK NOW) come in the next commit, not this one" },
+      { check: "tools/ui-smoke/a11y.mjs (rendered readability, report-only)", result: "0 text failures, 0 under 12px, 0 small targets, 0 unnamed controls on every screen" },
+      { check: "pytest tests/test_frontend_config.py", result: "10 passed: the version stamp matches this entry. No pipeline file changed" },
+    ],
+    unfixed: `**The page bar still scrolls sideways on narrow screens** to keep the current page in view (see tried).
+      **No ranking is shown for a non-FBS opponent,** because none is computed.
+      **RANK NOW is the earned order,** like every rank on the site since v4.27; if that switch is reversed it follows power.`,
+    methods: ["earned-ranking"],
+    files: ["css/menu.css", "js/menuScreensLeague.js", "js/menuBackdrop.js", "js/guide.js", "js/config.js", "js/changes.js"],
+  },
+  {
     id: "v4.27-earned-order-and-two-game-players",
     version: "v4.27",
     date: "2026-11-09",

@@ -75,6 +75,7 @@ menuBackdrop.credit = function (photo) {
   a.hidden = false;
   a.href = photo.page;
   a.textContent = `Photo: ${photo.credit} · ${photo.license}`;
+  a.title = a.textContent;      // the whole credit, where a narrow screen wraps or clips it
 };
 
 // Called by the router after each screen is drawn: the home page shows the famous stadiums, a team's screens show that

@@ -370,7 +370,7 @@ const GUIDE = [
       { name: "Ratings", what: "The rating broken into pass and run, offense and defense and special teams; the offensive line as a unit with its five measurements (not a per-player rating); per-game team stats for a played season; the SP+ margin and recruiting score as references." },
       { name: "Roster", what: "Every player on the roster, rated or not. Position tabs filter it; click a heading to sort; the strip above follows the selection; any row opens the card." },
       { name: "Depth Chart", what: "Position groups in the order of their ratings. Not an official chart: no source we hold has depth data." },
-      { name: "Schedule", what: "Every game with byes and the postseason, the opponent's rating and record, and the result; select a game for the two teams side by side." },
+      { name: "Schedule", what: "Every game with byes and the postseason, where the opponent is ranked now (not the week of the game), its rating and record, and the result; select a game for the two teams side by side. On a phone the row keeps the week, the opponent, the rank now and the result." },
       { name: "Recruiting, Transfers, History", what: `The class with a map of where it comes from; players in and out through the portal (${CONFIG.TRANSFER_SEASONS[0]} onward) with the rating before and after; the program season by season.` },
     ],
     methods: ["team-ratings", "ol"],
