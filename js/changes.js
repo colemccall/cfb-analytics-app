@@ -33,6 +33,51 @@
 
 const CHANGES = [
   {
+    id: "v4.27.2-week-eleven",
+    version: "v4.27.2",
+    date: "2026-11-16",
+    title: "Week 11 added and 2026 recalculated: Georgia opens a gap on power; week 12 has not been played",
+    summary: `The owner asked for the newest week. Week 11 is complete: 68 of 68 FBS-involved games scored. Week 12 was requested too and is empty: its games are November 18 to 21, so the API returned 0 box scores and 0 of 71 games scored. 3,486 of 3,726 games are now in, and 7,877 players are rated (up 83, none lost). Nothing about how a number is computed changed; this is a data step. Georgia leads the headline rating (95.3) and power (+25.2, up from +22.5, with Alabama third); Notre Dame passed Alabama on the headline rating.`,
+    motivation: `The owner: "grab the most recent week of data", with the ~12-request spend approved in advance.`,
+    did: [
+      { what: "Weeks 11 and 12 staged, checked, then merged (scripts/01b_refresh_in_season.py, scripts/validate_week_ingest.py)",
+        why: `The merge accepts only the weeks that were staged, so weeks 11 and 12 were merged together; week 12 added no rows. Run twice, it left games.json and stats.json identical (sha256 8db8ddd4… and 3705550f…). The gitignored inputs were copied aside first, with hashes, in _snapshots/v4.27.1-pre-week12/.`,
+        cost: "12 requests, as approved. Week 12's 10 per-week calls were partly wasted: two of them (box scores) could only return nothing." },
+      { what: "2026 recalculated offline: scripts 09, 17, 17b, 12 --cards, 12 --game-logs, then 21",
+        why: `A dead proxy makes any cache miss a failure. The rating code was not touched. The v1 export was regenerated last, after a contract test caught it one week stale (34.5 against 34.4).`,
+        cost: "About 19 minutes, 16 of them the weekly replay." },
+    ],
+    tried: [
+      { what: "Merge week 11 alone",
+        result: "Refused: staging holds weeks [11, 12] and the merge requires the same list.",
+        verdict: "rejected" },
+      { what: "Re-harvest rosters because unlinked box-score rows rose",
+        result: "2.81% of week 11's entries have no player row, against 1.86% for weeks 1 to 10: the rosters are slightly behind. About 400 requests, not approved, and the rise is small.",
+        verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Games complete, 2026", before: "3,164 of 3,686, through week 10", after: "3,486 of 3,726, through week 11 (the games not in the FBS count are lower-division games across weeks 11 to 13)" },
+      { label: "Ingest validation, weeks 11 and 12", before: "-", after: "21 checks: 17 pass, 2 warnings, 2 fail. Both failures are week 12 (0 of 71 scored; no player rows) because it has not been played. Week 11: 68 of 68 scored, player rows for 67, box scores for 68" },
+      { label: "Players rated", before: "7,794", after: "7,877; 83 newly rated, none lost; mean move 0.95 points over the 7,794 rated before" },
+      { label: "Teams, headline rating", before: "#1 Georgia 94.1, #2 LSU 93.1, #3 Alabama 92.3, #4 Notre Dame 91.7", after: "#1 Georgia 95.3, #2 LSU 92.8, #3 Notre Dame 92.6, #4 Alabama 91.7" },
+      { label: "Teams, power", before: "#1 Alabama +22.8, #2 Miami +22.7, #3 Georgia +22.5", after: "#1 Georgia +25.2, #2 Miami +23.1, #3 Alabama +22.2, #4 Notre Dame +21.8" },
+      { label: "Teams, earned order (the site's rank)", before: "#1 Utah 15.1, #2 Miami 14.5, #3 UCLA 13.9", after: "#1 Utah 16.2, #2 Miami 15.1, #3 Georgia 14.6, #4 UCLA 14.3" },
+      { label: "How much the order moved (Spearman, 138 teams), week 10 to 11", before: "-", after: "headline 0.992, power 0.981, earned 0.975. Teams moving 10 or more places: headline 11, power 32, earned 43" },
+    ],
+    gates: [
+      { check: "scripts/01b --merge, run twice", result: "games.json and stats.json identical after the second run (sha256 8db8ddd4…, 3705550f…); 40,067 games, 900,632 stat rows" },
+      { check: "scripts/validate_snapshot_invariance.py --season 2026 --weeks 3 6 11 --placebo-week 6", result: "(a) weeks 3, 6 and 11: 0 rows not cut at their week, 0 wrong game counts. (b) week 6: 0 of 7,364 earned ratings moved with later stats scrambled, 0 with advanced stats dealt to other teams" },
+      { check: "pytest tests -q (pipeline)", result: "663 passed, 2 failed. Failing, as before and unedited: the recruiting-basis contract test and test_the_last_week_matches_the_live_file. A third, the contract v1 export-against-roster check, failed until script 21 was rerun and then passed" },
+      { check: "node --check js/*.js", result: "passes" },
+    ],
+    unfixed: `**Week 12 is not in.** It had not been played at the fetch; the next refresh should fetch week 12 (and 13).
+      **Unlinked box-score rows rose to 2.81%** (1.86% before): rosters are slightly behind the box scores, and a re-harvest would cost about 400 requests.
+      **Idaho still has no 2026 roster.**
+      **Everything listed as unfixed under v4.27 and v4.26.2 still stands,** including the two failing tests, which were not edited.`,
+    methods: ["power-rating", "weekly-progression"],
+    files: ["data/live_2026.json", "data/weekly_teams_2026.json", "data/weekly_players_2026.json", "data/exports/v1/"],
+  },
+  {
     id: "v4.27.1-menus-hold-still-schedule-rank-now",
     version: "v4.27.1",
     date: "2026-11-10",

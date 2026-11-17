@@ -3,20 +3,20 @@
  "version": "1.0.0",
  "season": 2026,
  "prev_season": 2025,
- "through_week": 10,
- "games_completed": 3164,
- "games_scheduled": 3686,
- "source_generated_at": "2026-11-10T04:00:42+00:00",
- "exported_at": "2026-11-10T15:38:02+00:00",
- "release": "v4.27",
+ "through_week": 11,
+ "games_completed": 3486,
+ "games_scheduled": 3726,
+ "source_generated_at": "2026-11-16T23:26:35+00:00",
+ "exported_at": "2026-11-16T23:51:22+00:00",
+ "release": "v4.27.1",
  "model_fingerprint": "e8c08ee412f2b1977c58eecc4470b19a46a6b0bb5d93f9f4e9cb5d8989b884df",
  "rows": {
   "teams.json": 139,
   "players.json": 16882
  },
  "sha256": {
-  "teams.json": "9ee5b9ee88e1b705e5270382a68a95d4f4a0236c45696b68f58d6a5047f3c123",
-  "players.json": "b8503a343d712acc1f6716e5a0f2b2384b1301d2e5d1f08de59092a7f8de51a7",
+  "teams.json": "93876807cdb3264f433316ab08723452496d778a7d6caa2f2e08da3f080761b1",
+  "players.json": "198e053e419edda1270f5f8118d5f6064e695fc9c874703fbdaae51be4400238",
   "schema.json": "95515e8135b255184724fe530ec45b2de1bf436ae1c0b32fa8ccdcb690a3bee1"
  }
 }

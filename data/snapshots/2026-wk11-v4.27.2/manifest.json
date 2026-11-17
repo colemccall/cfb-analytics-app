@@ -1,0 +1,32 @@
+{
+ "id": "2026-wk11-v4.27.2",
+ "season": 2026,
+ "week": 11,
+ "kind": "data",
+ "previous": "2026-wk10-v4.27",
+ "release": "v4.27.2",
+ "model_fingerprint": "e8c08ee412f2b1977c58eecc4470b19a46a6b0bb5d93f9f4e9cb5d8989b884df",
+ "pipeline": {
+  "commit": "75f9c771d9d852cde4c2108d93b587d5602edbd5",
+  "dirty": false
+ },
+ "frozen_at": "2026-11-16T23:53:10+00:00",
+ "source": {
+  "file": "live_2026.json",
+  "generated_at": "2026-11-16T23:26:35+00:00",
+  "sha256": "fdaf45d982e101b5303fc223875fcc102ef2999edad5b58a503a332e4bea694c"
+ },
+ "games": {
+  "completed": 3486,
+  "scheduled": 3726,
+  "after_through_week": 0
+ },
+ "counts": {
+  "teams": 138,
+  "players": 7877
+ },
+ "files": {
+  "teams.json": "e44a52fb18acd755117b9511573eccbe85a4fcdda4de0e79860d056afbfdaac2",
+  "players.json": "289a121dc1a6773d95a75314810955aa9bb39405a1e2c2c67e44c86b3f76686e"
+ }
+}
