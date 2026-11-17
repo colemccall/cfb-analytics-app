@@ -68,7 +68,8 @@ const CHANGES = [
       { check: "scripts/01b --merge, run twice", result: "games.json and stats.json identical after the second run (sha256 8db8ddd4…, 3705550f…); 40,067 games, 900,632 stat rows" },
       { check: "scripts/validate_snapshot_invariance.py --season 2026 --weeks 3 6 11 --placebo-week 6", result: "(a) weeks 3, 6 and 11: 0 rows not cut at their week, 0 wrong game counts. (b) week 6: 0 of 7,364 earned ratings moved with later stats scrambled, 0 with advanced stats dealt to other teams" },
       { check: "pytest tests -q (pipeline)", result: "663 passed, 2 failed. Failing, as before and unedited: the recruiting-basis contract test and test_the_last_week_matches_the_live_file. A third, the contract v1 export-against-roster check, failed until script 21 was rerun and then passed" },
-      { check: "node --check js/*.js", result: "passes" },
+      { check: "node --check js/*.js; tools/registry-check, prose-check, contrast-check", result: "passes; registries 0 failures and 36 warnings, all older than this release; prose renders clean; every contrast floor green" },
+      { check: "UI smoke suite (tools/ui-smoke); a11y.mjs", result: "81 of 81; readability audit 0 contrast failures, 0 text under 12px, 0 small targets, 0 unnamed controls, 0 missing alt across 28 screens in both modes at both widths" },
     ],
     unfixed: `**Week 12 is not in.** It had not been played at the fetch; the next refresh should fetch week 12 (and 13).
       **Unlinked box-score rows rose to 2.81%** (1.86% before): rosters are slightly behind the box scores, and a re-harvest would cost about 400 requests.
