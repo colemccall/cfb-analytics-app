@@ -69,31 +69,33 @@ function menuWeeklyUnitsHtml(rows) {
 }
 
 // The weekly section for a team: the summary, a chart with the rating on it, a table of the weeks and the units matrix. `rows` are the
-// team's weekly rows (week, w, l, head, power, rk_head, rk_power, gid, grade, off, def, roster, stats, results, groups); `sched` is its schedule.
+// team's weekly rows (week, w, l, head, power, earned, rk_head, rk_power, rk_earned, gid, grade, off, def, roster, stats, results, groups);
+// `sched` is its schedule. The rank shown is the earned order's (power's before a team has an earned number); the rating's rank sits beside it.
 function menuWeeklyTeamHtml(team, rows, sched) {
   const byGame = new Map((sched || []).map(g => [g.game_id, g]));
   const points = rows.map(r => ({
     week: r.week, value: r.head, grade: r.grade ?? null,
-    tip: `Week ${r.week}: rating ${r.head == null ? "none" : Math.round(r.head)}, #${r.rk_head}${r.gid != null ? `; ${menuWeekGameText(byGame.get(r.gid))}, game grade ${Math.round(r.grade)}` : "; no game"}`,
+    tip: `Week ${r.week}: rating ${r.head == null ? "none" : Math.round(r.head)} (rating #${r.rk_head}), rank #${r.earned != null ? r.rk_earned : r.rk_power}${r.gid != null ? `; ${menuWeekGameText(byGame.get(r.gid))}, game grade ${Math.round(r.grade)}` : "; no game"}`,
   }));
   const body = rows.map((r, i) => {
     const g = r.gid != null ? byGame.get(r.gid) : null;
     const prev = i ? rows[i - 1] : null;
     return `<tr><td>W${r.week}</td><td>${r.w}-${r.l}</td><td>${menuWeekPill(r.head, `Rating after week ${r.week}`)}</td>
       <td>${prev ? menuWeekChange(r.head, prev.head, `Change from week ${prev.week}`) : '<span class="trio-na">—</span>'}</td>
-      <td>#${r.rk_head}</td><td class="m-wk-power">#${r.rk_power}</td><td class="m-wk-game">${_esc(r.gid != null ? menuWeekGameText(g) : "Bye")}</td>
+      <td>#${r.earned != null ? r.rk_earned : r.rk_power}</td><td class="m-wk-power">#${r.rk_head}</td><td class="m-wk-game">${_esc(r.gid != null ? menuWeekGameText(g) : "Bye")}</td>
       <td>${r.grade != null ? menuWeekPill(r.grade, `Game grade, week ${r.week}`) : '<span class="trio-na">—</span>'}</td></tr>`;
   }).join("");
   const graded = rows.filter(r => r.grade != null);
   const best = graded.length ? graded.reduce((a, b) => (b.grade > a.grade ? b : a)) : null;
   const worst = graded.length ? graded.reduce((a, b) => (b.grade < a.grade ? b : a)) : null;
   const first = rows[0], last = rows[rows.length - 1];
-  const rankMove = first && last && first !== last ? `<span>Rank #${first.rk_head} → #${last.rk_head}</span>` : "";
+  const siteRank = r => (r.earned != null ? r.rk_earned : r.rk_power);   // the earned order, power before a team has an earned number
+  const rankMove = first && last && first !== last ? `<span>Rank #${siteRank(first)} → #${siteRank(last)}</span>` : "";
   return `${menuWeekSummary(rows.map(r => ({ week: r.week, value: r.head })), rankMove)}
     ${trendChart(points, { label: `${team.school} rating after each week of ${MENU.season}`, labels: true })}
     ${best && worst && best !== worst ? `<div class="m-facts"><span>Best game: W${best.week}, grade ${Math.round(best.grade)}</span><span>Weakest game: W${worst.week}, grade ${Math.round(worst.grade)}</span></div>` : ""}
     <div class="m-twrap"><table class="m-ptable m-ptable--weeks"><thead><tr><th>WK</th><th>REC</th><th title="The team rating after that week's games">RATING</th>
-      <th title="Change from the week before">CHANGE</th><th title="Rank by rating among all FBS teams that week">RANK</th><th class="m-wk-power" title="Rank by power that week">POWER</th><th class="m-wk-game">GAME</th><th title="That one game, on the rating scale">GRADE</th></tr></thead>
+      <th title="Change from the week before">CHANGE</th><th title="The site's rank that week: the earned order (power before a team has an earned number)">RANK</th><th class="m-wk-power" title="Rank by the team rating among all FBS teams that week">RATING #</th><th class="m-wk-game">GAME</th><th title="That one game, on the rating scale">GRADE</th></tr></thead>
       <tbody>${body}</tbody></table></div>
     ${menuWeeklyUnitsHtml(rows)}
     <p class="m-note">Rating is the team rating (roster, stats and results) as it stood after that week, built from the games through it and nothing later. Grade is that one game as a team: its margin (capped at 28, the home edge taken off) plus the opponent's strength that week (every FCS opponent is one pooled team, so a win over one grades low), on the same scale. The offensive-line unit is not in these numbers, so the latest week can differ from the team's current rating by up to about one point.</p>`;

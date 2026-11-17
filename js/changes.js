@@ -33,6 +33,64 @@
 
 const CHANGES = [
   {
+    id: "v4.27.3-housekeeping",
+    version: "v4.27.3",
+    date: "2026-11-17",
+    title: "Earned is the rank everywhere, undefeated seasons read 15-0 not 15-null, a gate for games filed in the wrong week, and dead code removed",
+    summary: `The owner settled the open v4.27 question: the earned order is the rank shown across the site, with the team rating still beside it. Two places still measured from power, the weekly table on a team page and the Compare screen, and both now read earned. The pass also cleared the small items in the status review: a record bug that printed every undefeated or winless season's missing side as null (41 rows, LSU 2019 among them), the check proposed in docs/IDEAS.md for games dated far from their week, the empty research_cache path, and stale lines in CLAUDE.md and the docs. No rating moved.`,
+    motivation: `The owner: "earned ratings are what i want to show across the board ... finish the housekeeping and make sure we have everything on earned (with the team rating still shown)", and "make sure players are recalculated for all games this year".`,
+    did: [
+      { what: "The weekly table on a team page ranks by earned (js/menuWeekly.js)",
+        why: `Its RANK column was the team rating's rank and its second rank column was power's. RANK is now the earned order's rank that week (rk_earned, already in weekly_teams_2026.json; power's before a team has an earned number), and the second column, hidden on a phone, is the rating's rank. The summary line "Rank #a to #b" and the chart tooltip follow.`,
+        cost: "A reader who learned the old columns sees them swapped." },
+      { what: "Compare measures every reading from earned (js/menuScreensLeague.js, js/guide.js)",
+        why: `v4.27 left this unfixed: arrows marked readings 20+ places from power. Earned is now a column and the anchor (menuCmpAnchor: power for a list with no results), the screen opens sorted by earned, and the Rankings chip links there. The row keeps five reading columns, so no layout changed: the first is earned, or power when power is the sort. Power stays in the team's panel.`,
+        cost: "Power left the row unless it is the sort." },
+      { what: "A season's record is both counts or neither (scripts/12_export_frontend_json.py, export_team_history)",
+        why: `The losses counter had a key only for a team that lost, so an undefeated season exported losses: null, and the History screen printed it as "15-null". The same held for winless seasons. 41 season rows across the archive had one count and not the other. A team with a scored game now gets a known 0. Only a team-season with no scored game stays unknown (3 rows). A contract test (TestTeamHistoryRecord) holds it.`,
+        cost: "None." },
+      { what: "Games dated far from their week fail the ingest gate (scripts/validate_week_ingest.py)",
+        why: `docs/IDEAS.md proposed it after four 2025 games made every 2025 replay week look finished (v4.25.1). The tolerance was measured first: over 39,040 dated regular-season games 2008-2026, the next largest gap after those four is 9 days (week 0), so 14 days flags them and no other game. A staged game outside it FAILs when it involves an FBS team and WARNs otherwise; --audit lists stored ones. Week 11's staged payload: 0 of 3,718.`,
+        cost: "None measured. A real rescheduling of more than two weeks would need a look before merging." },
+      { what: "research_cache removed (script 12, data/research/index.json, data/raw/research_cache.json)",
+        why: `It was empty, script 12 wrote [] every run, and no page, test or tool read data/research. Findings live in the FINDINGS registry. CLAUDE.md asked for one mechanism, not two.`,
+        cost: "None. If a published-research path is wanted, it starts from FINDINGS." },
+      { what: "Stale lines corrected: root CLAUDE.md §6, docs/ROADMAP.md, docs/INTERNAL_REFERENCE.md, docs/RATINGS_SPEC.md, METHODS coverage, docs/IDEAS.md",
+        why: `CLAUDE.md listed info.html (a redirect since v4.25), the class year (script 12 exports the derived class_year) and the two-histories problem (the markdown changelogs are gone) as open, and named the playoff model's scripts 17/18/19, which now belong to other scripts. Coverage lines in METHODS say week 11; measurements labelled with their own week are left as they were. IDEAS gains four entries from this session (interceptions in the QB game grade, a page explaining a team's two numbers, Home mismatches between them, and the lower divisions, parked) and the wrong-week check moves to its "left this file" list.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Delete team_advanced_games.json (110 MB) as unread",
+        result: "It is read: scripts/validate_early_reliability.py loads it. The status review called it dead because the ratings do not read it. It is gitignored, so it costs disk, not the repository. Kept, and the docs now say who reads it.",
+        verdict: "rejected" },
+      { what: "Correct the four December 2025 games' week in data/raw/games.json",
+        result: "CFBD itself returns them as regular-season week 1, and every refresh re-saves /games, so a hand edit would be undone at the next merge. They are lower-division (no FBS id), so no FBS rating reads them. The gate catches the class instead.",
+        verdict: "rejected" },
+      { what: "Add power as a sixth column on Compare's row",
+        result: "Needs a new grid template on m-row--cmp at every width. The first column switches to power when power is the sort instead.",
+        verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Season rows with one of wins and losses missing (team_history.json)", before: "41 (LSU 2019 15-null, among them)", after: "0; 3 rows with neither, for team-seasons with no scored game" },
+      { label: "Games dated more than 14 days from their week's median, all seasons", before: "-", after: "4 of 39,040, all December 2025 lower-division games 105 days off; next largest 9 days" },
+      { label: "Rated 2026 players whose games include every game on file", before: "-", after: "7,877 rated, each with a week-11 entry in the replay. Per-game rows on file in every week 1 to 11 (week 11: 4,413). A games count below the rows on file is the playtime floor (Aaron Philo's 5 of 7 passes at Georgia; Jonaz Walton's one carry), not a missing game. Kickers and punters carry no games count" },
+      { label: "Places a rank is drawn from power rather than earned (a season with results)", before: "2 (weekly table; Compare)", after: "0. Power is still a Rankings chip, the Compare panel and the matchup line" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "664 passed, 2 failed: the two known failures (recruiting-basis 4.7% against 5%; weekly against live line unit), unedited. TestTeamHistoryRecord failed on the old export (41 rows) and passes on the new" },
+      { check: "scripts/validate_ratings.py --season 2025; scripts/21_export_contract.py --check; scripts/22_freeze_snapshot.py --verify", result: "11,321 rated, unchanged; export 139 teams, 16,882 players; 4 snapshots, all verify" },
+      { check: "node --check js/*.js; tools/registry-check, prose-check", result: "passes; 0 registry failures; prose renders clean" },
+      { check: "UI smoke suite (tools/ui-smoke)", result: "81 of 81. Before the Compare check was corrected, 80: it counted five panel rows, and the panel now has six (earned added). The check now also requires the earned row" },
+    ],
+    unfixed: `**Interceptions barely move a quarterback's game grade.** Measured this session and not changed: -20 per interception against +25 per passing touchdown, and 3+ interceptions grade 4.3 points under none. Its own release (docs/IDEAS.md).
+      **The explanation page for a team's two numbers and the Home mismatch headlines** are logged in docs/IDEAS.md and not built: both are page design, agreed before written.
+      **The Rankings detail panel still explains power** (its two parts), not earned.
+      **Export contract v1 does not carry earned,** as in v4.27.
+      **Week 12 is not in;** two known test failures stand, unedited; the luminance-threshold line in CLAUDE.md §3 is the owner's to edit.`,
+    methods: ["earned-ranking", "weekly-progression"],
+    files: ["js/menuWeekly.js", "js/menuScreensLeague.js", "js/guide.js", "js/methods.js", "scripts/12_export_frontend_json.py", "scripts/validate_week_ingest.py", "tests/test_export_contract.py", "docs/IDEAS.md"],
+  },
+  {
     id: "v4.27.2-week-eleven",
     version: "v4.27.2",
     date: "2026-11-16",

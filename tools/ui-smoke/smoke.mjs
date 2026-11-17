@@ -1104,25 +1104,26 @@ check("menu: Rankings shows the top 25 and, on the All FBS view, every ranked te
   return page;
 });
 
-check("menu: Compare lays five readings beside our ranking for every team, sorts by any of them, and marks a gap", async ctx => {
+check("menu: Compare lays five readings beside our ranking (earned) for every team, sorts by any of them, and marks a gap", async ctx => {
   const page = await openMenu(ctx, "#/compare");
   await waitCount(page, "button.m-row--cmp", 100);
   const n = await page.locator("button.m-row--cmp").count();
   assert(n >= 130 && n <= 140, `Compare lists ${n} teams`);
   assert(await page.locator("button.m-row--cmp").first().locator(".m-cmp").count() === 5, "a row does not carry five readings");
   const first = async () => (await page.locator("button.m-row--cmp .m-pname").first().innerText()).trim();
-  const byPower = await first();
+  const byEarned = await first();
   await page.locator('.m-tab[data-tab="roster"]').click();
   await page.waitForFunction(h => location.hash.includes("/roster"), null, { timeout: 15000 });
   await page.waitForTimeout(400);
   const byRoster = await first();
-  assert(byRoster && byPower, "no team in the first row");
+  assert(byRoster && byEarned, "no team in the first row");
   const text = await page.locator("button.m-row--cmp").first().innerText();
   assert(!/\bundefined\b|\bNaN\b|\bnull\b/.test(text), "a Compare row shows undefined, NaN or null");
   assert(await page.locator(".m-cmp-rank.is-gap").count() > 0, "no reading is marked as 20 places from our ranking");
   await page.locator("button.m-row--cmp").nth(3).hover();
   await page.waitForSelector(".m-cmp-table", { timeout: 15000 });
-  assert(await page.locator(".m-cmp-table tbody tr").count() === 5, "the detail panel does not list the five readings");
+  assert(await page.locator(".m-cmp-table tbody tr").count() === 6, "the detail panel does not list the six numbers (earned, power and four readings)");
+  assert(/earned/i.test(await page.locator(".m-cmp-table").innerText()), "the detail panel has no earned row");
   return page;
 });
 

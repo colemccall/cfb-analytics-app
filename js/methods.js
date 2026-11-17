@@ -1353,7 +1353,7 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       for a loss, plus the margin up to 7, and all games are solved at once against the opponents played. Nothing about a team's players or last season goes in.
       Rankings opens on it. Power, the games-only method and the rating are one chip away, and no rating changed.`,
     inputs: [
-      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed on the team's panel and not counted)", coverage: "2008-2026; 2026 through week 10" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed on the team's panel and not counted)", coverage: "2008-2026; 2026 through week 11" },
     ],
     formula: `value(game)  = clip(margin, +-7) + 12 if won, - 12 if lost            (from the team's side; a tie is 0)
 earned       = ridge solution over all teams and games at once, with a home edge        (lambda = 2)
@@ -1410,7 +1410,7 @@ a team with no FBS game has no number, not a zero`,
       team they call strong costs little. The Rankings screen shows the two parts and every game behind the second.`,
     inputs: [
       { name: "Team rating", source: "script 10 (the season's own roster ratings and team stats)", coverage: "every rated team-season; for a season in progress, the rating to date" },
-      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 10" },
+      { name: "Games", source: "data/raw/games.json, regular season, both teams FBS (bowls and the playoff are listed beside power and not counted)", coverage: "2008-2026; 2026 through week 11" },
     ],
     formula: `rating part  = 0.98 * (team rating - mean team rating)     [0 for every team while the season is being played, v4.22]
 value(game)  = clip(margin, +-28) + 8 if won, - 8 if lost            (from the team's side)
@@ -1492,10 +1492,10 @@ power        = rating part + results part                              (points p
       rating (the headline for a team, the earned rating for a player) and the one game played that week, as a grade. The running number is the one the rest of the site shows, at an earlier date;
       the grade is a separate, noisier reading of a single game. Both are provisional in the same way live ratings are, and neither uses last season, the preseason, or any outside number.`,
     inputs: [
-      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026, weeks 1 to 10 on file; 2024 and 2025 replayed, weeks 1 to 15" },
+      { name: "Games with scores, regular season, weeks up to N", source: "data/raw/games.json read through fill_shutouts", coverage: "2026, weeks 1 to 11 on file; 2024 and 2025 replayed, weeks 1 to 15" },
       { name: "Per-game player stats up to week N", source: "data/raw/stats.json game_aggregate rows (script 06 --through-week)", coverage: "2024, 2025, 2026" },
-      { name: "Per-game player box scores, every game", source: "data/raw/stats.json game_aggregate rows, exported by script 12 as gamelog_{season}_{team_id}.json", coverage: "2026 through week 10: 138 team files, 8,327 players, 43,025 player-games" },
-      { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 10, 138 FBS teams" },
+      { name: "Per-game player box scores, every game", source: "data/raw/stats.json game_aggregate rows, exported by script 12 as gamelog_{season}_{team_id}.json", coverage: "2026 through week 11: 138 team files, 8,437 players, 47,438 player-games" },
+      { name: "Per-game team box scores up to week N", source: "the API cache of /games/teams, summed by utils/box_scores.py (script 10 --through-week)", coverage: "2026 weeks 1 to 11, 138 FBS teams" },
     ],
     formula: `after week N:   run 06 (in progress, through N) -> 07 -> 10 (through N) on the games of weeks 1..N
 team rating   = 1/6 roster + 1/6 stats + 2/3 results                     (the live headline, built from weeks 1..N)
