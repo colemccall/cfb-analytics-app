@@ -33,6 +33,48 @@
 
 const CHANGES = [
   {
+    id: "v4.27.4-interceptions-and-earned-variants",
+    version: "v4.27.4",
+    date: "2026-11-19",
+    title: "Two owner questions measured, nothing changed: interceptions in a QB's game grade, and why Boise State sits above one-loss Big 12, ACC and Big Ten teams",
+    summary: `Two questions from the owner, each measured before anything moves. Sam Leavitt's game grades looked too high in turnover-heavy games (0 TD and 1 INT at Alabama graded 96.1). The interception weight is not the cause: on a test of what the grade claims to describe, the same game's points, the shipped -20 is at the best value and ANY/A's -45 is worse. Passing volume is what lifts those games. Boise State (9-1) ranked 8th on earned, above Indiana, Texas Tech and Wake Forest. Those four sit within 1.1 points, and Boise's loss is the cheapest of the four. The one mechanism that moves Boise into the owner's 12-20 range, a conference term, also lifts the SEC back up. Both studies are now pipeline scripts, and the choice is the owner's.`,
+    motivation: `The owner: "sam leavitts game by game grades are so wrong ... 3 ints to 1 touchdown against bad teams, and was still given an 84 or 86"; and "why are wake forest and texas tech behind boise state ... id say 12-20 is appropriate ... something to explore before changing massively. maybe run a few simulations on 2026 rankings".`,
+    did: [
+      { what: "The game grade's own test added to scripts/validate_qb_composite.py",
+        why: `The v4.21 interception test asked whether the season composite predicts the offense in later games, which is the running rating's job. The game grade claims to describe one game, so it is now also scored on that game: leave-one-season-out R2 of the team's points over expectation that day, 15,785 QB games 2016-2025. A placebo shuffles which games carry the interceptions. The script also prices one interception directly from the same game's points.`,
+        cost: "None; read-only. The script runs a minute longer." },
+      { what: "scripts/validate_earned_variants.py: the earned order under variants, ranked for a season and scored on the backtest",
+        why: `It reproduces 2026's earned numbers through week 11 (largest gap to the live file 0.029). It breaks each team's number into the score each game contributes, then reranks 2026 under twelve variants: margin cap, win bonus, shrinkage, FCS games counted, and a conference term. Each is scored on later-game winners after week 10, 2016-2025. It prints the conference levels the term would estimate. A proposed ranking tweak gets measured here first.`,
+        cost: "None; read-only, about 6 minutes." },
+    ],
+    tried: [
+      { what: "Charge -45 per interception in the game grade (ANY/A)", result: "Same-game R2 0.3600 against 0.3657 shipped; picks shuffled 0.3444; later games no better. Fitted from the same game's points, an interception costs 27.6 passing yards, not 45. It would lower a 3-interception game by about 6 grade points.", verdict: "rejected" },
+      { what: "Charge -30 per interception", result: "0.3659 against 0.3657 on the same game and 0.3994 against 0.3983 on later games: inside the noise, about 2.7 grade points on a 3-interception game.", verdict: "rejected" },
+      { what: "Weigh efficiency more in the game grade (blend 0.75 or 1)", result: "Same game 0.3659 / 0.3322 against 0.3657; later games 0.3943 / 0.3804 against 0.3983. The half blend is best or tied on both.", verdict: "rejected" },
+      { what: "Add sacks to the QB score", result: "Not possible: the per-game passing rows carry completions, attempts, yards, touchdowns, interceptions and QBR, and no sacks taken.", verdict: "blocked" },
+      { what: "A conference term in the earned solve (ridge 8)", result: "Winners 71.01% against 70.70%. Boise State 8th to 15th, Texas Tech 12th to 10th, Wake Forest 13th to 12th, Indiana 10th to 11th, and the SEC back up (LSU 26th to 18th, Florida 22nd to 16th, Ole Miss 25th to 17th).", verdict: "experiment" },
+      { what: "Margin cap 14 in the earned order", result: "The best backtest, 71.64% (mean miss 13.51 against 13.74). Boise State 9th, LSU 17th; with the conference term Boise State 16th and LSU 12th, against the v4.27 condition.", verdict: "experiment" },
+      { what: "Count FCS games, more or less shrinkage, win bonus 8 or 16", result: "70.54% to 70.96%, and Boise State stays 7th to 9th.", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Leavitt's 2026 game grades", before: "-", after: "96.1 at Alabama (380 yds, 0 TD, 1 INT, lost 13-31); 86.1 against Louisiana Tech (1 pass TD, 3 INT, 3 rushing TD); 87.3 against Texas (2 TD, 3 INT); 77.8 against McNeese (3 TD, 1 INT, FCS weight 0.85)" },
+      { label: "2026 QB game grade by interceptions (1,271 games, 15+ attempts)", before: "-", after: "0: 82.5; 1: 79.1; 2: 78.1; 3+: 78.2. In the published grade an interception costs 1.78 points and a passing yard 0.087, so one interception equals 20.4 yards, exactly the weight" },
+      { label: "Earned order, 2026 through week 11: Boise State, Indiana, Texas Tech, Wake Forest", before: "-", after: "+12.1 (#8), +11.6 (#10), +11.1 (#12), +11.0 (#13). The loss's game score: Boise -5.8 (lost by 7 at #14 Oregon), Wake -7.1 (by 13 to #2 Miami), Indiana -10.5 (by 4 to #15 Ohio State), Texas Tech -15.3 (by 13 at #66 Cincinnati). Texas Tech's win over #139 Sam Houston scores -0.9" },
+      { label: "Records against other FBS conferences, 2026 through week 11", before: "-", after: "SEC 28-2, Big 12 25-8, Big Ten 31-11, ACC 19-14, Pac-12 9-16, AAC 16-25, Mountain West 12-17, Sun Belt 14-27, C-USA 6-24, MAC 7-29" },
+    ],
+    gates: [
+      { check: "scripts/validate_qb_composite.py", result: "Runs end to end (exit 0): the shipped blend is still the best of the predictive grid" },
+      { check: "scripts/validate_earned_variants.py", result: "Reproduces the live earned numbers to within 0.029" },
+      { check: "pytest tests -q (pipeline); node --check js/*.js; registry-check, prose-check", result: "664 passed, 2 failed (the two known, unedited; the docstring test failed until the new script's two helpers had docstrings); node passes; registries 0 failures, 36 warnings; prose clean. No exported number changed" },
+    ],
+    unfixed: `**No rating or ranking changed.** The conference term and the margin cap are the owner's decision, logged in docs/IDEAS.md and as experiments in the METHODS earned-ranking entry.
+      **The game grade still rewards passing volume most,** because that is what best describes and predicts an offense's points. A turnover's timing (a pick-six, a late interception) is not in a box score.
+      **North Dakota State is in the 2026 FBS set** as a Mountain West member, from the API's own records; it ranks 24th on earned. Not a defect, and noted because it surprised the review.
+      **Week 12 is not in yet** (games through November 21).`,
+    methods: ["qb-composite", "earned-ranking"],
+    files: ["scripts/validate_qb_composite.py", "scripts/validate_earned_variants.py", "docs/ALTERNATIVES.md", "docs/IDEAS.md", "js/methods.js"],
+  },
+  {
     id: "v4.27.3-housekeeping",
     version: "v4.27.3",
     date: "2026-11-17",
