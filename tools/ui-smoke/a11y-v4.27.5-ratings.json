@@ -1,0 +1,93 @@
+{
+ "generated_at": "2026-11-20T12:52:18.012Z",
+ "routes": 1,
+ "views": [
+  {
+   "route": "#/team/52/ratings",
+   "mode": "dark",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "dark",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "light",
+   "width": 1280,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  },
+  {
+   "route": "#/team/52/ratings",
+   "mode": "light",
+   "width": 375,
+   "counts": {
+    "contrast": 0,
+    "review": 0,
+    "small": 0,
+    "twelve": 0,
+    "target": 0,
+    "unnamed": 0,
+    "noalt": 0
+   }
+  }
+ ],
+ "totals": {
+  "contrast": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "review": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "small": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "twelve": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "target": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "unnamed": {
+   "distinct": 0,
+   "elements": 0
+  },
+  "noalt": {
+   "distinct": 0,
+   "elements": 0
+  }
+ },
+ "findings": []
+}

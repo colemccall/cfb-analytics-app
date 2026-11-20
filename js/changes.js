@@ -33,6 +33,61 @@
 
 const CHANGES = [
   {
+    id: "v4.28-qb-accuracy-turnovers",
+    version: "v4.28",
+    date: "2026-11-20",
+    title: "Quarterbacks: accuracy counts, and a game with more interceptions than touchdowns costs more",
+    summary: `The owner: "the passing accuracy and interceptions have to matter. even if a quarterback throws for 400 yds, but has 3 ints to 1 td, its a really bad game". Measured first, and the data agreed. In 300+ yard, 3+ interception, at most one touchdown games, offenses scored at the 35.5th percentile while the QB score put the games at the 48.6th. That is a miss away from the middle, not regression to it. Two terms enter a QB's game score before the efficiency blend: 5 points per completion over that season's expected rate, and 30 per interception beyond passing touchdowns. Both tests improve: the game it describes and the games after. The cost is agreement with NFL draft order at QB, 0.4493 to 0.4429. Every QB rating in every season was recomputed.`,
+    motivation: `The owner, after v4.27.4 showed that a heavier flat interception weight did not help: accuracy and interceptions "have to matter", and a 400-yard, 1 TD, 3 INT game is bad. Then: "go on the QB change and then push".`,
+    did: [
+      { what: "Two terms in the QB game score (scripts/06_compute_edge_scores.py: QB_ACC_PER_CMP 5, QB_EXCESS_INT 30, season_completion_rate)",
+        why: `A = V + 5 x (completions - season rate x attempts) - 30 x max(INT - TD, 0), then the shipped blend 0.5 A + 0.5 A / max(att, 10) x 28. The season rate is that season's completions over attempts in QB games of 10+ attempts, never one pooled rate: 0.593 in 2015, 0.631 in 2026. A week-N replay reads only games to week N, so the rate never sees the future.`,
+        cost: "Every QB rating in every season moves (see measured)." },
+      { what: "Which games count is unchanged, and a disastrous game is floored at 0 (_off_game_counts)",
+        why: `Script 06 drops a game whose score is not above 0. With the new penalty, a terrible game could fall below 0 and be dropped, which would erase it from the QB's season. Counting is now decided by the old volume score, as before, and the new score is floored at 0, so that game counts as nothing rather than vanishing.`,
+        cost: "A floored game and a merely bad one can both score 0." },
+      { what: "The validator measures the shipped function (scripts/validate_qb_composite.py)",
+        why: `It now computes each game's score with the production function, season rate included, and reports the same-game and later-game tests for it beside the old score. CLAUDE.md §1.6: measure the quantity you publish.`,
+        cost: "None." },
+      { what: "Full recompute, offline",
+        why: `scripts/recompute_finished_seasons.sh (06 -> 07 -> 10 for 2008-2025, 11, 15 --retrain, 16, 10 projected, 13, 14), then 17 and 17b for 2026, 17b --through-week 15 for 2024 and 2025, then 12 --cards and 21. The pre-change outputs are kept in _snapshots/v4.27.5-pre-v4.28/ with hashes.`,
+        cost: "About 9 hours, 6 of them the 2024 replay." },
+    ],
+    tried: [
+      { what: "A heavier flat interception weight (-30 / -45)", result: "v4.27.4: no better on either test. The turnover-heavy miss is about interceptions OUTNUMBERING touchdowns, which a flat weight cannot see.", verdict: "rejected" },
+      { what: "60 per excess interception, to make the 400-yard, 1 TD, 3 INT game 'really bad'", result: "Same-game R2 0.3555, later-game 0.3952: worse on both. Offenses in those games score near the 32nd to 36th percentile, so the data supports a below-average game, not a disaster.", verdict: "rejected" },
+      { what: "Drop a game whose new score is below 0, as other positions do", result: "It would erase a QB's worst games from his season and raise his rating.", verdict: "rejected" },
+      { what: "One pooled expected completion rate", result: "Rates drift from 0.593 to 0.631 across the archive. A pooled rate would credit every modern QB for the era, not for accuracy.", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "Same-game R2 (the game grade's own test), 15,737 counted games 2016-2025", before: "0.3651", after: "0.3707" },
+      { label: "Later-game R2 (the running rating's test)", before: "0.3983", after: "0.3990" },
+      { label: "300+ yards, 3+ INT, at most one TD (46 games): score percentile against the offense's points", before: "48.5 against 35.4", after: "33.2 against 35.4" },
+      { label: "QB player-seasons 2008-2025 (6,317)", before: "-", after: "96.3% moved; mean -0.81; 5th percentile -2.78, 95th +0.26; range -9.2 (Arkelon Hall 2009) to +6.9. Largest falls Hall, Kevin Craft 2008, Gavin Wimsatt 2022; largest rises include Colt McCoy 2008 +2.9" },
+      { label: "QBs at 90+ / 85+, 2019, 2022, 2024, 2025", before: "10, 9, 6, 6 / 39, 40, 38, 40", after: "10, 9, 7, 7 / 33, 37, 35, 37" },
+      { label: "Other positions", before: "-", after: "98,284 player-seasons 2008-2025: none moved more than 0.09 (pool rounding); 2026 live, 0 of 7,488 moved. Team headline moved 0.02 on average; earned did not move" },
+      { label: "2026 live QBs (386)", before: "-", after: "mean -0.61, range -6.0 to +1.4. Sam Leavitt 88.8 to 89.1: accurate, so the credit outweighs his excess interceptions" },
+      { label: "Leavitt's game grades", before: "Louisiana Tech 86.1, Texas 87.3, Alabama 96.1", after: "82.8, 86.5, 96.0. At Alabama, 35 of 47 completions earned about +27 and the one excess interception cost 30; the grade scale also compresses near the top" },
+      { label: "QB agreement with NFL draft order (the cost)", before: "0.4493", after: "0.4429" },
+      { label: "QB year-over-year persistence / share of its ceiling", before: "0.556 / 0.607", after: "0.559 / 0.609" },
+      { label: "Projection gates (script 15 --retrain, holdout)", before: "offense 8.11 against naive 9.02, coverage 78.6%; defense 8.49 against 9.63, 77.0% (v4.25)", after: "offense 8.08 against 9.05, 78.7%; defense 8.51 against 9.62, 77.9%" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "671 passed, 2 failed: the two known failures, unedited. 7 new tests pin the accuracy term, the excess-interception charge, the floor, the unchanged counting rule and the season rate. The contract v1 test failed until script 21 was rerun" },
+      { check: "validate_ratings.py --season 2025; validate_vs_draft.py; validate_reliability.py", result: "exit 0; QB 85+ 37 and 90+ 7 of 438; draft QB 0.4429; reliability gate passes at every position" },
+      { check: "Both projection gates", result: "each family beats its naive carry-forward (8.08 < 9.05, 8.51 < 9.62); coverage 78.7% and 77.9% against 80%" },
+      { check: "UI smoke suite; node --check js/*.js", result: "81 of 81; passes" },
+    ],
+    unfixed: `**A high-volume, accurate game with one excess interception still grades near the top** (Leavitt at Alabama 96.0). That is the measured answer, not an oversight: his 35 of 47 offset it.
+      **Sacks are not in the score:** the per-game passing rows carry none.
+      **A turnover's timing is invisible** (a pick-six or a late interception counts like any other).
+      **The 2024 weekly replay takes about 6 hours,** which makes any full recompute an overnight job.
+      **Three one-game 2026 QBs lost their rating** (Deante Ruffin, Edward Griffin, Landon Graves): each one's only game floored at 0, and script 07 reads an EDGE of 0 as no data. Fixed in v4.28.1.
+      **Week 12 is not in yet;** the two known test failures stand.`,
+    methods: ["qb-composite"],
+    files: ["scripts/06_compute_edge_scores.py", "scripts/validate_qb_composite.py", "tests/test_player_inputs_v420.py", "docs/FORMULAS.md", "docs/ALTERNATIVES.md", "docs/IDEAS.md", "js/methods.js", "data/ (every season)"],
+  },
+  {
     id: "v4.27.5-team-ratings-to-date",
     version: "v4.27.5",
     date: "2026-11-20",

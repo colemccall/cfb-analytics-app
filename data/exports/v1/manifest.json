@@ -6,17 +6,17 @@
  "through_week": 11,
  "games_completed": 3486,
  "games_scheduled": 3726,
- "source_generated_at": "2026-11-16T23:26:35+00:00",
- "exported_at": "2026-11-16T23:51:22+00:00",
- "release": "v4.27.1",
- "model_fingerprint": "e8c08ee412f2b1977c58eecc4470b19a46a6b0bb5d93f9f4e9cb5d8989b884df",
+ "source_generated_at": "2026-11-20T15:10:17+00:00",
+ "exported_at": "2026-11-20T22:20:47+00:00",
+ "release": "v4.27.5",
+ "model_fingerprint": "f637bf306f180681505a910c07c770a46cbb19f48a38f2f354758b0666888240",
  "rows": {
   "teams.json": 139,
   "players.json": 16882
  },
  "sha256": {
-  "teams.json": "93876807cdb3264f433316ab08723452496d778a7d6caa2f2e08da3f080761b1",
-  "players.json": "198e053e419edda1270f5f8118d5f6064e695fc9c874703fbdaae51be4400238",
+  "teams.json": "1b4f7008ee41de7149a2c810a7038da024ae8cb61536fbed6847584cd2540156",
+  "players.json": "73d54deeb842411c51b5bc85d142f2bb9f8027199230625fd772a63c08d11d1d",
   "schema.json": "95515e8135b255184724fe530ec45b2de1bf436ae1c0b32fa8ccdcb690a3bee1"
  }
 }

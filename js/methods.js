@@ -1298,7 +1298,7 @@ rating = a + b x level        (a, b) = PART_SEASON_CURVE[position family, 3 game
   {
     id: "qb-composite",
     group: "ratings",
-    title: "Quarterbacks: half volume, half efficiency",
+    title: "Quarterbacks: half volume, half efficiency, with accuracy and turnover-heavy games counted",
     summary: `A quarterback's game score was yards plus 25 per touchdown minus 20 per interception, so a 400-yard game from 55 attempts beat a 280-yard game from 25 that
       moved the ball better. The score is now half that volume score and half the same score restated at the median 28 attempts, which rewards a passer who
       does more with each throw without making the median passer move. The blend was chosen on held-out data, not on any player.`,
@@ -1307,10 +1307,13 @@ rating = a + b x level        (a, b) = PART_SEASON_CURVE[position family, 3 game
       { name: "Opponent defense strength", source: "utils/opponent_strength.py", coverage: "multiplies each game after the composite" },
     ],
     formula: `V       = 1.05 passing yards + 0.6 rushing yards + 25 passing TD + 18 rushing TD - 20 interceptions     (the volume score; v4.21 tilt, was 1.0 / 0.7 / 25 / 20 / -20)
-V_norm  = V / max(attempts, 10) x 28
-game score = 0.5 V + 0.5 V_norm          (only when V > 0; other positions are untouched)
+A       = V + 5 x (completions - season rate x attempts) - 30 x max(interceptions - passing TD, 0), floored at 0     (v4.28)
+          season rate = completions / attempts over that season's QB games of 10+ attempts (0.593 to 0.631 by season)
+A_norm  = A / max(attempts, 10) x 28
+game score = 0.5 A + 0.5 A_norm          (the game counts only when V > 0, as before; other positions are untouched)
 EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen QB anchors`,
-    reality: `The reference of 28 is the median attempts in a QB game, so a typical passer's score does not move and the frozen EDGE_OVR_ANCHORS still apply. The floor of 10 attempts keeps a three-throw
+    reality: `**v4.28:** the accuracy and turnover terms moved 96.3% of QB player-seasons 2008-2025: mean -0.81, 5th percentile -2.78, 95th +0.26, range -9.2 (Arkelon Hall 2009) to +6.9. QBs at 90+ in 2019 / 2022 / 2024 / 2025: 10 / 9 / 6 / 6 -> 10 / 9 / 7 / 7; at 85+ 39 / 40 / 38 / 40 -> 33 / 37 / 35 / 37. No other position moved by more than 0.09 (pool rounding). A game whose new score falls below 0 is floored at 0 and still counts. The game grade's scale compresses near the top, so a high-volume game with one excess interception and high accuracy barely moves (Sam Leavitt at Alabama 96.1 -> 96.0); a turnover-heavy one does (Louisiana Tech 86.1 -> 82.8).
+      The reference of 28 is the median attempts in a QB game, so a typical passer's score does not move and the frozen EDGE_OVR_ANCHORS still apply. The floor of 10 attempts keeps a three-throw
       relief appearance from being multiplied into a star turn. Every QB in every season is recomputed: 98% of QB player-seasons move (mean +0.65, 5th percentile -2.25, 95th +4.56, range -8.8 to +14.9), and
       QBs rated 90+ went 12 to 6 in 2022 and 6 to 4 in 2025 (7 to 7 in 2019). In week 8 of 2026 Mensah (10.5 yards per attempt) rates 91.0, Madsen (14 TD, 0 INT, 7.6 yards per attempt) 82.2, Minchey 86.2, Atkinson 87.5;
       the blend, the opponent map and the pace scale all moved these, and the entry on live ratings and the Build Log v4.20 separate them.`,
@@ -1328,6 +1331,8 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       { label: "v4.21 tilt: QB player-seasons moved 2008-2025", value: "6,201 of 6,317: mean +0.51, 5th percentile +0.03, 95th +1.06, range -3.8 to +8.6; QBs at 90+ 2019 / 2022 / 2025: 7 / 6 / 4 -> 10 / 9 / 6" },
       { label: "Points over expectation while he played (impact), alone / with the control", value: "0.4687 / 0.4979: the strongest predictor, and the team's offense, not his" },
       { label: "Live 2026 QB distribution, 85+ and 90+ share and spread, against the 2025 final", value: "16.6% / 2.1% / 11.9 against 13.2% / 1.3% / 11.5" },
+      { label: "v4.28 shipped score (accuracy + turnover-heavy terms, floored), 15,737 counted games 2016-2025", value: "same-game R2 0.3707 against 0.3651 before; later-game 0.3990 against 0.3983; 300+ yard, 3+ interception, at most one touchdown games at the 33.2nd percentile (48.5th before) against their offenses' 35.4th" },
+      { label: "v4.28 cost and checks", value: "agreement with NFL draft order, QB: 0.4493 -> 0.4429. Year-over-year persistence 0.556 -> 0.559 (share of ceiling 0.607 -> 0.609). Projection gates: offense 8.08 against naive 9.05, coverage 78.7%; defense 8.51 against 9.62, 77.9%" },
       { label: "Reproduction", value: "scripts/validate_qb_composite.py" },
     ],
     limits: `**The gain is small:** 0.020 of held-out R2. **It moves every QB in every season,** and lowers the high-volume ones (QBs at 90+ fell in 2022 and 2025). **The outcome is a team result** (his offense's points), so the test cannot separate
@@ -1344,6 +1349,7 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       { label: "Weight a rushing yard at its held-out value (about 0.68 of a passing yard) or leave 0.70", basis: "validate_qb_composite.py", status: "rejected", note: "The estimate is noisy (0.32 to 1.35 by season); the owner's tilt (1.05 and 0.6) is small and costs no accuracy, so it ships as a judgement." },
     ],
     changelog: [{ version: "v4.20", change: "Added: a QB game score is half the volume score and half the same score at the median attempts (floored at 10)." },
+                { version: "v4.28", change: "Accuracy (5 per completion over the season's rate) and turnover-heavy games (30 per interception beyond passing TD) enter the score before the blend; floored at 0. Owner's request; measured on both tests." },
                 { version: "v4.21", change: "Minor tilt toward passing volume: passing yards 1.05 (was 1.0), rushing yards 0.6 (0.7), rushing touchdowns 18 (20)." }],
     source: "scripts/06_compute_edge_scores.py (_off_stat_composite, QB_EFFICIENCY_BLEND) · scripts/validate_qb_composite.py · tests/test_player_inputs_v420.py",
   },
