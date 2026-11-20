@@ -1349,6 +1349,7 @@ EDGE    = sum(game score x opponent multiplier) / sqrt(games)   then the frozen 
       { label: "Weight a rushing yard at its held-out value (about 0.68 of a passing yard) or leave 0.70", basis: "validate_qb_composite.py", status: "rejected", note: "The estimate is noisy (0.32 to 1.35 by season); the owner's tilt (1.05 and 0.6) is small and costs no accuracy, so it ships as a judgement." },
     ],
     changelog: [{ version: "v4.20", change: "Added: a QB game score is half the volume score and half the same score at the median attempts (floored at 10)." },
+                { version: "v4.28.1", change: "A season of counted games whose every score floored at 0 is rated at the bottom (MIN_COUNTED_EDGE), not read as missing: one 2020 QB 62.65 recruiting -> 55.25 production; three 2026 backups rated again." },
                 { version: "v4.28", change: "Accuracy (5 per completion over the season's rate) and turnover-heavy games (30 per interception beyond passing TD) enter the score before the blend; floored at 0. Owner's request; measured on both tests." },
                 { version: "v4.21", change: "Minor tilt toward passing volume: passing yards 1.05 (was 1.0), rushing yards 0.6 (0.7), rushing touchdowns 18 (20)." }],
     source: "scripts/06_compute_edge_scores.py (_off_stat_composite, QB_EFFICIENCY_BLEND) · scripts/validate_qb_composite.py · tests/test_player_inputs_v420.py",

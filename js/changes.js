@@ -33,6 +33,39 @@
 
 const CHANGES = [
   {
+    id: "v4.28.1-zero-season-is-the-bottom",
+    version: "v4.28.1",
+    date: "2026-11-20",
+    title: "A quarterback whose every game floored at 0 is rated at the bottom, not read as missing",
+    summary: `v4.28 floors a disastrous QB game at 0 so it still counts. Script 07 reads an EDGE of 0 as "no data", though, so a season in which every counted game floored was treated as missing. Three one-game 2026 backups lost their rating. One 2020 QB with three such games fell back to his recruiting grade and rose from 55.7 to 62.7: the floor, meant to keep a bad game, made his season look better. Such a season now gets the smallest positive EDGE, which maps to the bottom of the scale. Only seasons that would otherwise be exactly 0 change: one row in 2020 and the 2026 season.`,
+    motivation: `Found by the v4.28 before-and-after: 7,874 rated 2026 players against 7,877, when which games count was meant to be unchanged.`,
+    did: [
+      { what: "MIN_COUNTED_EDGE in script 06's offensive season aggregation",
+        why: `A season with counted games and an EDGE of 0 or less gets 1e-6. Before v4.28 no counted game scored at or below 0, so the only rows it can reach are those the v4.28 floor created. A scan of player_edge.json found one in 2008-2025 (2020, three games) plus the 2026 rows.`,
+        cost: "One more rule in script 06." },
+      { what: "2020 and 2026 rerun: 06 -> 07 -> 10 for 2020, then 17 and 17b for 2026, then 12 for both seasons and 21",
+        why: `Every other season has no zero row, so it cannot move. The 2020 pool gains one production QB, which shifts the efficiency percentile the backup fallback reads.`,
+        cost: "About 21 minutes." },
+    ],
+    tried: [
+      { what: "Floor the game score at 1 instead of 0", result: "It changes every floored game's contribution in every season, which would need the 9-hour recompute again, and still leaves 0 meaning no data in script 07.", verdict: "rejected" },
+      { what: "Leave the three 2026 backups unrated and document it", result: "A 2020 QB's season was also inflated by 7 points through the same path. That is a wrong number, not a missing one.", verdict: "rejected" },
+    ],
+    measured: [
+      { label: "The 2020 QB with three floored games (player 20862)", before: "62.65, recruiting fallback (55.74 on production before v4.28)", after: "55.25, production" },
+      { label: "Other 2020 QB rows", before: "-", after: "176 changed: 167 by 0.01 (pool rounding), 9 backups by -0.79 to -2.72, the backup fallback's efficiency percentile having shifted by one starter" },
+      { label: "2026 rated players", before: "7,874", after: "7,877: Deante Ruffin 54.8, Edward Griffin 54.8 and Landon Graves 36.8, each on one game, blended" },
+    ],
+    gates: [
+      { check: "pytest tests -q (pipeline)", result: "673 passed, 2 failed (the two known, unedited); 2 new tests: a counted season that sums to 0 is rated at MIN_COUNTED_EDGE, one with production is untouched" },
+      { check: "validate_ratings.py --season 2025; 21_export_contract.py --check; UI smoke", result: "QB 85+ 37 and 90+ 7, as in v4.28; export clean; 81 of 81" },
+    ],
+    unfixed: `**Script 15 was not retrained for the ten 2020 QB rows** that moved: the Engine D models and the v4.28 projection gates were measured on the v4.28 ratings. The ten are backups among 6,317 QB player-seasons.
+      **Script 07 still uses 0 to mean "no data"** for every position. This rule makes sure an offensive season never reaches it by production alone.`,
+    methods: ["qb-composite"],
+    files: ["scripts/06_compute_edge_scores.py", "tests/test_player_inputs_v420.py", "data/ (2020, 2026)"],
+  },
+  {
     id: "v4.28-qb-accuracy-turnovers",
     version: "v4.28",
     date: "2026-11-20",
