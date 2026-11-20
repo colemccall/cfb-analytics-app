@@ -1391,10 +1391,17 @@ check("menu: a team's Ratings page breaks the rating down, rates the offensive l
   assert(await page.locator(".m-stat").count() >= 12, "fewer than twelve team stats");
   assert((await page.locator(".m-subbtn").allInnerTexts()).some(t => /ratings/i.test(t)), "Ratings is not in the page bar");
   assert(await page.locator('[data-to="#/methods/ol"]').count() >= 1, "no link to why linemen are not rated one by one");
-  // a season in progress has no line rating, and says why rather than showing a zero
+  // a season in progress shows what the games say to date beside the projection, not the projection alone (v4.27.5)
   const live = await openMenuIn(ctx, "#/team/52/ratings", CURRENT);
   await live.waitForSelector(".m-stage .m-h3", { timeout: 30000 });
-  assert(/not rated for a season in progress/i.test(await text(live, ".m-stage")), "the line says nothing about being unrated in a season in progress");
+  const liveHeads = (await live.locator(".m-stage .m-h3").allInnerTexts()).map(h => h.toLowerCase());
+  for (const want of ["rating to date", "position groups to date", "preseason breakdown", "offensive line"]) {
+    assert(liveHeads.some(h => h.includes(want)), `no "${want}" heading on a season in progress: ${liveHeads}`);
+  }
+  assert(await live.locator(".m-bar--pair .m-bar-mark").count() >= 1, "no preseason tick on the to-date bars");
+  assert(await live.locator(".m-bar--pair").count() >= 12, "fewer than twelve to-date bars (six readings and the position groups)");
+  assert(/through week \d+/i.test(await text(live, ".m-stage")), "the to-date panel does not say which week");
+  assert(!/\bNaN\b|\bundefined\b|\bnull\b/.test(await text(live, ".m-stage")), "the to-date panels show NaN, undefined or null");
   await live.keyboard.press("Escape");
   const hub = await openMenuIn(ctx, "#/team/52", PLAYED);
   await waitCount(hub, ".m-item", 7);

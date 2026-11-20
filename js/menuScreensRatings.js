@@ -30,8 +30,14 @@ function menuPctBar(label, pct, color, hint = "") {
 
 // The offensive line as a unit: its rating and the five measurements behind it. This is the constructive half of withdrawing the
 // per-lineman rating (no individual blocking data exists in any public source), so it says explicitly when it has no number.
-function menuLineUnit(sub, season) {
+function menuLineUnit(sub, season, liveOL = null, week = null) {
   const why = `<p class="m-note">A <b>unit</b> rating, not a player one. No individual blocking data exists in any public source, so linemen are not rated one by one. <button class="m-chip m-chip--tiny" type="button" data-nav data-nav-group="links" data-to="#/methods/ol">Why, and what we do instead →</button></p>`;
+  // A season being played has the unit to date (the live file's roster_groups.OL, the same reading the roster half uses); its five
+  // measurements are published for a finished season only.
+  if (sub.line_unit == null && liveOL != null) {
+    return `<h3 class="m-h3">Offensive line ${lineUnitPill(liveOL)}</h3>${menuBarPair("Unit to date", liveOL, null, `Through week ${week}`)}
+      <p class="m-note">To date, through week ${week}: the line unit read from this season's games so far, the same number the roster reading uses. Its five measurements are shown once the season is finished.</p>${why}`;
+  }
   if (sub.line_unit == null) {
     return `<h3 class="m-h3">Offensive line</h3><p class="m-empty">${isProjectedSeason(season)
       ? "Not rated for a season in progress: the line metrics measure games, and the games are still being played."
@@ -58,6 +64,33 @@ function menuTeamStatTiles(s) {
         tile("Turnover margin", s.turnover_margin == null ? "—" : (s.turnover_margin > 0 ? "+" : "") + s.turnover_margin)]);
 }
 
+// Position groups in the order a depth chart reads, for the to-date panel.
+const MENU_GROUP_ORDER = [["QB", "Quarterback"], ["RB", "Running back"], ["WR", "Receiver"], ["TE", "Tight end"], ["OL", "Line (unit)"],
+  ["DL", "Defensive line"], ["LB", "Linebacker"], ["DB", "Secondary"], ["K", "Kicker"], ["P", "Punter"]];
+
+// A season being played: what the games say so far beside what the preseason projection said. Overall, offense and defense are
+// paired bars (fill to date, tick at the projection); the three readings and the position groups exist only to date. `lv` is the
+// team's row in the live file. A projection with no separate offense and defense (menuSideHint) draws no tick there.
+function menuTeamRatingsToDate(team, lv, week) {
+  const sidesSplit = !(team.offense_rating != null && team.offense_rating === team.defense_rating);
+  const pre = { overall: lv.preseason_overall ?? team.overall_rating, offense: sidesSplit ? team.offense_rating : null, defense: sidesSplit ? team.defense_rating : null };
+  const w = CONFIG.HEADLINE_WEIGHTS || {};
+  const share = x => (x == null ? "" : `${Math.round(x * 100)}% of the rating`);
+  const head = [menuBarPair("Overall", lv.overall_rating, pre.overall, "The team rating"),
+    menuBarPair("Offense", lv.offense_rating, pre.offense), menuBarPair("Defense", lv.defense_rating, pre.defense),
+    menuBarPair("Roster", lv.roster_half, null, `The players' ratings by position group; ${share(w.roster)}`),
+    menuBarPair("Stats", lv.stats_half, null, `Yards, third downs, sacks and tackles for loss, schedule-adjusted; ${share(w.stats)}`),
+    menuBarPair("Results", lv.results_half, null, `Points scored and allowed against the opponents played; ${share(w.results)}`)].join("");
+  const g = lv.roster_groups || {};
+  const groups = MENU_GROUP_ORDER.filter(([k]) => g[k] != null).map(([k, label]) => menuBarPair(label, g[k], null)).join("");
+  return `<div class="m-split m-split--roster">
+      <section class="m-panel m-bars-wide"><h3 class="m-h3">Rating to date · through week ${week}</h3>${head}
+        <p class="m-note">The fill is what the games say so far; the tick and the small number are the preseason projection. Roster, stats and results are the three readings the rating is built from, and have no preseason version.</p></section>
+      <section class="m-panel m-bars-wide"><h3 class="m-h3">Position groups to date</h3>${groups || '<p class="m-empty">No position-group readings on file.</p>'}
+        <p class="m-note">Each group is its starters plus depth on the player scale, from this season's games; the line is rated as a unit.</p></section>
+    </div>`;
+}
+
 menuRouter.register("team-ratings", {
   title: ctx => (ctx.team ? ctx.team.school : "Ratings"),
   crumb: () => "TEAM › RATINGS",
@@ -69,15 +102,19 @@ menuRouter.register("team-ratings", {
     if (!team) return menuErrorPanel(`That team is not in the ${MENU.season} list.`, true);
     const sub = team.sub_ratings || {};
     const stats = (await fetchTeamStats(MENU.season))[String(team.id)];
+    const lv = d.liveById[team.id];
+    const wk = d.live?.through_week;
     const bars = MENU_SUBRATINGS.map(([label, key]) => menuBar(label, sub[key])).join("");
     const refs = [team.sp_overall != null ? `SP+ margin ${team.sp_overall > 0 ? "+" : ""}${Number(team.sp_overall).toFixed(1)} (a reference, not an input)` : "",
                   team.recruiting_score != null ? `Recruiting ${Math.round(team.recruiting_score)}` : ""].filter(Boolean);
-    return `${menuScheduleBand(d, team)}
-      <div class="m-split m-split--roster">
-        <section class="m-panel m-bars-wide"><h3 class="m-h3">Rating breakdown</h3>${bars}
+    const breakdown = `<section class="m-panel m-bars-wide"><h3 class="m-h3">${lv ? "Preseason breakdown" : "Rating breakdown"}</h3>${bars}
           ${refs.length ? `<p class="m-note">${refs.map(_esc).join(" · ")}</p>` : ""}
-          <p class="m-note">${isProjectedSeason(MENU.season) ? `The ${MENU.season} breakdown is the preseason projection, built from the roster. ` : ""}The overall blends the roster's ratings with the team's stats and results (How It Works explains the blend); each bar is one slice of it.</p></section>
-        <section class="m-panel">${menuLineUnit(sub, MENU.season)}</section>
+          <p class="m-note">${isProjectedSeason(MENU.season) ? `The ${MENU.season} breakdown is the preseason projection, built from the roster${lv ? "; it has no to-date version, so the panels above carry what the games say" : ""}. ` : ""}The overall blends the roster's ratings with the team's stats and results (How It Works explains the blend); each bar is one slice of it.</p></section>`;
+    return `${menuScheduleBand(d, team)}
+      ${lv ? menuTeamRatingsToDate(team, lv, wk) : ""}
+      <div class="m-split m-split--roster">
+        ${breakdown}
+        <section class="m-panel">${menuLineUnit(sub, MENU.season, lv?.roster_groups?.OL ?? null, wk)}</section>
       </div>
       <section class="m-panel"><h3 class="m-h3">Team stats ${MENU.season}</h3>${menuTeamStatTiles(stats) || `<p class="m-empty">${isProjectedSeason(MENU.season) ? "No games played yet, so no per-game numbers." : "No per-game team stats are on file for this season."}</p>`}</section>`;
   },

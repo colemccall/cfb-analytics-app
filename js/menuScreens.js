@@ -95,6 +95,20 @@ function menuBar(label, value, hint = "") {
   </div>`;
 }
 
+// A rating bar with two numbers: the track is filled to `now` (to date, in the tier colour) and a tick marks `pre` (the preseason
+// projection), so actual and projection read on one bar. The value column shows `now` and, under it, the projection. Either may be
+// missing: no `now` draws an empty track and a dash; no `pre` draws no tick. Never a zero for a missing number.
+function menuBarPair(label, now, pre, hint = "") {
+  const v = now == null ? null : Math.round(now);
+  const p = pre == null ? null : Math.round(pre);
+  const tip = [hint, v == null ? "No to-date number" : `To date ${v}`, p == null ? "" : `preseason projection ${p}`].filter(Boolean).join(" · ");
+  return `<div class="m-bar m-bar--pair" title="${_esc(tip)}">
+    <span class="m-bar-label">${_esc(label)}</span>
+    <span class="m-bar-track"><i style="width:${v == null ? 0 : v}%;background:${v == null ? "transparent" : ratingColor(v)}"></i>${p == null ? "" : `<b class="m-bar-mark" style="left:${p}%" aria-hidden="true"></b>`}</span>
+    <b class="m-bar-val">${v == null ? "—" : v}${p == null ? "" : `<small class="m-bar-pre">pre ${p}</small>`}</b>
+  </div>`;
+}
+
 // The team's next unplayed game from its schedule, or null: the first game with no
 // result, in date order. The opponent is named; an FCS opponent has no team row.
 function menuNextGame(games) {

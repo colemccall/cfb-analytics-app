@@ -33,6 +33,45 @@
 
 const CHANGES = [
   {
+    id: "v4.27.5-team-ratings-to-date",
+    version: "v4.27.5",
+    date: "2026-11-20",
+    title: "A team's Ratings page shows what the games say to date beside the projection, not the projection alone",
+    summary: `The owner: the Ratings page under a team "does not seem to match the actual stats and ratings, but shows the projection". It did. For a season being played, every bar read the team's sub_ratings, the preseason projection, and the live file's to-date numbers were never read on that page. The line panel also said the offensive line is "not rated for a season in progress", though the live file carries the unit to date (Boise State 89). The page now opens on the rating to date: overall, offense and defense as bars filled to the to-date number with a tick at the projection, the three readings, and every position group. The preseason breakdown follows, labelled as such.`,
+    motivation: `The owner: "im cool with having a bar that shows both, but we need to see actuals too".`,
+    did: [
+      { what: "Rating to date and position groups to date (js/menuScreensRatings.js, menuTeamRatingsToDate)",
+        why: `Read from the live file's team row: overall_rating, offense_rating, defense_rating, roster_half, stats_half, results_half and roster_groups. Overall pairs with preseason_overall; offense and defense pair with the season's projected split, and get no tick where the projection has no separate offense and defense (the menuSideHint rule). The readings and groups have no preseason version, so they show the actual alone. Finished seasons render as before.`,
+        cost: "The page is longer in a season being played: two panels above the breakdown." },
+      { what: "A paired bar (js/menuScreens.js menuBarPair; css/menu.css .m-bar-mark, .m-bar-pre)",
+        why: `One bar, two numbers: the fill is to date in the tier colour, a 3px tick in the text token marks the projection, and the value column shows the to-date number with "pre N" under it. Either may be missing (no fill, or no tick), never drawn as a zero. The phone rule for the value column is in the existing @media block, which would otherwise win at equal specificity.`,
+        cost: "None measured: contrast floors green; the audit of the screen has 0 findings in both modes at both widths." },
+      { what: "The line panel reads the unit to date (menuLineUnit)",
+        why: `roster_groups.OL is the line unit read from this season's games, the number the roster half uses (script 10 slot_groups). The panel shows it and says the five measurements appear once the season is finished.`,
+        cost: "None." },
+      { what: "Guide, IDEAS, and two owner decisions written down",
+        why: `The Guide's Teams entry describes the page in both kinds of season. docs/IDEAS.md records that the earned order is left as it is and monitored (2026-11-20), and the QB accuracy and turnover proposal measured this session, awaiting the owner's go.`,
+        cost: "None." },
+    ],
+    tried: [
+      { what: "Put actual and projection on two separate bars", result: "Doubles the rows and hides the comparison the owner asked for. One bar with a tick reads the gap at a glance.", verdict: "rejected" },
+      { what: "Derive a to-date pass, run and special-teams split", result: "Nothing on file computes one in a season being played; inventing it in the page would put a number on screen that no pipeline step produced. It stays the projection, labelled.", verdict: "blocked" },
+    ],
+    measured: [
+      { label: "Boise State's Ratings page, 2026 through week 11", before: "Overall 80, pass offense 75, run offense 78 (all preseason); line 'not rated'", after: "Overall 79 (pre 80), offense 86 (pre 81), defense 75 (pre 83); roster 88, stats 79, results 77; QB 84, line 89" },
+    ],
+    gates: [
+      { check: "UI smoke suite (tools/ui-smoke)", result: "81 of 81. The Ratings check asserted the old in-season wording ('not rated for a season in progress'); it now requires the to-date panels, the projection tick, the week and no NaN or null" },
+      { check: "a11y.mjs --only=#/team/52/ratings; contrast-check; node --check js/*.js", result: "0 findings in both modes at both widths; every floor green; passes" },
+    ],
+    unfixed: `**The pass, run and special-teams split exists only as the projection** in a season being played.
+      **The line's five measurements wait for the season to finish;** the unit to date is shown.
+      **The QB accuracy and turnover change is measured and not made:** it moves every QB rating in every season and waits for the owner (docs/IDEAS.md).
+      **The explanation page for a team's two numbers** (docs/IDEAS.md) is not built; this pass shows the actual numbers, it does not explain them.`,
+    methods: ["team-ratings", "ol"],
+    files: ["js/menuScreensRatings.js", "js/menuScreens.js", "css/menu.css", "js/guide.js", "tools/ui-smoke/smoke.mjs"],
+  },
+  {
     id: "v4.27.4-interceptions-and-earned-variants",
     version: "v4.27.4",
     date: "2026-11-19",

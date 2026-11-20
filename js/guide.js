@@ -367,7 +367,7 @@ const GUIDE = [
     ],
     panels: [
       { name: "Overview", what: "Rating, offense and defense, record, national rank and next game; the six best players; the week-by-week panel in a season with one." },
-      { name: "Ratings", what: "The rating broken into pass and run, offense and defense and special teams; the offensive line as a unit with its five measurements (not a per-player rating); per-game team stats for a played season; the SP+ margin and recruiting score as references." },
+      { name: "Ratings", what: "In a season being played, the rating to date first: overall, offense and defense as bars filled to what the games say so far, with a tick at the preseason projection; the roster, stats and results readings; every position group to date, the line as a unit. Then the preseason breakdown into pass and run, offense and defense and special teams. In a finished season, that breakdown, the offensive line as a unit with its five measurements (not a per-player rating), per-game team stats, and the SP+ margin and recruiting score as references." },
       { name: "Roster", what: "Every player on the roster, rated or not. Position tabs filter it; click a heading to sort; the strip above follows the selection; any row opens the card." },
       { name: "Depth Chart", what: "Position groups in the order of their ratings. Not an official chart: no source we hold has depth data." },
       { name: "Schedule", what: "Every game with byes and the postseason, where the opponent is ranked now (not the week of the game), its rating and record, and the result; select a game for the two teams side by side. On a phone the row keeps the week, the opponent, the rank now and the result." },
@@ -376,7 +376,8 @@ const GUIDE = [
     methods: ["team-ratings", "ol"],
     limits: `A team rating blends schedule-adjusted results, our ratings of the roster and the
       team's own statistics; it is not a prediction of who would win, and says nothing about who
-      was healthy. A season not yet played has no offense and defense split, and no line rating.`,
+      was healthy. A season not yet played has no offense and defense split, and no line rating. In a season being played the line
+      has a number to date but its five measurements wait for the season to finish, and the pass, run and special-teams split exists only as the projection.`,
   },
   {
     id: "page-players",
